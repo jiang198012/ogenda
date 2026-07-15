@@ -15,14 +15,14 @@ export function icalToEvents(ics: string, source: string): AgendaEvent[] {
       .map((p) => String(p.getFirstValue() ?? ""))
       .filter((s) => s.length > 0);
     const status = ve.getFirstPropertyValue("status");
-    const rrule = ve.getFirstProperty("rrule");
+    const rrule = ve.getFirstPropertyValue("rrule");
     out.push({
       uid: ev.uid,
       title: ev.summary || "(no title)",
       start: start ? start.toString() : "",
       end: end ? end.toString() : undefined,
       allDay: start ? start.isDate : undefined,
-      tz: start && start.zone && start.zone.tzid ? start.zone.tzid : undefined,
+      tz: start && start.zone && start.zone.tzid && start.zone.tzid !== "floating" ? start.zone.tzid : undefined,
       location: ev.location || undefined,
       organizer: organizer ? String(organizer).replace(/^mailto:/i, "") : undefined,
       attendees: attendees.length ? attendees.map((a) => a.replace(/^mailto:/i, "")) : undefined,
