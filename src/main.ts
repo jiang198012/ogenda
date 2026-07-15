@@ -1,9 +1,9 @@
 import { Plugin, Notice } from "obsidian";
 import { DEFAULT_SETTINGS, SpikeSettings, SpikeSettingTab } from "./spike-settings";
-import { imapConnectTest } from "./imap-spike";
+import { imapConnectTest, dumpOneInvite } from "./imap-spike";
 
 export default class OgendaPlugin extends Plugin {
-  settings: SpikeSettings;
+  settings!: SpikeSettings;
 
   async onload() {
     await this.loadSettings();
@@ -18,6 +18,11 @@ export default class OgendaPlugin extends Plugin {
       id: "ogenda-imap-connect-test",
       name: "IMAP connect test",
       callback: () => void imapConnectTest(this.settings),
+    });
+    this.addCommand({
+      id: "ogenda-dump-invite",
+      name: "Dump one invite ICS",
+      callback: () => void dumpOneInvite(this.settings),
     });
   }
 
