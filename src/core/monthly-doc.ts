@@ -124,6 +124,10 @@ export function upsertEvents(text: string, events: AgendaEvent[]): UpsertResult 
       added++;
     }
   }
-  blocks.sort((a, b) => (a.fields["start"] || "").localeCompare(b.fields["start"] || ""));
+  blocks.sort((a, b) => {
+    const sa = a.fields["start"] || "";
+    const sb = b.fields["start"] || "";
+    return sa < sb ? -1 : sa > sb ? 1 : 0;
+  });
   return { text: serializeMonthlyDoc(preamble, blocks), added, updated };
 }

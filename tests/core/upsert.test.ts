@@ -47,4 +47,20 @@ describe("upsertEvents", () => {
     expect(blocks[0].fields.uid).toBe("a@x");
     expect(blocks[1].fields.uid).toBe("b@x");
   });
+
+  it("preserves a hand-written block that has no uid:: field", () => {
+    const src = "## 手写便签\n- start:: 2026-07-10T08:00:00\n\n随手记的。\n";
+    const r = upsertEvents(src, [mk("a@x", "2026-07-14T15:00:00", "周会")]);
+    const { blocks } = parseMonthlyDoc(r.text);
+    expect(blocks.map((b) => b.heading)).toContain("手写便签");
+    expect(blocks.length).toBe(2);
+  });
+
+  it("keeps a previously-synced field when a later sync omits it (additive merge, MVP)", () => {
+    const withLoc = { ...mk("a@x", "2026-07-14T15:00:00", "周会"), location: "会议室A" };
+    const first = upsertEvents("", [withLoc]).text;
+    const second = upsertEvents(first, [mk("a@x", "2026-07-14T15:00:00", "周会")]);
+    const { blocks } = parseMonthlyDoc(second.text);
+    expect(blocks[0].fields.location).toBe("会议室A");
+  });
 });
