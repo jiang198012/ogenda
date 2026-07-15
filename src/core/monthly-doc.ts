@@ -9,7 +9,7 @@ const HEADING_RE = /^##\s+(.*)$/;
 const FIELD_RE = /^-\s+([A-Za-z0-9_]+)::\s?(.*)$/;
 
 export function parseMonthlyDoc(text: string): { preamble: string; blocks: EventBlock[] } {
-  const lines = text.split("\n");
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
   const blocks: EventBlock[] = [];
   const preambleLines: string[] = [];
   let cur:
@@ -59,14 +59,15 @@ export function serializeEventBlock(b: EventBlock): string {
   const fieldLines = b.fieldOrder
     .filter((k) => b.fields[k] !== undefined)
     .map((k) => `- ${k}:: ${b.fields[k]}`);
-  let out = `## ${b.heading}\n${fieldLines.join("\n")}`;
+  let out = `## ${b.heading}`;
+  if (fieldLines.length) out += `\n${fieldLines.join("\n")}`;
   if (b.prose && b.prose.trim().length) out += `\n\n${b.prose}`;
   return out;
 }
 
 export function serializeMonthlyDoc(preamble: string, blocks: EventBlock[]): string {
   const parts: string[] = [];
-  if (preamble && preamble.trim().length) parts.push(preamble.trim());
+  if (preamble && preamble.trim().length) parts.push(preamble);
   for (const b of blocks) parts.push(serializeEventBlock(b));
   return parts.join("\n\n") + "\n";
 }

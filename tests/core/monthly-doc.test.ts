@@ -37,4 +37,18 @@ describe("parseMonthlyDoc", () => {
     expect(again.blocks[0].prose).toContain("我自己记的纪要");
     expect(again.blocks.length).toBe(2);
   });
+
+  it("handles CRLF line endings (does not collapse into preamble)", () => {
+    const crlf = "# 2026-07\r\n\r\n## 09:00 晨会\r\n- uid:: def@x\r\n- start:: 2026-07-15T09:00:00\r\n";
+    const { blocks } = parseMonthlyDoc(crlf);
+    expect(blocks.length).toBe(1);
+    expect(blocks[0].fields.uid).toBe("def@x");
+  });
+
+  it("round-trips a zero-field heading without adding blank lines", () => {
+    const src = "## 纯笔记标题\n\n就是随手记,没有字段。\n";
+    const { preamble, blocks } = parseMonthlyDoc(src);
+    const out = serializeMonthlyDoc(preamble, blocks);
+    expect(out).toBe(src);
+  });
 });
