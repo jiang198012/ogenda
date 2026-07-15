@@ -12,6 +12,8 @@ const ev: AgendaEvent = {
   organizer: "alice@example.com",
   attendees: ["a@x", "b@x"],
   status: "confirmed",
+  category: "工作",
+  tags: ["a", "b"],
   origin: "synced",
   source: "imap/gmail",
   protocol: "imap",
@@ -26,6 +28,8 @@ describe("eventToFields", () => {
     expect(f.all_day).toBe("false");
     expect(f.attendees).toBe("a@x, b@x");
     expect(f.source).toBe("imap/gmail");
+    expect(f.category).toBe("工作");
+    expect(f.tags).toBe("a, b");
   });
   it("omits empty/undefined fields", () => {
     const f = eventToFields({ uid: "u", title: "t", start: "2026-07-14T09:00:00", origin: "local" });

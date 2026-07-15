@@ -14,6 +14,8 @@ export interface AgendaEvent {
   status?: string;
   rsvp?: string;
   busy?: string;
+  category?: string;
+  tags?: string[];
   origin: EventOrigin;
   source?: string;
   protocol?: string;
@@ -41,6 +43,8 @@ export function eventToFields(ev: AgendaEvent): Record<string, string> {
   set("status", ev.status);
   set("rsvp", ev.rsvp);
   set("busy", ev.busy);
+  set("category", ev.category);
+  if (ev.tags && ev.tags.length) set("tags", ev.tags.join(", "));
   set("origin", ev.origin);
   set("source", ev.source);
   set("protocol", ev.protocol);
