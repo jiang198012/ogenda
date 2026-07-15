@@ -1,0 +1,25 @@
+{
+  "name": "ogenda",
+  "version": "0.0.1",
+  "description": "Obsidian desktop agenda plugin — sync schedule events from mailbox accounts",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "test": "vitest run"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22",
+    "builtin-modules": "^4",
+    "esbuild": "^0.24",
+    "obsidian": "latest",
+    "tslib": "^2",
+    "typescript": "^5",
+    "vitest": "^2"
+  },
+  "dependencies": {
+    "imapflow": "^1",
+    "ical.js": "^2"
+  }
+}
