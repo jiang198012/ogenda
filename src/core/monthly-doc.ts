@@ -1,3 +1,5 @@
+import { AgendaEvent, eventToFields } from "./event";
+
 export interface EventBlock {
   heading: string;
   fields: Record<string, string>;
@@ -70,4 +72,58 @@ export function serializeMonthlyDoc(preamble: string, blocks: EventBlock[]): str
   if (preamble && preamble.trim().length) parts.push(preamble);
   for (const b of blocks) parts.push(serializeEventBlock(b));
   return parts.join("\n\n") + "\n";
+}
+
+export function eventHeading(ev: AgendaEvent): string {
+  const hhmm = (iso?: string): string => {
+    if (!iso) return "";
+    const m = /T(\d{2}:\d{2})/.exec(iso);
+    return m ? m[1] : "";
+  };
+  if (ev.allDay) return ev.title;
+  const s = hhmm(ev.start);
+  const e = hhmm(ev.end);
+  const time = s ? (e ? `${s}–${e}` : s) : "";
+  return time ? `${time} ${ev.title}` : ev.title;
+}
+
+export interface UpsertResult {
+  text: string;
+  added: number;
+  updated: number;
+}
+
+export function upsertEvents(text: string, events: AgendaEvent[]): UpsertResult {
+  const { preamble, blocks } = parseMonthlyDoc(text);
+  const byUid = new Map<string, EventBlock>();
+  for (const b of blocks) {
+    const u = b.fields["uid"];
+    if (u) byUid.set(u, b);
+  }
+  let added = 0;
+  let updated = 0;
+  for (const ev of events) {
+    const mf = eventToFields(ev);
+    const existing = byUid.get(ev.uid);
+    if (existing) {
+      for (const [k, v] of Object.entries(mf)) {
+        if (!existing.fieldOrder.includes(k)) existing.fieldOrder.push(k);
+        existing.fields[k] = v;
+      }
+      existing.heading = eventHeading(ev);
+      updated++;
+    } else {
+      const nb: EventBlock = {
+        heading: eventHeading(ev),
+        fields: { ...mf },
+        fieldOrder: Object.keys(mf),
+        prose: "",
+      };
+      blocks.push(nb);
+      byUid.set(ev.uid, nb);
+      added++;
+    }
+  }
+  blocks.sort((a, b) => (a.fields["start"] || "").localeCompare(b.fields["start"] || ""));
+  return { text: serializeMonthlyDoc(preamble, blocks), added, updated };
 }
