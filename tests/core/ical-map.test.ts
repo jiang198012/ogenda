@@ -56,4 +56,10 @@ describe("icalToEvents", () => {
     const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//t//EN\nBEGIN:VEVENT\nUID:m1@x\nSUMMARY:一\nDTSTART:20260714T070000Z\nEND:VEVENT\nBEGIN:VEVENT\nUID:m2@x\nSUMMARY:二\nDTSTART:20260715T070000Z\nEND:VEVENT\nEND:VCALENDAR`;
     expect(icalToEvents(ics, "s").length).toBe(2);
   });
+
+  it("skips a VEVENT without DTSTART instead of crashing the whole feed", () => {
+    const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//t//EN\nBEGIN:VEVENT\nUID:bad@x\nSUMMARY:无开始\nEND:VEVENT\nBEGIN:VEVENT\nUID:good@x\nSUMMARY:正常\nDTSTART:20260714T070000Z\nEND:VEVENT\nEND:VCALENDAR`;
+    const evs = icalToEvents(ics, "s");
+    expect(evs.map((e) => e.uid)).toEqual(["good@x"]);
+  });
 });

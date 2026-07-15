@@ -8,6 +8,7 @@ export function icalToEvents(ics: string, source: string): AgendaEvent[] {
   for (const ve of vevents) {
     const ev = new ICAL.Event(ve);
     const start = ev.startDate;
+    if (!start) continue; // malformed VEVENT without DTSTART — skip, don't crash the whole feed
     const end = ev.endDate;
     const organizer = ve.getFirstPropertyValue("organizer");
     const attendees = ve

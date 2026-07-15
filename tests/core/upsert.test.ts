@@ -63,4 +63,14 @@ describe("upsertEvents", () => {
     const { blocks } = parseMonthlyDoc(second.text);
     expect(blocks[0].fields.location).toBe("会议室A");
   });
+
+  it("does not corrupt a block when heading/field values contain a newline", () => {
+    const ev = { ...mk("a@x", "2026-07-14T15:00:00", "周会\n第二行"), location: "401 室\n主楼" };
+    const r = upsertEvents("", [ev]);
+    const { blocks } = parseMonthlyDoc(r.text);
+    expect(blocks.length).toBe(1);
+    expect(blocks[0].fields.uid).toBe("a@x");
+    const r2 = upsertEvents(r.text, [ev]);
+    expect(parseMonthlyDoc(r2.text).blocks.length).toBe(1); // idempotent, no duplicate
+  });
 });
