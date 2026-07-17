@@ -12,4 +12,10 @@ describe("dedupeByUid", () => {
     expect(r.length).toBe(2);
     expect(r.find((e) => e.uid === "a")!.title).toBe("two");
   });
+
+  it("drops events with empty/missing uid", () => {
+    const r = dedupeByUid([mk("a", "one"), mk("", "no-uid")]);
+    expect(r.length).toBe(1);
+    expect(r[0].uid).toBe("a");
+  });
 });

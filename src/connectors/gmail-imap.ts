@@ -29,33 +29,39 @@ export class GmailImapConnector implements Connector {
     });
     const out: AgendaEvent[] = [];
     await client.connect();
-    const lock = await client.getMailboxLock("INBOX");
     try {
-      const mb = client.mailbox;
-      const total = mb ? mb.exists : 0;
-      if (total > 0) {
-        const start = Math.max(1, total - this.scanCount + 1);
-        for await (const msg of client.fetch(`${start}:*`, {
-          uid: true,
-          bodyStructure: true,
-          envelope: true,
-        })) {
-          const parts = findCalendarParts(msg.bodyStructure as any);
-          for (const part of parts) {
-            try {
-              const dl = await client.download(msg.uid, part, { uid: true });
-              const ics = await streamToString(dl.content);
-              out.push(...icalToEvents(ics, this.id));
-            } catch (e) {
-              console.error("[ogenda] failed to read calendar part", part, e);
+      const lock = await client.getMailboxLock("INBOX");
+      try {
+        const mb = client.mailbox;
+        const total = mb ? mb.exists : 0;
+        if (total > 0) {
+          const start = Math.max(1, total - this.scanCount + 1);
+          for await (const msg of client.fetch(`${start}:*`, {
+            uid: true,
+            bodyStructure: true,
+          })) {
+            const parts = findCalendarParts(msg.bodyStructure as any);
+            for (const part of parts) {
+              try {
+                const dl = await client.download(msg.uid, part, { uid: true });
+                const ics = await streamToString(dl.content);
+                out.push(...icalToEvents(ics, this.id));
+              } catch (e) {
+                console.error("[ogenda] failed to read calendar part", part, e);
+              }
             }
           }
         }
+      } finally {
+        lock.release();
       }
     } finally {
-      lock.release();
+      try {
+        await client.logout();
+      } catch {
+        // ignore logout errors during cleanup (connection may already be broken)
+      }
     }
-    await client.logout();
     return dedupeByUid(out);
   }
 }
