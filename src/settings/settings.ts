@@ -1,8 +1,12 @@
+import { EncryptedSecret, isEncryptedSecret } from "./secret-store";
+
 export interface OgendaSettings {
   email: string;
   storageFolder: string;
   scanCount: number;
   syncOnStartup: boolean;
+  /** Passphrase-encrypted Gmail app password (ciphertext only; safe to persist). */
+  encryptedPassword: EncryptedSecret | null;
 }
 
 export const DEFAULT_SETTINGS: OgendaSettings = {
@@ -10,6 +14,7 @@ export const DEFAULT_SETTINGS: OgendaSettings = {
   storageFolder: "Agenda",
   scanCount: 50,
   syncOnStartup: false,
+  encryptedPassword: null,
 };
 
 export function sanitizeSettings(raw: unknown): OgendaSettings {
@@ -22,5 +27,7 @@ export function sanitizeSettings(raw: unknown): OgendaSettings {
     storageFolder: str(r.storageFolder, DEFAULT_SETTINGS.storageFolder),
     scanCount: num(r.scanCount, DEFAULT_SETTINGS.scanCount),
     syncOnStartup: bool(r.syncOnStartup, DEFAULT_SETTINGS.syncOnStartup),
+    // only the ciphertext is ever kept; a plaintext appPassword key is dropped here
+    encryptedPassword: isEncryptedSecret(r.encryptedPassword) ? r.encryptedPassword : null,
   };
 }
