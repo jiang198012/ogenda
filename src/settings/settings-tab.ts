@@ -46,11 +46,14 @@ export class OgendaSettingTab extends PluginSettingTab {
         })
       );
 
-    new Setting(containerEl).setName("Sync on startup").addToggle((tg) =>
-      tg.setValue(this.plugin.settings.syncOnStartup).onChange(async (v) => {
-        this.plugin.settings.syncOnStartup = v;
-        await this.plugin.saveSettings();
-      })
-    );
+    new Setting(containerEl)
+      .setName("Sync on startup")
+      .setDesc("仅当本会话已输入 App 密码时生效(密钥不落盘,冷启动时为空)")
+      .addToggle((tg) =>
+        tg.setValue(this.plugin.settings.syncOnStartup).onChange(async (v) => {
+          this.plugin.settings.syncOnStartup = v;
+          await this.plugin.saveSettings();
+        })
+      );
   }
 }

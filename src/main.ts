@@ -1,5 +1,5 @@
 import { Plugin, Notice } from "obsidian";
-import { DEFAULT_SETTINGS, OgendaSettings } from "./settings/settings";
+import { OgendaSettings, sanitizeSettings } from "./settings/settings";
 import { OgendaSettingTab } from "./settings/settings-tab";
 import { ObsidianFileStore } from "./store/obsidian-file-store";
 import { MonthlyStore } from "./store/monthly-store";
@@ -21,7 +21,11 @@ export default class OgendaPlugin extends Plugin {
     });
 
     if (this.settings.syncOnStartup) {
-      this.app.workspace.onLayoutReady(() => void this.syncNow());
+      // app password is in-memory only (empty on cold start); sync silently
+      // only if it was already entered this session — avoids a startup nag.
+      this.app.workspace.onLayoutReady(() => {
+        if (this.appPassword) void this.syncNow();
+      });
     }
   }
 
@@ -50,7 +54,12 @@ export default class OgendaPlugin extends Plugin {
   }
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const raw = await this.loadData();
+    this.settings = sanitizeSettings(raw);
+    // scrub any secret persisted by an earlier build (e.g. Phase 0 spike) from data.json
+    if (raw && typeof raw === "object" && "appPassword" in (raw as object)) {
+      await this.saveData(this.settings);
+    }
   }
   async saveSettings() {
     await this.saveData(this.settings);
