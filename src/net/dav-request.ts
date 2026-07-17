@@ -43,3 +43,18 @@ export function firstTag(xml: string, localName: string): string | null {
   }
   return null;
 }
+
+/** The first <href> nested inside the first element with the given localName. */
+export function hrefInside(xml: string, parentLocalName: string): string | null {
+  const doc = new DOMParser().parseFromString(xml, "application/xml");
+  const els = doc.getElementsByTagName("*");
+  for (let i = 0; i < els.length; i++) {
+    if (els[i].localName === parentLocalName) {
+      const inner = els[i].getElementsByTagName("*");
+      for (let j = 0; j < inner.length; j++) {
+        if (inner[j].localName === "href") return (inner[j].textContent || "").trim();
+      }
+    }
+  }
+  return null;
+}

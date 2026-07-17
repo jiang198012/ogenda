@@ -5,7 +5,7 @@ import { ObsidianFileStore } from "./store/obsidian-file-store";
 import { MonthlyStore } from "./store/monthly-store";
 import { GmailImapConnector } from "./connectors/gmail-imap";
 import { SyncService } from "./sync/sync-service";
-import { davRequest, firstTag } from "./net/dav-request";
+import { davRequest, hrefInside } from "./net/dav-request";
 
 const XML_CT = "application/xml; charset=utf-8";
 const D0_UID = "ogenda-d0-probe-1@ogenda";
@@ -83,7 +83,7 @@ export default class OgendaPlugin extends Plugin {
         body: `<d:propfind xmlns:d="DAV:"><d:prop><d:current-user-principal/></d:prop></d:propfind>`,
       });
       console.log("[ogenda] principal status", r1.status, "\n" + r1.text);
-      const principalHref = firstTag(r1.text, "href");
+      const principalHref = hrefInside(r1.text, "current-user-principal");
       if (!principalHref) {
         new Notice(`discovery: principal=${r1.status},没解析到 href(见控制台)`);
         return;
@@ -101,7 +101,7 @@ export default class OgendaPlugin extends Plugin {
         body: `<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><c:calendar-home-set/></d:prop></d:propfind>`,
       });
       console.log("[ogenda] home status", r2.status, "\n" + r2.text);
-      const homeHref = firstTag(r2.text, "href");
+      const homeHref = hrefInside(r2.text, "calendar-home-set");
       if (!homeHref) {
         new Notice(`discovery: home=${r2.status},没解析到 calendar-home(见控制台)`);
         return;
