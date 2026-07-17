@@ -26,7 +26,6 @@ export class OgendaSettingTab extends PluginSettingTab {
       .addText((t) => {
         t.inputEl.type = "password";
         t.setValue(this.plugin.settings.appPassword).onChange(async (v) => {
-          // Gmail shows the app password with cosmetic spaces; strip ALL whitespace.
           this.plugin.settings.appPassword = v.replace(/\s+/g, "");
           await this.plugin.saveSettings();
         });
@@ -56,6 +55,37 @@ export class OgendaSettingTab extends PluginSettingTab {
       .addToggle((tg) =>
         tg.setValue(this.plugin.settings.syncOnStartup).onChange(async (v) => {
           this.plugin.settings.syncOnStartup = v;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    // --- iCloud CalDAV (D0 spike) ---
+    containerEl.createEl("h3", { text: "iCloud CalDAV (D0 探针)" });
+
+    new Setting(containerEl).setName("iCloud 邮箱 (Apple ID)").addText((t) =>
+      t.setValue(this.plugin.settings.icloudUser).onChange(async (v) => {
+        this.plugin.settings.icloudUser = v.trim();
+        await this.plugin.saveSettings();
+      })
+    );
+
+    new Setting(containerEl)
+      .setName("iCloud App 专用密码")
+      .setDesc("appleid.apple.com 生成的 16 位;明文存 data.json;空格自动去除。")
+      .addText((t) => {
+        t.inputEl.type = "password";
+        t.setValue(this.plugin.settings.icloudAppPassword).onChange(async (v) => {
+          this.plugin.settings.icloudAppPassword = v.replace(/\s+/g, "");
+          await this.plugin.saveSettings();
+        });
+      });
+
+    new Setting(containerEl)
+      .setName("iCloud 日历 URL")
+      .setDesc("D0.2 用:先跑 discovery 探针,从控制台复制某个日历的 href 粘这里。")
+      .addText((t) =>
+        t.setValue(this.plugin.settings.icloudCalUrl).onChange(async (v) => {
+          this.plugin.settings.icloudCalUrl = v.trim();
           await this.plugin.saveSettings();
         })
       );

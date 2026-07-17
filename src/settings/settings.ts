@@ -5,6 +5,10 @@ export interface OgendaSettings {
   storageFolder: string;
   scanCount: number;
   syncOnStartup: boolean;
+  // --- iCloud CalDAV (D0 spike) ---
+  icloudUser: string;
+  icloudAppPassword: string;
+  icloudCalUrl: string;
 }
 
 export const DEFAULT_SETTINGS: OgendaSettings = {
@@ -13,6 +17,9 @@ export const DEFAULT_SETTINGS: OgendaSettings = {
   storageFolder: "Agenda",
   scanCount: 50,
   syncOnStartup: false,
+  icloudUser: "",
+  icloudAppPassword: "",
+  icloudCalUrl: "",
 };
 
 export function sanitizeSettings(raw: unknown): OgendaSettings {
@@ -26,5 +33,8 @@ export function sanitizeSettings(raw: unknown): OgendaSettings {
     storageFolder: str(r.storageFolder, DEFAULT_SETTINGS.storageFolder),
     scanCount: num(r.scanCount, DEFAULT_SETTINGS.scanCount),
     syncOnStartup: bool(r.syncOnStartup, DEFAULT_SETTINGS.syncOnStartup),
+    icloudUser: str(r.icloudUser, DEFAULT_SETTINGS.icloudUser),
+    icloudAppPassword: str(r.icloudAppPassword, DEFAULT_SETTINGS.icloudAppPassword),
+    icloudCalUrl: str(r.icloudCalUrl, DEFAULT_SETTINGS.icloudCalUrl),
   };
 }

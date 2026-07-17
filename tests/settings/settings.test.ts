@@ -2,13 +2,16 @@ import { describe, it, expect } from "vitest";
 import { sanitizeSettings, DEFAULT_SETTINGS } from "../../src/settings/settings";
 
 describe("sanitizeSettings", () => {
-  it("keeps the known fields (incl. appPassword) and drops unknown keys", () => {
+  it("keeps the known fields (incl. appPassword + iCloud) and drops unknown keys", () => {
     const s = sanitizeSettings({
       email: "a@x",
       appPassword: "pw123",
       storageFolder: "Cal",
       scanCount: 10,
       syncOnStartup: true,
+      icloudUser: "me@icloud.com",
+      icloudAppPassword: "abcd",
+      icloudCalUrl: "https://p1-caldav.icloud.com/1/calendars/home/",
       bogus: "x",
     });
     expect(s).toEqual({
@@ -17,6 +20,9 @@ describe("sanitizeSettings", () => {
       storageFolder: "Cal",
       scanCount: 10,
       syncOnStartup: true,
+      icloudUser: "me@icloud.com",
+      icloudAppPassword: "abcd",
+      icloudCalUrl: "https://p1-caldav.icloud.com/1/calendars/home/",
     });
     expect("bogus" in s).toBe(false);
   });
