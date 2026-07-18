@@ -1,0 +1,252 @@
+/* ogenda — Agenda panel styles */
+
+.ogenda-panel {
+  padding: 8px 16px 16px;
+}
+
+.ogenda-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  margin-bottom: 16px;
+}
+
+.ogenda-panel-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.ogenda-panel-tab {
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.ogenda-panel-tab:hover {
+  background: var(--background-modifier-hover);
+}
+
+.ogenda-panel-tab.active {
+  background: var(--background-modifier-active-hover);
+  color: var(--interactive-accent);
+  font-weight: 600;
+}
+
+.ogenda-panel-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-normal);
+}
+
+.ogenda-navbtn {
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+.ogenda-navbtn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* List view */
+
+.ogenda-list-daygroup {
+  margin-bottom: 18px;
+}
+
+.ogenda-list-daylabel {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.ogenda-event-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--interactive-accent);
+  border-radius: 4px;
+  background: var(--background-secondary);
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+.ogenda-event-row:hover {
+  background: var(--background-modifier-hover);
+}
+
+.ogenda-event-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 78px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ogenda-event-title {
+  font-weight: 600;
+  font-size: 14px;
+  flex: 1;
+}
+
+.ogenda-event-loc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Day view */
+
+.ogenda-day-card {
+  border-radius: 8px;
+  background: var(--background-secondary);
+  border-left: 4px solid var(--interactive-accent);
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+
+.ogenda-day-card:hover {
+  background: var(--background-modifier-hover);
+}
+
+.ogenda-day-time {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 4px;
+}
+
+.ogenda-day-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.ogenda-field-grid {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  row-gap: 6px;
+  column-gap: 10px;
+  font-size: 13px;
+}
+
+.ogenda-field-key {
+  color: var(--text-muted);
+}
+
+.ogenda-field-value {
+  color: var(--text-normal);
+}
+
+/* Week view */
+
+.ogenda-week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.ogenda-week-col-head {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.ogenda-week-col {
+  min-height: 220px;
+  background: var(--background-secondary);
+  border-radius: 6px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ogenda-week-card {
+  border-radius: 6px;
+  background: var(--background-primary);
+  border-left: 3px solid var(--interactive-accent);
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.ogenda-week-card:hover {
+  background: var(--background-modifier-hover);
+}
+
+.ogenda-week-card-time {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ogenda-week-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 2px 0;
+  line-height: 1.25;
+}
+
+.ogenda-week-card-loc {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Month view */
+
+.ogenda-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.ogenda-month-dow {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.ogenda-month-cell {
+  min-height: 78px;
+  border-radius: 6px;
+  background: var(--background-secondary);
+  padding: 5px;
+}
+
+.ogenda-month-othermonth {
+  opacity: 0.4;
+}
+
+.ogenda-month-daynum {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+
+.ogenda-month-mini {
+  font-size: 10px;
+  background: var(--background-modifier-hover);
+  color: var(--interactive-accent);
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+.ogenda-month-mini:hover {
+  background: var(--background-modifier-active-hover);
+}

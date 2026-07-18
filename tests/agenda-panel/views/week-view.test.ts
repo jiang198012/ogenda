@@ -38,4 +38,14 @@ describe("renderWeekView", () => {
     (container.querySelector(".ogenda-week-card") as HTMLElement).click();
     expect(onClick).toHaveBeenCalledWith(occ.event);
   });
+
+  it("renders a weekday+date header cell for each of the 7 days", () => {
+    const container = document.createElement("div");
+    renderWeekView(container, [], new Date(2026, 6, 15), () => {}); // Wed anchor -> week is Mon 13 .. Sun 19
+    const heads = container.querySelectorAll(".ogenda-week-col-head");
+    expect(heads.length).toBe(7);
+    expect(heads[0].textContent).toBe("周一 13");
+    expect(heads[5].textContent).toBe("周六 18");
+    expect(heads[6].textContent).toBe("周日 19");
+  });
 });

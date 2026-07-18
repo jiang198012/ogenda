@@ -46,4 +46,12 @@ describe("renderMonthView", () => {
     (container.querySelector(".ogenda-month-mini") as HTMLElement).click();
     expect(onClick).toHaveBeenCalledWith(occ.event);
   });
+
+  it("renders a fixed 7-cell weekday header row (Mon-first)", () => {
+    const container = document.createElement("div");
+    renderMonthView(container, [], new Date(2026, 6, 15), () => {});
+    const dow = container.querySelectorAll(".ogenda-month-dow");
+    expect(dow.length).toBe(7);
+    expect([...dow].map((d) => d.textContent)).toEqual(["一", "二", "三", "四", "五", "六", "日"]);
+  });
 });

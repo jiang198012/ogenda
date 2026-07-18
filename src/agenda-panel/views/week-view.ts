@@ -20,6 +20,15 @@ export function renderWeekView(
   const grid = document.createElement("div");
   grid.className = "ogenda-week-grid";
 
+  const weekdayLabels = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+
+  for (let i = 0; i < days.length; i++) {
+    const head = document.createElement("div");
+    head.className = "ogenda-week-col-head";
+    head.textContent = `${weekdayLabels[i]} ${days[i].getDate()}`;
+    grid.appendChild(head);
+  }
+
   for (const day of days) {
     const col = document.createElement("div");
     col.className = "ogenda-week-col";

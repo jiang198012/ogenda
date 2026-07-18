@@ -15,6 +15,14 @@ export function renderMonthView(
   const grid = document.createElement("div");
   grid.className = "ogenda-month-grid";
 
+  const weekdayLabels = ["一", "二", "三", "四", "五", "六", "日"];
+  for (const label of weekdayLabels) {
+    const dow = document.createElement("div");
+    dow.className = "ogenda-month-dow";
+    dow.textContent = label;
+    grid.appendChild(dow);
+  }
+
   for (const week of weeks) {
     for (const day of week) {
       const cell = document.createElement("div");
