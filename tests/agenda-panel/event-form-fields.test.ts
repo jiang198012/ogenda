@@ -1,0 +1,82 @@
+import { describe, it, expect } from "vitest";
+import { AgendaEvent } from "../../src/core/event";
+import { validateEventForm, buildEventFromFields, RawFormFields } from "../../src/agenda-panel/event-form-fields";
+
+const blankFields = (): RawFormFields => ({
+  title: "", start: "", end: "", allDay: false,
+  location: "", organizer: "", attendees: "",
+  status: "", rsvp: "", categoryDropdown: "", categoryText: "", tags: "",
+});
+
+describe("validateEventForm", () => {
+  it("requires a non-empty title and start", () => {
+    expect(validateEventForm({ title: "", start: "" }).valid).toBe(false);
+    expect(validateEventForm({ title: "会议", start: "" }).valid).toBe(false);
+    expect(validateEventForm({ title: "", start: "2026-07-20" }).valid).toBe(false);
+    expect(validateEventForm({ title: "会议", start: "2026-07-20" }).valid).toBe(true);
+  });
+
+  it("rejects whitespace-only title/start", () => {
+    expect(validateEventForm({ title: "   ", start: "2026-07-20" }).valid).toBe(false);
+  });
+});
+
+describe("buildEventFromFields", () => {
+  it("generates a new uid when creating (existing = null)", () => {
+    const fields = { ...blankFields(), title: "新事件", start: "2026-07-20T10:00:00" };
+    const ev = buildEventFromFields(fields, null, () => "generated-uid@ogenda");
+    expect(ev.uid).toBe("generated-uid@ogenda");
+    expect(ev.origin).toBe("local");
+  });
+
+  it("preserves the existing uid/origin/href/etag/baseHash/rrule when editing", () => {
+    const existing: AgendaEvent = {
+      uid: "keep-me@ogenda", title: "old", start: "2026-07-01T09:00:00", origin: "synced",
+      href: "https://x/a.ics", etag: '"e1"', baseHash: "abc123", rrule: "FREQ=WEEKLY",
+    };
+    const fields = { ...blankFields(), title: "改过的标题", start: "2026-07-20T10:00:00" };
+    const ev = buildEventFromFields(fields, existing, () => "should-not-be-used");
+    expect(ev.uid).toBe("keep-me@ogenda");
+    expect(ev.origin).toBe("synced");
+    expect(ev.href).toBe("https://x/a.ics");
+    expect(ev.etag).toBe('"e1"');
+    expect(ev.baseHash).toBe("abc123");
+    expect(ev.rrule).toBe("FREQ=WEEKLY");
+    expect(ev.title).toBe("改过的标题");
+  });
+
+  it("splits attendees and tags on comma, trimming whitespace, undefined when empty", () => {
+    const fields = { ...blankFields(), title: "t", start: "2026-07-20T10:00:00", attendees: "a@x, b@x ,c@x", tags: " x, y " };
+    const ev = buildEventFromFields(fields, null, () => "u@ogenda");
+    expect(ev.attendees).toEqual(["a@x", "b@x", "c@x"]);
+    expect(ev.tags).toEqual(["x", "y"]);
+    const empty = buildEventFromFields({ ...blankFields(), title: "t", start: "2026-07-20T10:00:00" }, null, () => "u@ogenda");
+    expect(empty.attendees).toBeUndefined();
+    expect(empty.tags).toBeUndefined();
+  });
+
+  it("prefers categoryText over categoryDropdown when both are set", () => {
+    const fields = { ...blankFields(), title: "t", start: "2026-07-20T10:00:00", categoryDropdown: "工作", categoryText: "新分类" };
+    const ev = buildEventFromFields(fields, null, () => "u@ogenda");
+    expect(ev.category).toBe("新分类");
+  });
+
+  it("falls back to categoryDropdown when categoryText is blank, and to undefined when both are blank", () => {
+    const withDropdown = buildEventFromFields(
+      { ...blankFields(), title: "t", start: "2026-07-20T10:00:00", categoryDropdown: "工作" }, null, () => "u@ogenda",
+    );
+    expect(withDropdown.category).toBe("工作");
+    const withNeither = buildEventFromFields({ ...blankFields(), title: "t", start: "2026-07-20T10:00:00" }, null, () => "u@ogenda");
+    expect(withNeither.category).toBeUndefined();
+  });
+
+  it("converts blank optional text fields to undefined, not empty string", () => {
+    const fields = { ...blankFields(), title: "t", start: "2026-07-20T10:00:00" };
+    const ev = buildEventFromFields(fields, null, () => "u@ogenda");
+    expect(ev.end).toBeUndefined();
+    expect(ev.location).toBeUndefined();
+    expect(ev.organizer).toBeUndefined();
+    expect(ev.rsvp).toBeUndefined();
+    expect(ev.status).toBeUndefined();
+  });
+});
