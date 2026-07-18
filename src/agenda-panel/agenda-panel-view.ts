@@ -31,10 +31,14 @@ export class AgendaPanelView extends ItemView {
     private triggerSync: () => void,
   ) {
     super(leaf);
+    this.anchor = this.safeToday();
+  }
+
+  private safeToday(): Date {
     try {
-      this.anchor = todayInTimezone(this.timezone);
+      return todayInTimezone(this.timezone);
     } catch {
-      this.anchor = new Date();
+      return new Date();
     }
   }
 
@@ -124,13 +128,13 @@ export class AgendaPanelView extends ItemView {
       this.anchor = this.shiftAnchor(-1);
       void this.render();
     });
-    const isToday = startOfDay(this.anchor).getTime() === startOfDay(todayInTimezone(this.timezone)).getTime();
+    const isToday = startOfDay(this.anchor).getTime() === startOfDay(this.safeToday()).getTime();
     const todayBtn = nav.createSpan({
       cls: "ogenda-navbtn ogenda-navtoday",
       text: isToday ? `今天 · ${this.anchor.toDateString()}` : this.anchor.toDateString(),
     });
     todayBtn.addEventListener("click", () => {
-      this.anchor = todayInTimezone(this.timezone);
+      this.anchor = this.safeToday();
       void this.render();
     });
     const next = nav.createSpan({ cls: "ogenda-navbtn", text: "›" });
