@@ -17,7 +17,7 @@ export interface SyncPlan {
 }
 
 /** Reconstructs the calendar-writable fields (+ sync metadata) of an AgendaEvent from a monthly-doc block. */
-function fieldsToEvent(fields: Record<string, string>): AgendaEvent {
+export function fieldsToEvent(fields: Record<string, string>): AgendaEvent {
   return {
     uid: fields["uid"] ?? "",
     title: fields["title"] ?? "",
