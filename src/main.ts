@@ -9,6 +9,7 @@ import { CalDavWriter } from "./connectors/caldav/caldav-writer";
 import { SyncService } from "./sync/sync-service";
 import { syncBidirectional, CalDavSource } from "./sync/bidirectional";
 import { davRequest, hrefInside } from "./net/dav-request";
+import { AgendaPanelView, AGENDA_PANEL_VIEW_TYPE } from "./agenda-panel/agenda-panel-view";
 
 const XML_CT = "application/xml; charset=utf-8";
 
@@ -34,6 +35,13 @@ export default class OgendaPlugin extends Plugin {
       id: "ogenda-caldav-discovery",
       name: "CalDAV discovery probe (iCloud)",
       callback: () => void this.caldavDiscover(),
+    });
+
+    this.registerView(AGENDA_PANEL_VIEW_TYPE, (leaf) => new AgendaPanelView(leaf, this.store(), this.settings.storageFolder));
+    this.addCommand({
+      id: "ogenda-open-agenda-panel",
+      name: "Open Agenda panel",
+      callback: () => void this.openAgendaPanel(),
     });
 
     if (this.settings.syncOnStartup) {
@@ -108,6 +116,17 @@ export default class OgendaPlugin extends Plugin {
       new Notice("iCloud 双向同步出错: " + (e as Error).message);
       console.error("[ogenda] bidirectional sync error", e);
     }
+  }
+
+  async openAgendaPanel(): Promise<void> {
+    const existing = this.app.workspace.getLeavesOfType(AGENDA_PANEL_VIEW_TYPE);
+    if (existing.length > 0) {
+      await this.app.workspace.revealLeaf(existing[0]);
+      return;
+    }
+    const leaf = this.app.workspace.getLeaf(true);
+    await leaf.setViewState({ type: AGENDA_PANEL_VIEW_TYPE, active: true });
+    await this.app.workspace.revealLeaf(leaf);
   }
 
   // --- iCloud CalDAV discovery helper (prints calendar URLs to console) ---
