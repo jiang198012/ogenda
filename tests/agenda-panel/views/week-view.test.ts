@@ -48,4 +48,19 @@ describe("renderWeekView", () => {
     expect(heads[5].textContent).toBe("周六 18");
     expect(heads[6].textContent).toBe("周日 19");
   });
+
+  it("puts an all-day event (date-only start) in its own day column, in a timezone west of UTC", () => {
+    const originalTz = process.env.TZ;
+    process.env.TZ = "America/Los_Angeles";
+    try {
+      const container = document.createElement("div");
+      renderWeekView(container, [mkOcc("2026-07-13", "全天会议")], new Date(2026, 6, 15), () => {});
+      const cols = container.querySelectorAll(".ogenda-week-col");
+      // Monday-first: index 0=Mon(13)
+      expect(cols[0].textContent).toContain("全天会议");
+      expect(cols[6].textContent).not.toContain("全天会议");
+    } finally {
+      process.env.TZ = originalTz;
+    }
+  });
 });

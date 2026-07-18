@@ -48,4 +48,16 @@ describe("expandOccurrences", () => {
     const out = expandOccurrences([a, b], new Date("2026-07-01"), new Date("2026-07-31"));
     expect(out.map((o) => o.event.uid)).toEqual(["b", "a"]);
   });
+
+  it("includes an all-day non-recurring event on its own day, in a timezone west of UTC", () => {
+    const originalTz = process.env.TZ;
+    process.env.TZ = "America/Los_Angeles";
+    try {
+      const ev = mk({ start: "2026-07-13", allDay: true });
+      const out = expandOccurrences([ev], new Date(2026, 6, 13), new Date(2026, 6, 14));
+      expect(out).toEqual([{ event: ev, start: "2026-07-13", end: undefined }]);
+    } finally {
+      process.env.TZ = originalTz;
+    }
+  });
 });

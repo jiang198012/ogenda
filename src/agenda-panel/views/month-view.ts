@@ -1,5 +1,5 @@
 import { AgendaEvent } from "../../core/event";
-import { EventOccurrence } from "../occurrences";
+import { EventOccurrence, parseLocalDate } from "../occurrences";
 import { monthGridWeeks, startOfDay } from "../date-grid";
 
 export function renderMonthView(
@@ -34,7 +34,7 @@ export function renderMonthView(
       num.textContent = String(day.getDate());
       cell.appendChild(num);
 
-      const dayOccs = occurrences.filter((occ) => startOfDay(new Date(occ.start)).getTime() === day.getTime());
+      const dayOccs = occurrences.filter((occ) => startOfDay(parseLocalDate(occ.start)).getTime() === day.getTime());
       for (const occ of dayOccs) {
         const mini = document.createElement("div");
         mini.className = "ogenda-month-mini";

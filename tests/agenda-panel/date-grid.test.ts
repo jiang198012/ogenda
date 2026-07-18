@@ -48,4 +48,18 @@ describe("date-grid", () => {
     expect(groups[0].items.map((o) => o.event.uid)).toEqual(["a", "c"]);
     expect(groups[1].date).toEqual(new Date(2026, 6, 20));
   });
+
+  it("groupByDay groups an all-day occurrence under its own date-only day, in a timezone west of UTC", () => {
+    const originalTz = process.env.TZ;
+    process.env.TZ = "America/Los_Angeles";
+    try {
+      const ev: AgendaEvent = { uid: "a", title: "t", start: "2026-07-13", allDay: true, origin: "synced" };
+      const occs: EventOccurrence[] = [{ event: ev, start: "2026-07-13" }];
+      const groups = groupByDay(occs);
+      expect(groups.length).toBe(1);
+      expect(groups[0].date).toEqual(new Date(2026, 6, 13));
+    } finally {
+      process.env.TZ = originalTz;
+    }
+  });
 });

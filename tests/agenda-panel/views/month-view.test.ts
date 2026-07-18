@@ -54,4 +54,19 @@ describe("renderMonthView", () => {
     expect(dow.length).toBe(7);
     expect([...dow].map((d) => d.textContent)).toEqual(["一", "二", "三", "四", "五", "六", "日"]);
   });
+
+  it("puts an all-day event (date-only start) in its correct day cell, in a timezone west of UTC", () => {
+    const originalTz = process.env.TZ;
+    process.env.TZ = "America/Los_Angeles";
+    try {
+      const container = document.createElement("div");
+      const occs = [mkOcc("2026-07-13", "全天会议")];
+      renderMonthView(container, occs, new Date(2026, 6, 15), () => {});
+      const cells = container.querySelectorAll(".ogenda-month-cell");
+      // grid starts Mon 2026-06-29 -> July 13 is index 14 (0-indexed: 29,30,1,2,3,4,5,6,7,8,9,10,11,12,13)
+      expect(cells[14].textContent).toContain("全天会议");
+    } finally {
+      process.env.TZ = originalTz;
+    }
+  });
 });

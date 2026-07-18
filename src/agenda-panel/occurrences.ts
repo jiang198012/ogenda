@@ -7,6 +7,12 @@ export interface EventOccurrence {
   end?: string;
 }
 
+export function parseLocalDate(s: string): Date {
+  if (s.includes("T")) return new Date(s);
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 const MAX_ITERATIONS = 10000;
 
 function toIcalTime(iso: string, allDay: boolean | undefined): ICAL.Time {
@@ -22,7 +28,7 @@ export function expandOccurrences(
 
   for (const ev of events) {
     if (!ev.rrule) {
-      const occStart = new Date(ev.start);
+      const occStart = parseLocalDate(ev.start);
       if (occStart >= rangeStart && occStart < rangeEnd) {
         out.push({ event: ev, start: ev.start, end: ev.end });
       }
