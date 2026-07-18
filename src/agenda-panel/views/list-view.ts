@@ -1,12 +1,28 @@
 import { AgendaEvent } from "../../core/event";
 import { EventOccurrence } from "../occurrences";
-import { groupByDay } from "../date-grid";
 
-function formatDayLabel(d: Date, today: Date): string {
-  const sameDay = d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
-  const weekday = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"][d.getDay()];
-  const dateStr = `${d.getMonth() + 1}月${d.getDate()}日`;
-  return sameDay ? `今天 · ${dateStr} ${weekday}` : `${dateStr} ${weekday}`;
+const STATUS_ORDER = ["confirmed", "tentative", "cancelled"];
+
+interface StatusGroup {
+  label: string;
+  items: EventOccurrence[];
+}
+
+function groupByStatus(occurrences: EventOccurrence[]): StatusGroup[] {
+  const buckets = new Map<string, EventOccurrence[]>();
+  for (const occ of occurrences) {
+    const key = occ.event.status?.trim() || "";
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key)!.push(occ);
+  }
+  for (const items of buckets.values()) {
+    items.sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
+  }
+  const knownKeys = STATUS_ORDER.filter((s) => buckets.has(s));
+  const otherKeys = [...buckets.keys()].filter((k) => k !== "" && !STATUS_ORDER.includes(k)).sort();
+  const orderedKeys = [...knownKeys, ...otherKeys];
+  if (buckets.has("")) orderedKeys.push("");
+  return orderedKeys.map((key) => ({ label: key || "未设置", items: buckets.get(key)! }));
 }
 
 function formatTime(occ: EventOccurrence): string {
@@ -20,18 +36,24 @@ function formatTime(occ: EventOccurrence): string {
 export function renderListView(
   container: HTMLElement,
   occurrences: EventOccurrence[],
-  today: Date,
   onEventClick: (event: AgendaEvent) => void,
 ): void {
   container.innerHTML = "";
-  for (const group of groupByDay(occurrences)) {
+  for (const group of groupByStatus(occurrences)) {
     const groupEl = document.createElement("div");
-    groupEl.className = "ogenda-list-daygroup";
+    groupEl.className = "ogenda-list-statusgroup";
 
-    const label = document.createElement("div");
-    label.className = "ogenda-list-daylabel";
-    label.textContent = formatDayLabel(group.date, today);
-    groupEl.appendChild(label);
+    const header = document.createElement("div");
+    header.className = "ogenda-list-statusheader";
+    header.textContent = `${group.label} (${group.items.length})`;
+
+    const itemsEl = document.createElement("div");
+    itemsEl.className = "ogenda-list-statusitems";
+
+    header.addEventListener("click", () => {
+      itemsEl.classList.toggle("collapsed");
+    });
+    groupEl.appendChild(header);
 
     for (const occ of group.items) {
       const row = document.createElement("div");
@@ -55,8 +77,9 @@ export function renderListView(
         row.appendChild(loc);
       }
 
-      groupEl.appendChild(row);
+      itemsEl.appendChild(row);
     }
+    groupEl.appendChild(itemsEl);
     container.appendChild(groupEl);
   }
 }

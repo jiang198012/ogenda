@@ -1,7 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { AgendaEvent } from "../../src/core/event";
-import { EventOccurrence } from "../../src/agenda-panel/occurrences";
-import { toDateKey, startOfDay, addDays, startOfWeek, monthGridWeeks, groupByDay } from "../../src/agenda-panel/date-grid";
+import { toDateKey, startOfDay, addDays, startOfWeek, monthGridWeeks } from "../../src/agenda-panel/date-grid";
 
 describe("date-grid", () => {
   it("toDateKey formats as YYYY-MM-DD", () => {
@@ -33,34 +31,5 @@ describe("date-grid", () => {
     expect(weeks[0][2]).toEqual(new Date(2026, 6, 1));  // Wed, first of July
     expect(weeks[4][4]).toEqual(new Date(2026, 6, 31)); // Fri, last of July
     expect(weeks[4][6]).toEqual(new Date(2026, 7, 2));  // Sun, into August
-  });
-
-  it("groupByDay groups occurrences by calendar day and sorts groups ascending", () => {
-    const ev = (uid: string): AgendaEvent => ({ uid, title: "t", start: "x", origin: "synced" });
-    const occs: EventOccurrence[] = [
-      { event: ev("b"), start: "2026-07-20T09:00:00" },
-      { event: ev("a"), start: "2026-07-18T09:00:00" },
-      { event: ev("c"), start: "2026-07-18T14:00:00" },
-    ];
-    const groups = groupByDay(occs);
-    expect(groups.length).toBe(2);
-    expect(groups[0].date).toEqual(new Date(2026, 6, 18));
-    expect(groups[0].items.map((o) => o.event.uid)).toEqual(["a", "c"]);
-    expect(groups[1].date).toEqual(new Date(2026, 6, 20));
-  });
-
-  it("groupByDay groups an all-day occurrence under its own date-only day, in a timezone west of UTC", () => {
-    const originalTz = process.env.TZ;
-    process.env.TZ = "America/Los_Angeles";
-    try {
-      const ev: AgendaEvent = { uid: "a", title: "t", start: "2026-07-13", allDay: true, origin: "synced" };
-      const occs: EventOccurrence[] = [{ event: ev, start: "2026-07-13" }];
-      const groups = groupByDay(occs);
-      expect(groups.length).toBe(1);
-      expect(groups[0].date).toEqual(new Date(2026, 6, 13));
-    } finally {
-      if (originalTz === undefined) delete process.env.TZ;
-      else process.env.TZ = originalTz;
-    }
   });
 });

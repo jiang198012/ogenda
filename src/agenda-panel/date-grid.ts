@@ -1,5 +1,3 @@
-import { EventOccurrence, parseLocalDate } from "./occurrences";
-
 export function toDateKey(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -38,15 +36,4 @@ export function monthGridWeeks(anchor: Date): Date[][] {
     weeks.push(week);
   }
   return weeks;
-}
-
-export function groupByDay(occurrences: EventOccurrence[]): { date: Date; items: EventOccurrence[] }[] {
-  const map = new Map<string, { date: Date; items: EventOccurrence[] }>();
-  for (const occ of occurrences) {
-    const day = startOfDay(parseLocalDate(occ.start));
-    const key = toDateKey(day);
-    if (!map.has(key)) map.set(key, { date: day, items: [] });
-    map.get(key)!.items.push(occ);
-  }
-  return [...map.values()].sort((a, b) => a.date.getTime() - b.date.getTime());
 }
