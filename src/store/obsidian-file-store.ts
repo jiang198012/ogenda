@@ -8,9 +8,9 @@ export class ObsidianFileStore implements FileStore {
     const p = normalizePath(path);
     const f = this.vault.getAbstractFileByPath(p);
     if (f instanceof TFile) return await this.vault.read(f);
-    // vault's in-memory index doesn't reliably track every file (seen with
-    // .ogenda-sync-state.json, D3) — fall back to a direct filesystem check
-    // rather than treating a file the index missed as absent.
+    // the vault index never resolved .ogenda-sync-state.json even long after it was
+    // written and confirmed present on disk (not a transient lag) — fall back to a
+    // direct filesystem check rather than treating an unindexed file as absent.
     if (await this.vault.adapter.exists(p)) {
       return await this.vault.adapter.read(p);
     }
@@ -28,11 +28,10 @@ export class ObsidianFileStore implements FileStore {
     try {
       await this.vault.create(p, content);
     } catch {
-      // vault's in-memory index can lag a file that already exists on disk
-      // (seen with .ogenda-sync-state.json, D3): create() throws "already
-      // exists" even though getAbstractFileByPath() just returned null, and
-      // the lag persists across an immediate re-check. Bypass the index and
-      // write straight to disk instead of losing the write.
+      // the vault index never resolved .ogenda-sync-state.json (not a transient lag —
+      // see the matching note in read()): create() throws "already exists" even though
+      // getAbstractFileByPath() just returned null. Bypass the index and write straight
+      // to disk instead of losing the write.
       await this.vault.adapter.write(p, content);
     }
   }

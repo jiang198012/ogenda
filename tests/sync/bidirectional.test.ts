@@ -268,4 +268,30 @@ describe("syncBidirectional", () => {
     expect(await fs.read(p)).toBe(before);
     expect(msgs.some((m) => m.includes("跳过"))).toBe(true);
   });
+
+  it("retries a delete on the next sync after a 412, and never resurrects the locally-deleted event", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    await store.sync([mkSynced()]);
+    await store.writeSyncState({ tracked: { "a@x": TRACKED_A_X } });
+    const p = "Agenda/2026-07.md";
+    await fs.write(p, (await fs.read(p))!.replace(/\n\n## [\s\S]*/, "\n"));
+
+    // round 1: delete attempt gets 412 (server-wins skip-and-retry)
+    const round1Deletes: DeleteCall[] = [];
+    const round1 = fakeSource([mkSynced()], { status: 204 }, [], { status: 412 }, round1Deletes);
+    await syncBidirectional(round1, CAL_URL, store, () => {});
+    expect(round1Deletes).toHaveLength(1);
+
+    // round 2: server still has it (delete never actually happened); the sync must retry
+    // the delete, not treat the still-untracked-locally uid as a brand-new server event.
+    const round2Deletes: DeleteCall[] = [];
+    const round2 = fakeSource([mkSynced()], { status: 204 }, [], { status: 204 }, round2Deletes);
+    const summary2 = await syncBidirectional(round2, CAL_URL, store, () => {});
+
+    expect(round2Deletes).toHaveLength(1);
+    expect(summary2.deleted).toBe(1);
+    expect(summary2.pulled).toBe(0);
+    expect(await fs.read(p)).not.toContain("uid:: a@x");
+  });
 });

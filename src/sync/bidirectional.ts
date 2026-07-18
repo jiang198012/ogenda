@@ -112,9 +112,17 @@ export async function syncBidirectional(
   for (const ev of toApply) {
     if (ev.href && ev.etag) newTracked[ev.uid] = { href: ev.href, etag: ev.etag };
   }
-  await store.writeSyncState({ tracked: newTracked });
+  // a deleteRemote uid that wasn't confirmed deleted (412/error) must stay tracked, or the
+  // next sync loses the memory that this was a pending local deletion and instead treats it
+  // as a brand-new server event — silently resurrecting what the user deleted.
+  for (const d of plan.deleteRemote) {
+    if (!confirmedDeleted.includes(d.uid)) newTracked[d.uid] = { href: d.href, etag: d.etag };
+  }
 
   const summary = await store.sync(toApply);
+  // written after store.sync succeeds, so a failed sync doesn't leave the ledger ahead of
+  // what's actually on disk (e.g. a pushCreate's new href tracked but never written locally).
+  await store.writeSyncState({ tracked: newTracked });
   notify(
     `双向同步完成:拉取 ${plan.applyServer.length}、推送 ${pushed}、新建 ${created}、冲突 ${plan.conflicts.length}、` +
       `删除 ${deleted}、服务器已删 ${markedServerDeleted}` +
