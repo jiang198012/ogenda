@@ -25,4 +25,9 @@ export class CalDavWriter {
     });
     return { status: res.status, etag: res.etag };
   }
+
+  async deleteEvent(url: string, ifMatch: string): Promise<{ status: number }> {
+    const res = await davRequest({ url, method: "DELETE", user: this.cfg.user, pass: this.cfg.pass, ifMatch });
+    return { status: res.status };
+  }
 }
