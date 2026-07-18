@@ -37,7 +37,17 @@ export default class OgendaPlugin extends Plugin {
       callback: () => void this.caldavDiscover(),
     });
 
-    this.registerView(AGENDA_PANEL_VIEW_TYPE, (leaf) => new AgendaPanelView(leaf, this.store(), this.settings.storageFolder));
+    this.registerView(
+      AGENDA_PANEL_VIEW_TYPE,
+      (leaf) =>
+        new AgendaPanelView(
+          leaf,
+          this.store(),
+          this.settings.storageFolder,
+          this.settings.timezone,
+          () => void this.caldavSyncTwoWay(),
+        ),
+    );
     this.addCommand({
       id: "ogenda-open-agenda-panel",
       name: "Open Agenda panel",
