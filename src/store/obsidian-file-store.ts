@@ -20,17 +20,13 @@ export class ObsidianFileStore implements FileStore {
     await this.ensureParent(p);
     try {
       await this.vault.create(p, content);
-    } catch (e) {
-      // vault's in-memory index can lag a freshly-created file (seen with
-      // .ogenda-sync-state.json, D3): create() then fails "already exists"
-      // even though getAbstractFileByPath() just returned null. Re-resolve
-      // and fall back to process() rather than losing the write.
-      const retry = this.vault.getAbstractFileByPath(p);
-      if (retry instanceof TFile) {
-        await this.vault.process(retry, () => content);
-      } else {
-        throw e;
-      }
+    } catch {
+      // vault's in-memory index can lag a file that already exists on disk
+      // (seen with .ogenda-sync-state.json, D3): create() throws "already
+      // exists" even though getAbstractFileByPath() just returned null, and
+      // the lag persists across an immediate re-check. Bypass the index and
+      // write straight to disk instead of losing the write.
+      await this.vault.adapter.write(p, content);
     }
   }
 
