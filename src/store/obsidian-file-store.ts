@@ -5,8 +5,15 @@ export class ObsidianFileStore implements FileStore {
   constructor(private vault: Vault) {}
 
   async read(path: string): Promise<string | null> {
-    const f = this.vault.getAbstractFileByPath(normalizePath(path));
+    const p = normalizePath(path);
+    const f = this.vault.getAbstractFileByPath(p);
     if (f instanceof TFile) return await this.vault.read(f);
+    // vault's in-memory index doesn't reliably track every file (seen with
+    // .ogenda-sync-state.json, D3) — fall back to a direct filesystem check
+    // rather than treating a file the index missed as absent.
+    if (await this.vault.adapter.exists(p)) {
+      return await this.vault.adapter.read(p);
+    }
     return null;
   }
 
