@@ -13,13 +13,14 @@
     "@types/node": "^22",
     "builtin-modules": "^4",
     "esbuild": "^0.24",
+    "jsdom": "^29.1.1",
     "obsidian": "latest",
     "tslib": "^2",
     "typescript": "^5",
     "vitest": "^2"
   },
   "dependencies": {
-    "imapflow": "^1",
-    "ical.js": "^2"
+    "ical.js": "^2",
+    "imapflow": "^1"
   }
 }
