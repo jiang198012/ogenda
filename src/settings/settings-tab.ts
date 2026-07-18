@@ -21,12 +21,12 @@ export class OgendaSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Gmail App 专用密码")
       .setDesc(
-        "填一次即长期保存,不用再输。⚠️ 明文存于 data.json —— 请勿把此 vault 同步/备份到云端;不用时可在 Google 撤销该 App 密码。(空格会自动去除)",
+        "照抄 Google 给的原样(含空格/横杠,不用改格式)。填一次长期保存。⚠️ 明文存于 data.json —— 勿把此 vault 同步/备份到云端;不用时可在 Google 撤销。",
       )
       .addText((t) => {
         t.inputEl.type = "password";
         t.setValue(this.plugin.settings.appPassword).onChange(async (v) => {
-          this.plugin.settings.appPassword = v.replace(/\s+/g, "");
+          this.plugin.settings.appPassword = v.trim();
           await this.plugin.saveSettings();
         });
       });
@@ -71,11 +71,11 @@ export class OgendaSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("iCloud App 专用密码")
-      .setDesc("appleid.apple.com 生成的 16 位;明文存 data.json;空格自动去除。")
+      .setDesc("appleid.apple.com 生成的,照抄原样(带横杠,别改格式);明文存 data.json。")
       .addText((t) => {
         t.inputEl.type = "password";
         t.setValue(this.plugin.settings.icloudAppPassword).onChange(async (v) => {
-          this.plugin.settings.icloudAppPassword = v.replace(/\s+/g, "");
+          this.plugin.settings.icloudAppPassword = v.trim();
           await this.plugin.saveSettings();
         });
       });

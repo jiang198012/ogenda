@@ -126,7 +126,8 @@ export default class OgendaPlugin extends Plugin {
   }
 
   private d0EventUrl(): string {
-    return this.settings.icloudCalUrl.replace(/\/?$/, "/") + D0_UID + ".ics";
+    // resource filename need not equal the VEVENT UID; keep it URL-safe (no '@').
+    return this.settings.icloudCalUrl.replace(/\/?$/, "/") + "ogenda-d0-probe-1.ics";
   }
 
   async caldavWriteProbe(): Promise<void> {
