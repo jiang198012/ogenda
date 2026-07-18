@@ -31,6 +31,13 @@ describe("icalToEvents", () => {
     expect(e.status).toBe("confirmed");
   });
 
+  it("uses the given protocol/source (defaults to imap)", () => {
+    const e = icalToEvents(ICS, "caldav/personal", "caldav")[0];
+    expect(e.protocol).toBe("caldav");
+    expect(e.source).toBe("caldav/personal");
+    expect(icalToEvents(ICS, "imap/gmail")[0].protocol).toBe("imap");
+  });
+
   it("maps RRULE to its string form (not [object Object])", () => {
     const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//t//EN\nBEGIN:VEVENT\nUID:r1@x\nSUMMARY:周会\nDTSTART:20260714T070000Z\nRRULE:FREQ=WEEKLY;COUNT=5\nEND:VEVENT\nEND:VCALENDAR`;
     const e = icalToEvents(ics, "imap/gmail")[0];

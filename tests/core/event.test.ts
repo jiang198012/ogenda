@@ -37,4 +37,16 @@ describe("eventToFields", () => {
     expect("location" in f).toBe(false);
     expect(f.origin).toBe("local");
   });
+  it("maps etag and href when present (CalDAV sync metadata)", () => {
+    const f = eventToFields({
+      uid: "u",
+      title: "t",
+      start: "2026-07-14T09:00:00",
+      origin: "synced",
+      etag: '"e1"',
+      href: "https://p1.example/cal/u.ics",
+    });
+    expect(f.etag).toBe('"e1"');
+    expect(f.href).toBe("https://p1.example/cal/u.ics");
+  });
 });

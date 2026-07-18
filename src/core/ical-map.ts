@@ -1,7 +1,7 @@
 import ICAL from "ical.js";
 import { AgendaEvent } from "./event";
 
-export function icalToEvents(ics: string, source: string): AgendaEvent[] {
+export function icalToEvents(ics: string, source: string, protocol = "imap"): AgendaEvent[] {
   const comp = new ICAL.Component(ICAL.parse(ics));
   const vevents = comp.getAllSubcomponents("vevent");
   const out: AgendaEvent[] = [];
@@ -31,7 +31,7 @@ export function icalToEvents(ics: string, source: string): AgendaEvent[] {
       rrule: rrule ? String(rrule.toString()) : undefined,
       origin: "synced",
       source,
-      protocol: "imap",
+      protocol,
     });
   }
   return out;

@@ -20,6 +20,7 @@ export interface AgendaEvent {
   source?: string;
   protocol?: string;
   etag?: string;
+  href?: string; // CalDAV resource URL (for conditional write-back in D2)
   seq?: number;
   lastSynced?: string;
   rrule?: string;
@@ -49,6 +50,7 @@ export function eventToFields(ev: AgendaEvent): Record<string, string> {
   set("source", ev.source);
   set("protocol", ev.protocol);
   set("etag", ev.etag);
+  set("href", ev.href);
   if (ev.seq !== undefined) set("seq", String(ev.seq));
   set("last_synced", ev.lastSynced);
   set("rrule", ev.rrule);
