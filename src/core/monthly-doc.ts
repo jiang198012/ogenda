@@ -107,12 +107,20 @@ export function upsertEvents(text: string, events: AgendaEvent[]): UpsertResult 
     const mf = eventToFields(ev);
     const existing = byUid.get(ev.uid);
     if (existing) {
+      const heading = eventHeading(ev);
+      let changed = existing.heading !== heading;
       for (const [k, v] of Object.entries(mf)) {
-        if (!existing.fieldOrder.includes(k)) existing.fieldOrder.push(k);
-        existing.fields[k] = v;
+        if (existing.fields[k] !== v) changed = true;
       }
-      existing.heading = eventHeading(ev);
-      updated++;
+      // only rewrite + count as "updated" when the event actually changed
+      if (changed) {
+        for (const [k, v] of Object.entries(mf)) {
+          if (!existing.fieldOrder.includes(k)) existing.fieldOrder.push(k);
+          existing.fields[k] = v;
+        }
+        existing.heading = heading;
+        updated++;
+      }
     } else {
       const nb: EventBlock = {
         heading: eventHeading(ev),

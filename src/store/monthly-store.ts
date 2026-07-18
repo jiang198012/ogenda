@@ -37,10 +37,13 @@ export class MonthlyStore {
       const existing = (await this.store.read(path)) ?? "";
       const seed = existing || `# ${month}\n`;
       const r = upsertEvents(seed, monthEvents);
-      await this.store.write(path, r.text);
-      added += r.added;
-      updated += r.updated;
-      months.push(month);
+      // skip the write entirely when nothing changed (avoids churn + misleading "updated" counts)
+      if (r.added > 0 || r.updated > 0) {
+        await this.store.write(path, r.text);
+        added += r.added;
+        updated += r.updated;
+        months.push(month);
+      }
     }
     return { added, updated, months };
   }

@@ -29,7 +29,26 @@ describe("MonthlyStore", () => {
     await fs.write(p, (await fs.read(p))!.replace(/\n$/, "") + "\n\n我的纪要\n");
     const s2 = await store.sync([mk("a@x", "2026-07-14T15:00:00", "会")]);
     expect(s2.added).toBe(0);
-    expect(s2.updated).toBe(1);
+    expect(s2.updated).toBe(0);
     expect(await fs.read(p)).toContain("我的纪要");
+  });
+  it("reports 0 and does not rewrite the file when nothing changed", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    await store.sync([mk("a@x", "2026-07-14T15:00:00", "会")]);
+    const p = "Agenda/2026-07.md";
+    const before = await fs.read(p);
+    const s2 = await store.sync([mk("a@x", "2026-07-14T15:00:00", "会")]);
+    expect(s2.added).toBe(0);
+    expect(s2.updated).toBe(0);
+    expect(s2.months).toEqual([]);
+    expect(await fs.read(p)).toBe(before);
+  });
+  it("counts as updated only when a field actually changed", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    await store.sync([mk("a@x", "2026-07-14T15:00:00", "会")]);
+    const s2 = await store.sync([mk("a@x", "2026-07-14T15:00:00", "会(改名)")]);
+    expect(s2.updated).toBe(1);
   });
 });

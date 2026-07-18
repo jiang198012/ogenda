@@ -20,7 +20,7 @@ describe("upsertEvents", () => {
     const one = upsertEvents("", [mk("a@x", "2026-07-14T15:00:00", "周会")]).text;
     const two = upsertEvents(one, [mk("a@x", "2026-07-14T15:00:00", "周会")]);
     expect(two.added).toBe(0);
-    expect(two.updated).toBe(1);
+    expect(two.updated).toBe(0); // unchanged re-sync counts nothing
     expect(parseMonthlyDoc(two.text).blocks.length).toBe(1);
   });
 
