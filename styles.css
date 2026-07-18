@@ -58,16 +58,19 @@
 
 /* List view */
 
-.ogenda-list-daygroup {
+.ogenda-list-statusgroup {
   margin-bottom: 18px;
 }
 
-.ogenda-list-daylabel {
-  font-size: 12px;
+.ogenda-list-statusheader {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 6px 0;
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 6px;
+}
+
+.ogenda-list-statusitems.collapsed {
+  display: none;
 }
 
 .ogenda-event-row {
@@ -254,3 +257,35 @@
 .ogenda-month-mini:hover {
   background: var(--background-modifier-active-hover);
 }
+
+/* CRUD / stats / mini-calendar (v2) */
+
+.ogenda-panel-newbtn {
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-size: 12px;
+  margin-left: 8px;
+}
+.ogenda-navtoday { cursor: pointer; }
+
+.ogenda-day-layout { display: flex; gap: 16px; }
+.ogenda-day-main { flex: 1; min-width: 0; }
+.ogenda-day-side { width: 220px; flex-shrink: 0; }
+
+.ogenda-mini-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.ogenda-mini-cal-dow { text-align: center; font-size: 10px; color: var(--text-muted); }
+.ogenda-mini-cal-cell { text-align: center; font-size: 11px; padding: 4px 0; border-radius: 4px; cursor: pointer; }
+.ogenda-mini-cal-cell:hover { background: var(--background-modifier-hover); }
+.ogenda-mini-cal-othermonth { opacity: 0.35; }
+.ogenda-mini-cal-selected { background: var(--interactive-accent); color: var(--text-on-accent); }
+
+.ogenda-form-error { color: var(--text-error); font-size: 12px; min-height: 16px; }
+.ogenda-form-buttons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+
+.ogenda-stat-section { margin-bottom: 16px; }
+.ogenda-stat-heading { font-weight: 600; margin-bottom: 6px; }
+.ogenda-stat-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 13px; }
+.ogenda-stat-value { color: var(--text-muted); }
