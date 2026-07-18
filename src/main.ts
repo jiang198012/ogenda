@@ -47,7 +47,7 @@ export default class OgendaPlugin extends Plugin {
       { email: this.settings.email, appPassword: this.settings.appPassword },
       this.settings.scanCount,
     );
-    const svc = new SyncService([connector], this.store(), (m) => new Notice(m));
+    const svc = new SyncService([connector], this.store(), (m) => new Notice(m, 10000));
     try {
       await svc.syncNow();
     } catch (e) {
@@ -68,7 +68,7 @@ export default class OgendaPlugin extends Plugin {
       calendarUrl: this.settings.icloudCalUrl,
       label: "icloud",
     });
-    const svc = new SyncService([connector], this.store(), (m) => new Notice(m));
+    const svc = new SyncService([connector], this.store(), (m) => new Notice(m, 10000));
     try {
       await svc.syncNow();
     } catch (e) {
