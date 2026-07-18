@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { AgendaEvent, eventToFields } from "../../src/core/event";
+import { AgendaEvent, eventToFields, hashEvent } from "../../src/core/event";
 
 const ev: AgendaEvent = {
   uid: "abc@x",
@@ -48,5 +48,18 @@ describe("eventToFields", () => {
     });
     expect(f.etag).toBe('"e1"');
     expect(f.href).toBe("https://p1.example/cal/u.ics");
+  });
+});
+
+describe("hashEvent", () => {
+  const a: AgendaEvent = { uid: "u", title: "会", start: "2026-07-14T15:00:00", origin: "synced" };
+  it("changes when a calendar field changes", () => {
+    expect(hashEvent({ ...a, title: "会2" })).not.toBe(hashEvent(a));
+    expect(hashEvent({ ...a, location: "B" })).not.toBe(hashEvent(a));
+  });
+  it("is stable when only metadata changes (etag/href/base_hash/source)", () => {
+    expect(
+      hashEvent({ ...a, etag: '"x"', href: "https://y", baseHash: "z", source: "s2", protocol: "caldav" }),
+    ).toBe(hashEvent(a));
   });
 });
