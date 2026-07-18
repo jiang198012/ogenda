@@ -23,6 +23,7 @@ describe("sanitizeSettings", () => {
       icloudUser: "me@icloud.com",
       icloudAppPassword: "abcd",
       icloudCalUrl: "https://p1-caldav.icloud.com/1/calendars/home/",
+      timezone: "",
     });
     expect("bogus" in s).toBe(false);
   });
@@ -30,5 +31,10 @@ describe("sanitizeSettings", () => {
     expect(sanitizeSettings({})).toEqual(DEFAULT_SETTINGS);
     expect(sanitizeSettings(null)).toEqual(DEFAULT_SETTINGS);
     expect(sanitizeSettings({ scanCount: "50" }).scanCount).toBe(DEFAULT_SETTINGS.scanCount);
+  });
+  it("keeps a configured timezone and defaults to empty string when absent", () => {
+    expect(sanitizeSettings({ timezone: "America/Los_Angeles" }).timezone).toBe("America/Los_Angeles");
+    expect(sanitizeSettings({}).timezone).toBe("");
+    expect(DEFAULT_SETTINGS.timezone).toBe("");
   });
 });

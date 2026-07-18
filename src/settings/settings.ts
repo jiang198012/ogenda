@@ -9,6 +9,8 @@ export interface OgendaSettings {
   icloudUser: string;
   icloudAppPassword: string;
   icloudCalUrl: string;
+  /** IANA timezone name (e.g. "America/Los_Angeles"); empty = use the system timezone. */
+  timezone: string;
 }
 
 export const DEFAULT_SETTINGS: OgendaSettings = {
@@ -20,6 +22,7 @@ export const DEFAULT_SETTINGS: OgendaSettings = {
   icloudUser: "",
   icloudAppPassword: "",
   icloudCalUrl: "",
+  timezone: "",
 };
 
 export function sanitizeSettings(raw: unknown): OgendaSettings {
@@ -36,5 +39,6 @@ export function sanitizeSettings(raw: unknown): OgendaSettings {
     icloudUser: str(r.icloudUser, DEFAULT_SETTINGS.icloudUser),
     icloudAppPassword: str(r.icloudAppPassword, DEFAULT_SETTINGS.icloudAppPassword),
     icloudCalUrl: str(r.icloudCalUrl, DEFAULT_SETTINGS.icloudCalUrl),
+    timezone: str(r.timezone, DEFAULT_SETTINGS.timezone),
   };
 }
