@@ -1160,6 +1160,367 @@ git commit -m "feat(d4-ui): AgendaPanelView — wire tabs/nav/render + open-pane
 
 ---
 
+### Task 8.5(真机验证中发现的计划缺口补丁): styles.css + 周/月视图星期表头
+
+**背景:** Task 9 真机验证第一轮发现:(1) 面板完全没有样式,四个 tab 和事件都是没有排版的纯文字堆叠——头脑风暴阶段做过的视觉稿(`panel-layout.html`/`panel-layout-v2.html`/`day-detail.html`,均已获用户"满意"确认)从未被翻译成实际的 `styles.css`,是本计划遗漏的一步;(2) 复查 `week-view.ts`/`month-view.ts` 实现发现两者都没有渲染星期表头(周视图没有"周一...周日+日期数字"表头行,月视图没有"一二三四五六日"表头行)——没有 CSS 能补上这个,因为表头文字本身在 DOM 里就不存在,这是结构缺口,不是样式缺口。
+
+**Files:**
+- Create: `styles.css`(仓库根目录,与 `manifest.json`/`main.js` 同级——Obsidian 插件约定:存在即自动加载,无需在代码里 import,无需改 `esbuild.config.mjs`)
+- Modify: `src/agenda-panel/views/week-view.ts`(加表头行)
+- Modify: `src/agenda-panel/views/month-view.ts`(加表头行)
+- Test: `tests/agenda-panel/views/week-view.test.ts`(加表头断言)
+- Test: `tests/agenda-panel/views/month-view.test.ts`(加表头断言)
+
+**Interfaces:** 不新增/不改动任何导出函数签名——`renderWeekView`/`renderMonthView` 签名不变,只是内部多渲染几个 DOM 节点。`styles.css` 用到的全部 class 名必须跟 Task 4-7 渲染器已经写死的 class 名一致(见下方 class 对照表),新增的表头 class 名(`ogenda-week-col-head`/`ogenda-month-dow`)由本任务同时在 TS 和 CSS 里各定义一次。
+
+- [ ] **Step 1: week-view.ts 加星期表头——先写失败测试**
+
+在 `tests/agenda-panel/views/week-view.test.ts` 现有测试基础上新增一条:
+
+```typescript
+it("renders a weekday+date header cell for each of the 7 days", () => {
+  const container = document.createElement("div");
+  renderWeekView(container, [], new Date(2026, 6, 15), () => {}); // Wed anchor -> week is Mon 13 .. Sun 19
+  const heads = container.querySelectorAll(".ogenda-week-col-head");
+  expect(heads.length).toBe(7);
+  expect(heads[0].textContent).toBe("周一 13");
+  expect(heads[5].textContent).toBe("周六 18");
+  expect(heads[6].textContent).toBe("周日 19");
+});
+```
+
+- [ ] **Step 2: 运行测试确认失败**
+
+Run: `npx vitest run tests/agenda-panel/views/week-view.test.ts`(若输出异常简短/不像 vitest 标准格式,改用 `node node_modules/vitest/vitest.mjs run tests/agenda-panel/views/week-view.test.ts`)
+Expected: FAIL — 找不到 `.ogenda-week-col-head` 元素,`heads.length` 是 0 不是 7
+
+- [ ] **Step 3: 实现——在现有 `renderWeekView` 里,构建 `days` 数组之后、遍历 `days` 渲染事件列之前,插入表头渲染**
+
+```typescript
+const weekdayLabels = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+
+for (let i = 0; i < days.length; i++) {
+  const head = document.createElement("div");
+  head.className = "ogenda-week-col-head";
+  head.textContent = `${weekdayLabels[i]} ${days[i].getDate()}`;
+  grid.appendChild(head);
+}
+```
+
+(插入位置:`grid.className = "ogenda-week-grid";` 之后、`for (const day of days) { ... }` 事件列循环之前。`grid` 用的是同一个 CSS Grid 容器,`repeat(7, 1fr)` 会让这 7 个表头单元格自动占满第一行,7 个事件列自动换到第二行开始——不需要嵌套或拆成两个 grid。)
+
+- [ ] **Step 4: 运行测试确认通过(含既有测试回归)**
+
+Run: `npx vitest run tests/agenda-panel/views/week-view.test.ts`
+Expected: PASS(既有 3 条 + 新增 1 条,共 4/4)
+
+- [ ] **Step 5: month-view.ts 加星期表头——先写失败测试**
+
+在 `tests/agenda-panel/views/month-view.test.ts` 现有测试基础上新增一条:
+
+```typescript
+it("renders a fixed 7-cell weekday header row (Mon-first)", () => {
+  const container = document.createElement("div");
+  renderMonthView(container, [], new Date(2026, 6, 15), () => {});
+  const dow = container.querySelectorAll(".ogenda-month-dow");
+  expect(dow.length).toBe(7);
+  expect([...dow].map((d) => d.textContent)).toEqual(["一", "二", "三", "四", "五", "六", "日"]);
+});
+```
+
+- [ ] **Step 6: 运行测试确认失败**
+
+Run: `npx vitest run tests/agenda-panel/views/month-view.test.ts`
+Expected: FAIL — `.ogenda-month-dow` 元素数量是 0 不是 7
+
+- [ ] **Step 7: 实现——在现有 `renderMonthView` 里,`grid.className = "ogenda-month-grid";` 之后、`for (const week of weeks) { ... }` 循环之前插入**
+
+```typescript
+const weekdayLabels = ["一", "二", "三", "四", "五", "六", "日"];
+for (const label of weekdayLabels) {
+  const dow = document.createElement("div");
+  dow.className = "ogenda-month-dow";
+  dow.textContent = label;
+  grid.appendChild(dow);
+}
+```
+
+- [ ] **Step 8: 运行测试确认通过(含既有测试回归)**
+
+Run: `npx vitest run tests/agenda-panel/views/month-view.test.ts`
+Expected: PASS(既有 4 条 + 新增 1 条,共 5/5)
+
+- [ ] **Step 9: 写 `styles.css`**(仓库根目录新文件,无单测——纯静态资源,Obsidian 自动加载,同 `manifest.json` 一样不经过 `esbuild` 处理)
+
+沿用头脑风暴阶段已获用户"满意"确认的视觉稿(`panel-layout.html`/`panel-layout-v2.html`/`day-detail.html`)里的布局/间距,颜色改用 Obsidian 的语义化 CSS 变量(而不是视觉稿里写死的暗色调试色号),以兼容用户当前使用的任意主题(浅色/深色/自定义):
+
+```css
+/* ogenda — Agenda panel styles */
+
+.ogenda-panel {
+  padding: 8px 16px 16px;
+}
+
+.ogenda-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  margin-bottom: 16px;
+}
+
+.ogenda-panel-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.ogenda-panel-tab {
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.ogenda-panel-tab:hover {
+  background: var(--background-modifier-hover);
+}
+
+.ogenda-panel-tab.active {
+  background: var(--background-modifier-active-hover);
+  color: var(--interactive-accent);
+  font-weight: 600;
+}
+
+.ogenda-panel-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-normal);
+}
+
+.ogenda-navbtn {
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+.ogenda-navbtn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* List view */
+
+.ogenda-list-daygroup {
+  margin-bottom: 18px;
+}
+
+.ogenda-list-daylabel {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.ogenda-event-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--interactive-accent);
+  border-radius: 4px;
+  background: var(--background-secondary);
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+.ogenda-event-row:hover {
+  background: var(--background-modifier-hover);
+}
+
+.ogenda-event-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 78px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ogenda-event-title {
+  font-weight: 600;
+  font-size: 14px;
+  flex: 1;
+}
+
+.ogenda-event-loc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Day view */
+
+.ogenda-day-card {
+  border-radius: 8px;
+  background: var(--background-secondary);
+  border-left: 4px solid var(--interactive-accent);
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+
+.ogenda-day-card:hover {
+  background: var(--background-modifier-hover);
+}
+
+.ogenda-day-time {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 4px;
+}
+
+.ogenda-day-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.ogenda-field-grid {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  row-gap: 6px;
+  column-gap: 10px;
+  font-size: 13px;
+}
+
+.ogenda-field-key {
+  color: var(--text-muted);
+}
+
+.ogenda-field-value {
+  color: var(--text-normal);
+}
+
+/* Week view */
+
+.ogenda-week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.ogenda-week-col-head {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.ogenda-week-col {
+  min-height: 220px;
+  background: var(--background-secondary);
+  border-radius: 6px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ogenda-week-card {
+  border-radius: 6px;
+  background: var(--background-primary);
+  border-left: 3px solid var(--interactive-accent);
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.ogenda-week-card:hover {
+  background: var(--background-modifier-hover);
+}
+
+.ogenda-week-card-time {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ogenda-week-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 2px 0;
+  line-height: 1.25;
+}
+
+.ogenda-week-card-loc {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Month view */
+
+.ogenda-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.ogenda-month-dow {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.ogenda-month-cell {
+  min-height: 78px;
+  border-radius: 6px;
+  background: var(--background-secondary);
+  padding: 5px;
+}
+
+.ogenda-month-othermonth {
+  opacity: 0.4;
+}
+
+.ogenda-month-daynum {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+
+.ogenda-month-mini {
+  font-size: 10px;
+  background: var(--background-modifier-hover);
+  color: var(--interactive-accent);
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+.ogenda-month-mini:hover {
+  background: var(--background-modifier-active-hover);
+}
+```
+
+- [ ] **Step 10: 类型检查 + 全量测试确认无回归**
+
+Run: `./node_modules/.bin/tsc -noEmit -skipLibCheck && npx vitest run`(若 `npx vitest` 输出异常简短,改用 `node node_modules/vitest/vitest.mjs run`)
+Expected: tsc 0 错误;测试套件全绿,新增 2 条(week-view 4/4、month-view 5/5),其余不变
+
+- [ ] **Step 11: Commit**
+
+```bash
+git add styles.css src/agenda-panel/views/week-view.ts src/agenda-panel/views/month-view.ts tests/agenda-panel/views/week-view.test.ts tests/agenda-panel/views/month-view.test.ts
+git commit -m "feat(d4-ui): styles.css + week/month weekday header rows (D4-UI.8.5)"
+```
+
 ### Task 9: 真机验证
 
 - 用 demo-vault:`npm run build` 后重载插件,跑 "Open Agenda panel" 命令。
