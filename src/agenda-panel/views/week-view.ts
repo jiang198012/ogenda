@@ -12,6 +12,7 @@ export function renderWeekView(
   occurrences: EventOccurrence[],
   anchor: Date,
   onEventClick: (event: AgendaEvent) => void,
+  onEmptyClick?: (day: Date) => void,
 ): void {
   container.innerHTML = "";
   const weekStart = startOfWeek(anchor);
@@ -32,6 +33,11 @@ export function renderWeekView(
   for (const day of days) {
     const col = document.createElement("div");
     col.className = "ogenda-week-col";
+    if (onEmptyClick) {
+      col.addEventListener("click", (e) => {
+        if (e.target === col) onEmptyClick(day);
+      });
+    }
 
     const dayOccs = occurrences.filter((occ) => startOfDay(parseLocalDate(occ.start)).getTime() === day.getTime());
     for (const occ of dayOccs) {

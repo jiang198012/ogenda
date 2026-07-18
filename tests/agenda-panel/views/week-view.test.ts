@@ -64,4 +64,23 @@ describe("renderWeekView", () => {
       else process.env.TZ = originalTz;
     }
   });
+
+  it("calls onEmptyClick with the day when the empty area of a column is clicked", () => {
+    const container = document.createElement("div");
+    const onEmpty = vi.fn();
+    renderWeekView(container, [], new Date(2026, 6, 15), () => {}, onEmpty);
+    const cols = container.querySelectorAll(".ogenda-week-col");
+    (cols[0] as HTMLElement).click();
+    expect(onEmpty).toHaveBeenCalledWith(new Date(2026, 6, 13)); // Monday of that week
+  });
+
+  it("does NOT call onEmptyClick when a card inside the column is clicked", () => {
+    const container = document.createElement("div");
+    const onEmpty = vi.fn();
+    const onEventClick = vi.fn();
+    renderWeekView(container, [mkOcc("2026-07-13T14:00:00", "周一的会")], new Date(2026, 6, 15), onEventClick, onEmpty);
+    (container.querySelector(".ogenda-week-card") as HTMLElement).click();
+    expect(onEventClick).toHaveBeenCalled();
+    expect(onEmpty).not.toHaveBeenCalled();
+  });
 });

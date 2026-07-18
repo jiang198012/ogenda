@@ -7,6 +7,7 @@ export function renderMonthView(
   occurrences: EventOccurrence[],
   anchor: Date,
   onEventClick: (event: AgendaEvent) => void,
+  onEmptyClick?: (day: Date) => void,
 ): void {
   container.innerHTML = "";
   const weeks = monthGridWeeks(anchor);
@@ -28,6 +29,11 @@ export function renderMonthView(
       const cell = document.createElement("div");
       cell.className = "ogenda-month-cell";
       if (day.getMonth() !== month) cell.classList.add("ogenda-month-othermonth");
+      if (onEmptyClick) {
+        cell.addEventListener("click", (e) => {
+          if (e.target === cell) onEmptyClick(day);
+        });
+      }
 
       const num = document.createElement("div");
       num.className = "ogenda-month-daynum";

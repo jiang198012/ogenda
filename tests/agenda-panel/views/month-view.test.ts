@@ -70,4 +70,23 @@ describe("renderMonthView", () => {
       else process.env.TZ = originalTz;
     }
   });
+
+  it("calls onEmptyClick with the day when the empty area of a cell is clicked", () => {
+    const container = document.createElement("div");
+    const onEmpty = vi.fn();
+    renderMonthView(container, [], new Date(2026, 6, 15), () => {}, onEmpty);
+    const cells = container.querySelectorAll(".ogenda-month-cell");
+    (cells[2] as HTMLElement).click(); // July 1 (index 2, per the existing test's own indexing note)
+    expect(onEmpty).toHaveBeenCalledWith(new Date(2026, 6, 1));
+  });
+
+  it("does NOT call onEmptyClick when a mini-title inside the cell is clicked", () => {
+    const container = document.createElement("div");
+    const onEmpty = vi.fn();
+    const onEventClick = vi.fn();
+    renderMonthView(container, [mkOcc("2026-07-06T09:00:00", "早会")], new Date(2026, 6, 15), onEventClick, onEmpty);
+    (container.querySelector(".ogenda-month-mini") as HTMLElement).click();
+    expect(onEventClick).toHaveBeenCalled();
+    expect(onEmpty).not.toHaveBeenCalled();
+  });
 });
