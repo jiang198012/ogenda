@@ -52,3 +52,37 @@ describe("MonthlyStore", () => {
     expect(s2.updated).toBe(1);
   });
 });
+
+describe("MonthlyStore.readEvents", () => {
+  it("reads event blocks across multiple monthly files, keyed by uid with prose and href flag", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    await store.sync([mk("a@x", "2026-07-14T15:00:00", "七月会"), mk("b@x", "2026-08-01T09:00:00", "八月会")]);
+    const p = "Agenda/2026-07.md";
+    await fs.write(p, (await fs.read(p))!.replace(/\n$/, "") + "\n\n我的纪要\n");
+
+    const events = await store.readEvents();
+    expect(events.map((e) => e.uid).sort()).toEqual(["a@x", "b@x"]);
+
+    const july = events.find((e) => e.uid === "a@x")!;
+    expect(july.fields.title).toBe("七月会");
+    expect(july.prose).toBe("我的纪要");
+    expect(july.hasHref).toBe(false);
+  });
+
+  it("hasHref is true when the block carries an href field (previously synced via CalDAV)", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    await store.sync([{ ...mk("a@x", "2026-07-14T15:00:00", "会"), href: "https://p1.example/cal/a.ics" }]);
+    const events = await store.readEvents();
+    expect(events[0].hasHref).toBe(true);
+  });
+
+  it("skips blocks with no uid field and returns [] when the folder is empty", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    expect(await store.readEvents()).toEqual([]);
+    await fs.write("Agenda/2026-07.md", "## 手写的块\n\n没有 uid 字段\n");
+    expect(await store.readEvents()).toEqual([]);
+  });
+});

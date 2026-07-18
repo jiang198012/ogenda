@@ -1,5 +1,5 @@
 import { AgendaEvent } from "../core/event";
-import { upsertEvents } from "../core/monthly-doc";
+import { parseMonthlyDoc, upsertEvents } from "../core/monthly-doc";
 import { FileStore } from "./file-store";
 
 export function monthOf(startIso: string): string {
@@ -11,6 +11,15 @@ export interface SyncSummary {
   added: number;
   updated: number;
   months: string[];
+}
+
+/** A parsed local event block, as found in a monthly file (not yet reconciled with the server). */
+export interface LocalEvent {
+  uid: string;
+  fields: Record<string, string>;
+  prose: string;
+  /** true if the block carries an href:: (was previously synced via CalDAV) */
+  hasHref: boolean;
 }
 
 export class MonthlyStore {
@@ -46,5 +55,21 @@ export class MonthlyStore {
       }
     }
     return { added, updated, months };
+  }
+
+  async readEvents(): Promise<LocalEvent[]> {
+    const paths = await this.store.list(this.folder);
+    const out: LocalEvent[] = [];
+    for (const path of paths) {
+      const text = await this.store.read(path);
+      if (!text) continue;
+      const { blocks } = parseMonthlyDoc(text);
+      for (const b of blocks) {
+        const uid = b.fields["uid"];
+        if (!uid) continue;
+        out.push({ uid, fields: b.fields, prose: b.prose, hasHref: Boolean(b.fields["href"]) });
+      }
+    }
+    return out;
   }
 }

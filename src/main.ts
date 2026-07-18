@@ -5,7 +5,9 @@ import { ObsidianFileStore } from "./store/obsidian-file-store";
 import { MonthlyStore } from "./store/monthly-store";
 import { GmailImapConnector } from "./connectors/gmail-imap";
 import { CalDavConnector } from "./connectors/caldav/caldav-connector";
+import { CalDavWriter } from "./connectors/caldav/caldav-writer";
 import { SyncService } from "./sync/sync-service";
+import { syncBidirectional, CalDavSource } from "./sync/bidirectional";
 import { davRequest, hrefInside } from "./net/dav-request";
 
 const XML_CT = "application/xml; charset=utf-8";
@@ -22,6 +24,11 @@ export default class OgendaPlugin extends Plugin {
       id: "ogenda-caldav-sync",
       name: "Sync iCloud calendar",
       callback: () => void this.caldavSync(),
+    });
+    this.addCommand({
+      id: "ogenda-caldav-sync-bidirectional",
+      name: "Sync iCloud (two-way)",
+      callback: () => void this.caldavSyncTwoWay(),
     });
     this.addCommand({
       id: "ogenda-caldav-discovery",
@@ -74,6 +81,31 @@ export default class OgendaPlugin extends Plugin {
     } catch (e) {
       new Notice("iCloud 同步出错: " + (e as Error).message);
       console.error("[ogenda] caldav sync error", e);
+    }
+  }
+
+  async caldavSyncTwoWay(): Promise<void> {
+    const c = this.icloudCreds();
+    if (!c || !this.settings.icloudCalUrl) {
+      new Notice("先填 iCloud 凭据 + 日历 URL(用 discovery 探针拿 URL)");
+      return;
+    }
+    const connector = new CalDavConnector({
+      user: c.user,
+      pass: c.pass,
+      calendarUrl: this.settings.icloudCalUrl,
+      label: "icloud",
+    });
+    const writer = new CalDavWriter({ user: c.user, pass: c.pass });
+    const source: CalDavSource = {
+      fetch: () => connector.fetch(),
+      putEvent: (url, ics, ifMatch) => writer.putEvent(url, ics, ifMatch),
+    };
+    try {
+      await syncBidirectional(source, this.settings.icloudCalUrl, this.store(), (m) => new Notice(m, 10000));
+    } catch (e) {
+      new Notice("iCloud 双向同步出错: " + (e as Error).message);
+      console.error("[ogenda] bidirectional sync error", e);
     }
   }
 

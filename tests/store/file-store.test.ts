@@ -10,4 +10,16 @@ describe("InMemoryFileStore", () => {
     await fs.write("Agenda/2026-07.md", "world");
     expect(await fs.read("Agenda/2026-07.md")).toBe("world");
   });
+  it("list returns paths of files directly inside a folder, not nested or unrelated ones", async () => {
+    const fs = new InMemoryFileStore();
+    await fs.write("Agenda/2026-07.md", "a");
+    await fs.write("Agenda/2026-08.md", "b");
+    await fs.write("Agenda/sub/2026-09.md", "c");
+    await fs.write("Other/2026-07.md", "d");
+    expect((await fs.list("Agenda")).sort()).toEqual(["Agenda/2026-07.md", "Agenda/2026-08.md"]);
+  });
+  it("list of a folder with no files returns empty array", async () => {
+    const fs = new InMemoryFileStore();
+    expect(await fs.list("Agenda")).toEqual([]);
+  });
 });

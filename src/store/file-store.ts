@@ -5,6 +5,8 @@ export interface FileStore {
   write(path: string, content: string): Promise<void>;
   /** create the folder (idempotent) */
   ensureFolder(path: string): Promise<void>;
+  /** paths of files directly inside a folder (non-recursive); [] if the folder has none */
+  list(folder: string): Promise<string[]>;
 }
 
 export class InMemoryFileStore implements FileStore {
@@ -18,5 +20,9 @@ export class InMemoryFileStore implements FileStore {
   }
   async ensureFolder(path: string): Promise<void> {
     this.folders.add(path);
+  }
+  async list(folder: string): Promise<string[]> {
+    const prefix = `${folder}/`;
+    return [...this.files.keys()].filter((p) => p.startsWith(prefix) && !p.slice(prefix.length).includes("/"));
   }
 }
