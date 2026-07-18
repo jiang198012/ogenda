@@ -49,6 +49,20 @@ describe("eventToFields", () => {
     expect(f.etag).toBe('"e1"');
     expect(f.href).toBe("https://p1.example/cal/u.ics");
   });
+  it("maps serverDeleted when true (sync metadata)", () => {
+    const f = eventToFields({
+      uid: "u",
+      title: "t",
+      start: "2026-07-14T09:00:00",
+      origin: "synced",
+      serverDeleted: true,
+    });
+    expect(f.server_deleted).toBe("true");
+  });
+  it("omits serverDeleted when undefined", () => {
+    const f = eventToFields({ uid: "u", title: "t", start: "2026-07-14T09:00:00", origin: "local" });
+    expect("server_deleted" in f).toBe(false);
+  });
 });
 
 describe("hashEvent", () => {
@@ -61,5 +75,8 @@ describe("hashEvent", () => {
     expect(
       hashEvent({ ...a, etag: '"x"', href: "https://y", baseHash: "z", source: "s2", protocol: "caldav" }),
     ).toBe(hashEvent(a));
+  });
+  it("is stable when serverDeleted changes (sync metadata)", () => {
+    expect(hashEvent({ ...a, serverDeleted: true })).toBe(hashEvent(a));
   });
 });
