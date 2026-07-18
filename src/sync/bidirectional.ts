@@ -8,6 +8,7 @@ export type Notify = (message: string) => void;
 export interface CalDavSource {
   fetch(): Promise<AgendaEvent[]>;
   putEvent(url: string, ics: string, ifMatch?: string): Promise<{ status: number; etag?: string }>;
+  deleteEvent(url: string, ifMatch: string): Promise<{ status: number }>;
 }
 
 export interface BidirectionalSummary {
@@ -15,6 +16,8 @@ export interface BidirectionalSummary {
   pushed: number;
   created: number;
   conflicts: number;
+  deleted: number;
+  markedServerDeleted: number;
   store: SyncSummary;
 }
 
@@ -37,7 +40,8 @@ export async function syncBidirectional(
   notify: Notify,
 ): Promise<BidirectionalSummary> {
   const [local, server] = await Promise.all([store.readEvents(), source.fetch()]);
-  const plan = planSync(server, local);
+  const syncState = await store.readSyncState();
+  const plan = planSync(server, local, syncState.tracked);
 
   const toApply: AgendaEvent[] = plan.applyServer.map(withBaseHash);
   let pushed = 0;
@@ -72,11 +76,55 @@ export async function syncBidirectional(
     notify(`冲突(${c.server.title}):本地改动已被服务器较新版本覆盖`);
   }
 
+  let deleted = 0;
+  const confirmedDeleted: string[] = [];
+  for (const d of plan.deleteRemote) {
+    const res = await source.deleteEvent(d.href, d.etag);
+    if (isOk(res.status) || res.status === 404) {
+      confirmedDeleted.push(d.uid);
+      deleted++;
+    } else if (res.status === 412) {
+      notify(`删除未推送(${d.uid}):服务器版本已变,已跳过,下次同步重试`);
+    } else {
+      notify(`删除失败(${d.uid}):HTTP ${res.status}`);
+    }
+  }
+  if (confirmedDeleted.length) await store.removeByUid(confirmedDeleted);
+
+  for (const ev of plan.markServerDeleted) {
+    toApply.push(withBaseHash(ev));
+  }
+  const markedServerDeleted = plan.markServerDeleted.length;
+
+  // tracked-state ledger (D3): drop uids that are now confirmed-deleted or gone from both
+  // sides, and (re-)record every href+etag-bearing entry that's about to be written locally.
+  const localUids = new Set(local.map((l) => l.uid));
+  const serverUids = new Set(server.map((s) => s.uid));
+  const bothGone = Object.keys(syncState.tracked).filter(
+    (uid) => !localUids.has(uid) && !serverUids.has(uid),
+  );
+  const newTracked: Record<string, { href: string; etag: string }> = { ...syncState.tracked };
+  for (const uid of confirmedDeleted) delete newTracked[uid];
+  for (const uid of bothGone) delete newTracked[uid];
+  for (const ev of toApply) {
+    if (ev.href && ev.etag) newTracked[ev.uid] = { href: ev.href, etag: ev.etag };
+  }
+  await store.writeSyncState({ tracked: newTracked });
+
   const summary = await store.sync(toApply);
   notify(
-    `双向同步完成:拉取 ${plan.applyServer.length}、推送 ${pushed}、新建 ${created}、冲突 ${plan.conflicts.length}` +
+    `双向同步完成:拉取 ${plan.applyServer.length}、推送 ${pushed}、新建 ${created}、冲突 ${plan.conflicts.length}、` +
+      `删除 ${deleted}、服务器已删 ${markedServerDeleted}` +
       `(${summary.months.join(", ") || "无变化"})`,
   );
 
-  return { pulled: plan.applyServer.length, pushed, created, conflicts: plan.conflicts.length, store: summary };
+  return {
+    pulled: plan.applyServer.length,
+    pushed,
+    created,
+    conflicts: plan.conflicts.length,
+    deleted,
+    markedServerDeleted,
+    store: summary,
+  };
 }

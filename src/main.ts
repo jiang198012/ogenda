@@ -100,6 +100,7 @@ export default class OgendaPlugin extends Plugin {
     const source: CalDavSource = {
       fetch: () => connector.fetch(),
       putEvent: (url, ics, ifMatch) => writer.putEvent(url, ics, ifMatch),
+      deleteEvent: (url, ifMatch) => writer.deleteEvent(url, ifMatch),
     };
     try {
       await syncBidirectional(source, this.settings.icloudCalUrl, this.store(), (m) => new Notice(m, 10000));

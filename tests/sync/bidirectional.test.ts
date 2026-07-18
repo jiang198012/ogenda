@@ -27,15 +27,32 @@ interface PutCall {
   ifMatch?: string;
 }
 
-function fakeSource(server: AgendaEvent[], putStatus: { status: number; etag?: string }, calls: PutCall[]): CalDavSource {
+interface DeleteCall {
+  url: string;
+  ifMatch: string;
+}
+
+function fakeSource(
+  server: AgendaEvent[],
+  putStatus: { status: number; etag?: string },
+  calls: PutCall[],
+  deleteStatus: { status: number } = { status: 204 },
+  deleteCalls: DeleteCall[] = [],
+): CalDavSource {
   return {
     fetch: async () => server,
     putEvent: async (url, ics, ifMatch) => {
       calls.push({ url, ics, ifMatch });
       return putStatus;
     },
+    deleteEvent: async (url, ifMatch) => {
+      deleteCalls.push({ url, ifMatch });
+      return deleteStatus;
+    },
   };
 }
+
+const TRACKED_A_X = { href: "https://cal.example/home/a-x.ics", etag: '"e1"' };
 
 describe("syncBidirectional", () => {
   it("pushes a local edit to the server (PUT If-Match) and updates the local etag/base_hash", async () => {
@@ -60,6 +77,11 @@ describe("syncBidirectional", () => {
     const text = (await fs.read(p))!;
     expect(text).toContain("改过的会议");
     expect(text).toContain('etag:: "e2"');
+
+    // backward compatibility: no SyncState was ever written for this store, so D3 deletion
+    // propagation must be a no-op alongside the D2 push behavior asserted above.
+    expect(summary.deleted).toBe(0);
+    expect(summary.markedServerDeleted).toBe(0);
   });
 
   it("creates a hand-written local block (no href) on the server and records the new href/etag", async () => {
@@ -147,6 +169,78 @@ describe("syncBidirectional", () => {
 
     expect(summary.pushed).toBe(0);
     expect(calls).toHaveLength(1);
+    expect(await fs.read(p)).toBe(before);
+    expect(msgs.some((m) => m.includes("跳过"))).toBe(true);
+  });
+
+  it("deletes the server copy when the local block was removed, and drops the local block/tracked state", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    await store.sync([mkSynced()]);
+    await store.writeSyncState({ tracked: { "a@x": TRACKED_A_X } });
+    const p = "Agenda/2026-07.md";
+    // simulate the user deleting the whole block in Obsidian, leaving just the month heading
+    const original = (await fs.read(p))!;
+    await fs.write(p, original.replace(/\n\n## [\s\S]*/, "\n"));
+
+    const calls: PutCall[] = [];
+    const deleteCalls: DeleteCall[] = [];
+    const source = fakeSource([mkSynced()], { status: 204, etag: '"e2"' }, calls, { status: 204 }, deleteCalls);
+    const msgs: string[] = [];
+
+    const summary = await syncBidirectional(source, CAL_URL, store, (m) => msgs.push(m));
+
+    expect(summary.deleted).toBe(1);
+    expect(deleteCalls).toHaveLength(1);
+    expect(deleteCalls[0].url).toBe("https://cal.example/home/a-x.ics");
+    expect(deleteCalls[0].ifMatch).toBe('"e1"');
+    expect(await fs.read(p)).not.toContain("uid:: a@x");
+  });
+
+  it("marks a server-deleted event without deleting it locally or losing prose", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    await store.sync([mkSynced()]);
+    await store.writeSyncState({ tracked: { "a@x": TRACKED_A_X } });
+    const p = "Agenda/2026-07.md";
+    await fs.write(p, (await fs.read(p))!.replace(/\n$/, "") + "\n\n我的会前笔记\n");
+
+    const calls: PutCall[] = [];
+    const deleteCalls: DeleteCall[] = [];
+    // server no longer has the event
+    const source = fakeSource([], { status: 204, etag: '"e2"' }, calls, { status: 204 }, deleteCalls);
+    const msgs: string[] = [];
+
+    const summary = await syncBidirectional(source, CAL_URL, store, (m) => msgs.push(m));
+
+    expect(summary.markedServerDeleted).toBe(1);
+    expect(deleteCalls).toHaveLength(0);
+    const text = (await fs.read(p))!;
+    expect(text).toContain("uid:: a@x");
+    expect(text).toContain("server_deleted:: true");
+    expect(text).toContain("我的会前笔记");
+  });
+
+  it("skips a delete on 412 (server-wins) without deleting the confirmed-gone uid or touching the file", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    await store.sync([mkSynced()]);
+    await store.writeSyncState({ tracked: { "a@x": TRACKED_A_X } });
+    const p = "Agenda/2026-07.md";
+    const original = (await fs.read(p))!;
+    await fs.write(p, original.replace(/\n\n## [\s\S]*/, "\n"));
+    const before = await fs.read(p);
+
+    const calls: PutCall[] = [];
+    const deleteCalls: DeleteCall[] = [];
+    const source = fakeSource([mkSynced()], { status: 204, etag: '"e2"' }, calls, { status: 412 }, deleteCalls);
+    const msgs: string[] = [];
+
+    const summary = await syncBidirectional(source, CAL_URL, store, (m) => msgs.push(m));
+
+    expect(summary.deleted).toBe(0);
+    expect(deleteCalls).toHaveLength(1);
+    expect(deleteCalls[0].ifMatch).toBe('"e1"');
     expect(await fs.read(p)).toBe(before);
     expect(msgs.some((m) => m.includes("跳过"))).toBe(true);
   });

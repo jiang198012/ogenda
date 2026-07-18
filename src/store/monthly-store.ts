@@ -1,6 +1,7 @@
 import { AgendaEvent } from "../core/event";
-import { parseMonthlyDoc, upsertEvents } from "../core/monthly-doc";
+import { parseMonthlyDoc, serializeMonthlyDoc, upsertEvents } from "../core/monthly-doc";
 import { FileStore } from "./file-store";
+import { SyncState, readSyncState as readSyncStateFile, writeSyncState as writeSyncStateFile } from "./sync-state";
 
 export function monthOf(startIso: string): string {
   const m = /^(\d{4})-(\d{2})/.exec(startIso);
@@ -71,5 +72,29 @@ export class MonthlyStore {
       }
     }
     return out;
+  }
+
+  async readSyncState(): Promise<SyncState> {
+    return readSyncStateFile(this.store, this.folder);
+  }
+
+  async writeSyncState(state: SyncState): Promise<void> {
+    return writeSyncStateFile(this.store, this.folder, state);
+  }
+
+  /** Removes event blocks matching the given uids from whichever monthly files contain them. */
+  async removeByUid(uids: string[]): Promise<void> {
+    if (uids.length === 0) return;
+    const uidSet = new Set(uids);
+    const paths = await this.store.list(this.folder);
+    for (const path of paths) {
+      const text = await this.store.read(path);
+      if (!text) continue;
+      const { preamble, blocks } = parseMonthlyDoc(text);
+      const remaining = blocks.filter((b) => !uidSet.has(b.fields["uid"]));
+      // skip the write entirely when no block in this file matched (avoids churn)
+      if (remaining.length === blocks.length) continue;
+      await this.store.write(path, serializeMonthlyDoc(preamble, remaining));
+    }
   }
 }
