@@ -140,6 +140,10 @@
   font-size: 13px;
 }
 
+.ogenda-field-row {
+  display: contents;
+}
+
 .ogenda-field-key {
   color: var(--text-muted);
 }
