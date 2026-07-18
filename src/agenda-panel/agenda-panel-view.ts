@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf } from "obsidian";
+import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
 import { AgendaEvent } from "../core/event";
 import { MonthlyStore } from "../store/monthly-store";
 import { expandOccurrences } from "./occurrences";
@@ -86,17 +86,22 @@ export class AgendaPanelView extends ItemView {
     });
 
     const body = container.createDiv({ cls: "ogenda-panel-body" });
-    const { start, end } = this.rangeForTab();
-    const events: AgendaEvent[] = await this.store.readEvents().then((local) =>
-      local.map((l) => this.localToEvent(l)),
-    );
-    const occurrences = expandOccurrences(events, start, end);
-    const onEventClick = (event: AgendaEvent) => void openEventSource(this.app, this.folder, event);
+    try {
+      const { start, end } = this.rangeForTab();
+      const events: AgendaEvent[] = await this.store.readEvents().then((local) =>
+        local.map((l) => this.localToEvent(l)),
+      );
+      const occurrences = expandOccurrences(events, start, end);
+      const onEventClick = (event: AgendaEvent) => void openEventSource(this.app, this.folder, event);
 
-    if (this.tab === "list") renderListView(body, occurrences, new Date(), onEventClick);
-    else if (this.tab === "day") renderDayView(body, occurrences, onEventClick);
-    else if (this.tab === "week") renderWeekView(body, occurrences, this.anchor, onEventClick);
-    else renderMonthView(body, occurrences, this.anchor, onEventClick);
+      if (this.tab === "list") renderListView(body, occurrences, new Date(), onEventClick);
+      else if (this.tab === "day") renderDayView(body, occurrences, onEventClick);
+      else if (this.tab === "week") renderWeekView(body, occurrences, this.anchor, onEventClick);
+      else renderMonthView(body, occurrences, this.anchor, onEventClick);
+    } catch (err) {
+      console.error("[ogenda] Agenda panel failed to load events", err);
+      new Notice("Agenda 面板加载出错: " + (err as Error).message);
+    }
   }
 
   private shiftAnchor(dir: 1 | -1): Date {
