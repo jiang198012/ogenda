@@ -43,6 +43,7 @@ export default class OgendaPlugin extends Plugin {
       name: "Open Agenda panel",
       callback: () => void this.openAgendaPanel(),
     });
+    this.addRibbonIcon("calendar-days", "Open Agenda panel", () => void this.openAgendaPanel());
 
     if (this.settings.syncOnStartup) {
       this.app.workspace.onLayoutReady(() => void this.syncNow());
