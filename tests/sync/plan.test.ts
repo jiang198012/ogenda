@@ -25,11 +25,13 @@ describe("planSync", () => {
   it("no-op when local is unedited and server etag is unchanged", () => {
     const s = serverEvent();
     const l = mkLocal(s);
-    const plan = planSync([s], [l]);
+    const plan = planSync([s], [l]); // no third `tracked` argument — must behave exactly as before D3
     expect(plan.pushUpdate).toEqual([]);
     expect(plan.pushCreate).toEqual([]);
     expect(plan.applyServer).toEqual([]);
     expect(plan.conflicts).toEqual([]);
+    expect(plan.deleteRemote).toEqual([]);
+    expect(plan.markServerDeleted).toEqual([]);
   });
 
   it("pushes local edit when local changed but server etag is unchanged", () => {
@@ -92,6 +94,43 @@ describe("planSync", () => {
   it("no-ops when a previously-synced local block's uid is absent from this server fetch (deletion propagation is D3)", () => {
     const l = mkLocal(serverEvent());
     const plan = planSync([], [l]);
+    expect(plan.pushUpdate).toEqual([]);
+    expect(plan.pushCreate).toEqual([]);
+    expect(plan.applyServer).toEqual([]);
+    expect(plan.conflicts).toEqual([]);
+  });
+
+  it("detects a local deletion: uid is tracked and still on the server, but no local block exists for it", () => {
+    const s = serverEvent({ etag: '"e2"' }); // server's current etag differs from the stale tracked one
+    const tracked = { [s.uid]: { href: "https://p1.example/cal/stale.ics", etag: '"stale"' } };
+    const plan = planSync([s], [], tracked);
+    expect(plan.deleteRemote).toEqual([{ uid: s.uid, href: s.href, etag: s.etag }]);
+    expect(plan.markServerDeleted).toEqual([]);
+    expect(plan.pushUpdate).toEqual([]);
+    expect(plan.pushCreate).toEqual([]);
+    expect(plan.applyServer).toEqual([]);
+    expect(plan.conflicts).toEqual([]);
+  });
+
+  it("detects a server deletion: uid is tracked and still local (unedited), but the server no longer has it", () => {
+    const s = serverEvent();
+    const l = mkLocal(s); // unedited since last sync — would not otherwise trigger pushUpdate/conflict
+    const tracked = { [s.uid]: { href: s.href!, etag: s.etag! } };
+    const plan = planSync([], [l], tracked);
+    expect(plan.markServerDeleted).toHaveLength(1);
+    expect(plan.markServerDeleted[0]).toMatchObject({ uid: s.uid, title: s.title, serverDeleted: true });
+    expect(plan.deleteRemote).toEqual([]);
+    expect(plan.pushUpdate).toEqual([]);
+    expect(plan.pushCreate).toEqual([]);
+    expect(plan.applyServer).toEqual([]);
+    expect(plan.conflicts).toEqual([]);
+  });
+
+  it("no-ops when a tracked uid is gone from both local and server (both sides already deleted)", () => {
+    const tracked = { "gone@x": { href: "https://p1.example/cal/gone.ics", etag: '"g1"' } };
+    const plan = planSync([], [], tracked);
+    expect(plan.deleteRemote).toEqual([]);
+    expect(plan.markServerDeleted).toEqual([]);
     expect(plan.pushUpdate).toEqual([]);
     expect(plan.pushCreate).toEqual([]);
     expect(plan.applyServer).toEqual([]);

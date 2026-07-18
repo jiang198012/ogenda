@@ -12,6 +12,8 @@ export interface SyncPlan {
   pushCreate: AgendaEvent[];
   applyServer: AgendaEvent[];
   conflicts: SyncConflict[];
+  deleteRemote: { uid: string; href: string; etag: string }[];
+  markServerDeleted: AgendaEvent[];
 }
 
 /** Reconstructs the calendar-writable fields (+ sync metadata) of an AgendaEvent from a monthly-doc block. */
@@ -37,14 +39,21 @@ function fieldsToEvent(fields: Record<string, string>): AgendaEvent {
  * Deletion propagation (local block removed, or server no longer has a
  * previously-synced uid) is out of scope for D2 — see D3.
  */
-export function planSync(server: AgendaEvent[], local: LocalEvent[]): SyncPlan {
+export function planSync(
+  server: AgendaEvent[],
+  local: LocalEvent[],
+  tracked: Record<string, { href: string; etag: string }> = {}
+): SyncPlan {
   const serverByUid = new Map(server.map((s) => [s.uid, s]));
   const localUids = new Set(local.map((l) => l.uid));
+  const localByUid = new Map(local.map((l) => [l.uid, l]));
 
   const pushUpdate: AgendaEvent[] = [];
   const pushCreate: AgendaEvent[] = [];
   const applyServer: AgendaEvent[] = [];
   const conflicts: SyncConflict[] = [];
+  const deleteRemote: { uid: string; href: string; etag: string }[] = [];
+  const markServerDeleted: AgendaEvent[] = [];
 
   for (const l of local) {
     if (!l.hasHref) {
@@ -70,5 +79,25 @@ export function planSync(server: AgendaEvent[], local: LocalEvent[]): SyncPlan {
     if (!localUids.has(s.uid)) applyServer.push(s);
   }
 
-  return { pushUpdate, pushCreate, applyServer, conflicts };
+  // D3: reconcile against the last-known-synced ledger to tell "brand-new server event"
+  // apart from "event whose local block (or server copy) the user deleted since last sync".
+  // Separate loop, per spec — does not replace or modify the two loops above.
+  for (const trackedUid of Object.keys(tracked)) {
+    const l = localByUid.get(trackedUid);
+    const s = serverByUid.get(trackedUid);
+    if (!l && s) {
+      // local deletion: use the server's current href/etag, not the possibly-stale tracked value
+      deleteRemote.push({ uid: trackedUid, href: s.href ?? "", etag: s.etag ?? "" });
+    } else if (l && !s) {
+      // server deletion: reconstruct the AgendaEvent from the local block so it can be flagged
+      markServerDeleted.push({ ...fieldsToEvent(l.fields), serverDeleted: true });
+    }
+    // else: both sides already gone (no action), or both present (handled by the branches above)
+  }
+
+  // A local deletion must not be undone by loop 2 re-applying the still-present server copy.
+  const deletedRemoteUids = new Set(deleteRemote.map((d) => d.uid));
+  const reconciledApplyServer = applyServer.filter((s) => !deletedRemoteUids.has(s.uid));
+
+  return { pushUpdate, pushCreate, applyServer: reconciledApplyServer, conflicts, deleteRemote, markServerDeleted };
 }
