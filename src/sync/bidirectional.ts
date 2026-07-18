@@ -96,16 +96,19 @@ export async function syncBidirectional(
   }
   const markedServerDeleted = plan.markServerDeleted.length;
 
-  // tracked-state ledger (D3): drop uids that are now confirmed-deleted or gone from both
-  // sides, and (re-)record every href+etag-bearing entry that's about to be written locally.
-  const localUids = new Set(local.map((l) => l.uid));
-  const serverUids = new Set(server.map((s) => s.uid));
-  const bothGone = Object.keys(syncState.tracked).filter(
-    (uid) => !localUids.has(uid) && !serverUids.has(uid),
-  );
-  const newTracked: Record<string, { href: string; etag: string }> = { ...syncState.tracked };
-  for (const uid of confirmedDeleted) delete newTracked[uid];
-  for (const uid of bothGone) delete newTracked[uid];
+  // tracked-state ledger (D3): rebuilt fresh each round, not carried forward from the old
+  // ledger — anything confirmed present on both sides is (re)tracked, anything not
+  // re-derived here (deleted, gone from one side, or never synced) is naturally dropped.
+  // Building it this way (rather than copying the old ledger and subtracting) is what lets
+  // events that were already synced under pre-D3 code get seeded into tracking on their
+  // first D3 sync, even when nothing about them changed this round.
+  const serverByUidForTracking = new Map(server.map((s) => [s.uid, s]));
+  const newTracked: Record<string, { href: string; etag: string }> = {};
+  for (const l of local) {
+    if (!l.hasHref) continue;
+    const s = serverByUidForTracking.get(l.uid);
+    if (s?.href && s?.etag) newTracked[l.uid] = { href: s.href, etag: s.etag };
+  }
   for (const ev of toApply) {
     if (ev.href && ev.etag) newTracked[ev.uid] = { href: ev.href, etag: ev.etag };
   }

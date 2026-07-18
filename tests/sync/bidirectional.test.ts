@@ -221,6 +221,30 @@ describe("syncBidirectional", () => {
     expect(text).toContain("我的会前笔记");
   });
 
+  it("seeds tracked state for an already-synced, unchanged event on its first D3 sync (no prior SyncState)", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    await store.sync([mkSynced()]);
+    // no SyncState has ever been written for this store — mirrors a vault that was
+    // already synced under pre-D3 code, running its first sync after upgrading.
+
+    const calls: PutCall[] = [];
+    const source = fakeSource([mkSynced()], { status: 204, etag: '"unused"' }, calls);
+    const msgs: string[] = [];
+
+    const summary = await syncBidirectional(source, CAL_URL, store, (m) => msgs.push(m));
+
+    // a true no-op round: nothing pushed, pulled, created, or conflicted
+    expect(summary.pushed).toBe(0);
+    expect(summary.pulled).toBe(0);
+    expect(summary.created).toBe(0);
+    expect(summary.conflicts).toBe(0);
+    expect(calls).toHaveLength(0);
+
+    const state = await store.readSyncState();
+    expect(state.tracked["a@x"]).toEqual(TRACKED_A_X);
+  });
+
   it("skips a delete on 412 (server-wins) without deleting the confirmed-gone uid or touching the file", async () => {
     const fs = new InMemoryFileStore();
     const store = new MonthlyStore(fs, "Agenda");
