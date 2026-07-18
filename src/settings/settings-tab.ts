@@ -59,6 +59,16 @@ export class OgendaSettingTab extends PluginSettingTab {
         })
       );
 
+    new Setting(containerEl)
+      .setName("时区")
+      .setDesc("IANA 时区名,如 Asia/Shanghai、America/Los_Angeles。留空 = 用电脑系统时区(默认行为)。")
+      .addText((t) =>
+        t.setValue(this.plugin.settings.timezone).onChange(async (v) => {
+          this.plugin.settings.timezone = v.trim();
+          await this.plugin.saveSettings();
+        })
+      );
+
     // --- iCloud CalDAV (D0 spike) ---
     containerEl.createEl("h3", { text: "iCloud CalDAV (D0 探针)" });
 
