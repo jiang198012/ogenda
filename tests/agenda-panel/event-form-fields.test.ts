@@ -33,6 +33,8 @@ describe("buildEventFromFields", () => {
     const existing: AgendaEvent = {
       uid: "keep-me@ogenda", title: "old", start: "2026-07-01T09:00:00", origin: "synced",
       href: "https://x/a.ics", etag: '"e1"', baseHash: "abc123", rrule: "FREQ=WEEKLY",
+      tz: "Asia/Shanghai", url: "https://x/event", busy: "BUSY", source: "iCloud",
+      protocol: "caldav", serverDeleted: true, seq: 3, lastSynced: "2026-07-15T00:00:00Z",
     };
     const fields = { ...blankFields(), title: "改过的标题", start: "2026-07-20T10:00:00" };
     const ev = buildEventFromFields(fields, existing, () => "should-not-be-used");
@@ -43,6 +45,27 @@ describe("buildEventFromFields", () => {
     expect(ev.baseHash).toBe("abc123");
     expect(ev.rrule).toBe("FREQ=WEEKLY");
     expect(ev.title).toBe("改过的标题");
+    expect(ev.tz).toBe("Asia/Shanghai");
+    expect(ev.url).toBe("https://x/event");
+    expect(ev.busy).toBe("BUSY");
+    expect(ev.source).toBe("iCloud");
+    expect(ev.protocol).toBe("caldav");
+    expect(ev.serverDeleted).toBe(true);
+    expect(ev.seq).toBe(3);
+    expect(ev.lastSynced).toBe("2026-07-15T00:00:00Z");
+  });
+
+  it("leaves tz/url/busy/source/protocol/serverDeleted/seq/lastSynced undefined when creating (existing = null)", () => {
+    const fields = { ...blankFields(), title: "新事件", start: "2026-07-20T10:00:00" };
+    const ev = buildEventFromFields(fields, null, () => "generated-uid@ogenda");
+    expect(ev.tz).toBeUndefined();
+    expect(ev.url).toBeUndefined();
+    expect(ev.busy).toBeUndefined();
+    expect(ev.source).toBeUndefined();
+    expect(ev.protocol).toBeUndefined();
+    expect(ev.serverDeleted).toBeUndefined();
+    expect(ev.seq).toBeUndefined();
+    expect(ev.lastSynced).toBeUndefined();
   });
 
   it("splits attendees and tags on comma, trimming whitespace, undefined when empty", () => {

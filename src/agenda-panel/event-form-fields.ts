@@ -56,5 +56,13 @@ export function buildEventFromFields(
     etag: existing?.etag,
     baseHash: existing?.baseHash,
     rrule: existing?.rrule,
+    tz: existing?.tz,
+    url: existing?.url,
+    busy: existing?.busy,
+    source: existing?.source,
+    protocol: existing?.protocol,
+    serverDeleted: existing?.serverDeleted,
+    seq: existing?.seq,
+    lastSynced: existing?.lastSynced,
   };
 }
