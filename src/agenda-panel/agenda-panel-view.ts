@@ -46,8 +46,8 @@ export class AgendaPanelView extends ItemView {
       const weeks = monthGridWeeks(this.anchor);
       return { start: weeks[0][0], end: addDays(weeks[weeks.length - 1][6], 1) };
     }
-    // list: today onward, 60-day rolling window
-    const start = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+    // list: from the anchor date onward, 60-day rolling window
+    const start = new Date(this.anchor.getFullYear(), this.anchor.getMonth(), this.anchor.getDate());
     return { start, end: addDays(start, 60) };
   }
 
@@ -101,8 +101,11 @@ export class AgendaPanelView extends ItemView {
 
   private shiftAnchor(dir: 1 | -1): Date {
     if (this.tab === "day") return addDays(this.anchor, dir);
-    if (this.tab === "week") return addDays(this.anchor, dir * 7);
-    return new Date(this.anchor.getFullYear(), this.anchor.getMonth() + dir, this.anchor.getDate());
+    if (this.tab === "week" || this.tab === "list") return addDays(this.anchor, dir * 7);
+    const targetMonth = this.anchor.getMonth() + dir;
+    const daysInTarget = new Date(this.anchor.getFullYear(), targetMonth + 1, 0).getDate();
+    const day = Math.min(this.anchor.getDate(), daysInTarget);
+    return new Date(this.anchor.getFullYear(), targetMonth, day);
   }
 
   // MonthlyStore.readEvents() 返回的是原始字段(LocalEvent),不是 AgendaEvent —— 面板只读展示,
