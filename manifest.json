@@ -2,7 +2,7 @@
   "id": "ogenda",
   "name": "ogenda",
   "version": "0.0.1",
-  "minAppVersion": "1.5.0",
+  "minAppVersion": "1.13.0",
   "description": "Sync schedule events from mailbox accounts into your vault, with an agenda view.",
   "author": "jiang",
   "isDesktopOnly": true
