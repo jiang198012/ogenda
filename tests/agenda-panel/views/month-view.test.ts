@@ -66,7 +66,8 @@ describe("renderMonthView", () => {
       // grid starts Mon 2026-06-29 -> July 13 is index 14 (0-indexed: 29,30,1,2,3,4,5,6,7,8,9,10,11,12,13)
       expect(cells[14].textContent).toContain("全天会议");
     } finally {
-      process.env.TZ = originalTz;
+      if (originalTz === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTz;
     }
   });
 });

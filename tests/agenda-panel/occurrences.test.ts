@@ -57,7 +57,8 @@ describe("expandOccurrences", () => {
       const out = expandOccurrences([ev], new Date(2026, 6, 13), new Date(2026, 6, 14));
       expect(out).toEqual([{ event: ev, start: "2026-07-13", end: undefined }]);
     } finally {
-      process.env.TZ = originalTz;
+      if (originalTz === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTz;
     }
   });
 });

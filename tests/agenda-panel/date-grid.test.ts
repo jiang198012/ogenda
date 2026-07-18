@@ -59,7 +59,8 @@ describe("date-grid", () => {
       expect(groups.length).toBe(1);
       expect(groups[0].date).toEqual(new Date(2026, 6, 13));
     } finally {
-      process.env.TZ = originalTz;
+      if (originalTz === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTz;
     }
   });
 });

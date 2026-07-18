@@ -60,7 +60,8 @@ describe("renderWeekView", () => {
       expect(cols[0].textContent).toContain("全天会议");
       expect(cols[6].textContent).not.toContain("全天会议");
     } finally {
-      process.env.TZ = originalTz;
+      if (originalTz === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTz;
     }
   });
 });
