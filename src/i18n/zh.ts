@@ -84,6 +84,7 @@ export const zh: Record<string, string> = {
   "view.tab.stats": "统计",
   "panel.today": "今天",
   "panel.newEvent": "+ 新建",
+  "panel.sync": "同步",
   "confirm.delete.title": "删除事件",
   "confirm.delete.body": "确定删除《{title}》吗?",
   "notice.icsReadonly": "ICS 为只读订阅,本地改动不会同步回源。",

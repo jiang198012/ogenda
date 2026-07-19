@@ -1,5 +1,5 @@
 // src/agenda-panel/agenda-panel-view.ts
-import { ItemView, WorkspaceLeaf, Modal, Notice } from "obsidian";
+import { ItemView, WorkspaceLeaf, Modal, Notice, setIcon } from "obsidian";
 import { AgendaEvent } from "../core/event";
 import { LocalEvent, MonthlyStore } from "../store/monthly-store";
 import { expandOccurrences } from "./occurrences";
@@ -16,7 +16,7 @@ import { renderStatsView } from "./views/stats-view";
 import { renderMiniCalendar, monthsToFill, daysWithEvents } from "./mini-calendar";
 import { localToEvent } from "./local-to-event";
 import { createColorResolver } from "./colors";
-import { formatDate } from "./date-format";
+import { formatDate, formatWeek, formatMonth } from "./date-format";
 import { getLanguage, t } from "../i18n";
 
 export const AGENDA_PANEL_VIEW_TYPE = "ogenda-agenda-panel";
@@ -151,11 +151,15 @@ export class AgendaPanelView extends ItemView {
       this.anchor = this.shiftAnchor(-1);
       void this.render();
     });
-    const isToday = startOfDay(this.anchor).getTime() === startOfDay(this.safeToday()).getTime();
-    const todayBtn = nav.createSpan({
-      cls: "ogenda-navbtn ogenda-navtoday",
-      text: isToday ? `${t("panel.today")} · ${formatDate(this.anchor, getLanguage())}` : formatDate(this.anchor, getLanguage()),
-    });
+    const lang = getLanguage();
+    let navLabel: string;
+    if (this.tab === "week") navLabel = formatWeek(this.anchor, lang);
+    else if (this.tab === "month") navLabel = formatMonth(this.anchor, lang);
+    else {
+      const isToday = startOfDay(this.anchor).getTime() === startOfDay(this.safeToday()).getTime();
+      navLabel = isToday ? `${t("panel.today")} · ${formatDate(this.anchor, lang)}` : formatDate(this.anchor, lang);
+    }
+    const todayBtn = nav.createSpan({ cls: "ogenda-navbtn ogenda-navtoday", text: navLabel });
     todayBtn.addEventListener("click", () => {
       this.anchor = this.safeToday();
       void this.render();
@@ -186,6 +190,15 @@ export class AgendaPanelView extends ItemView {
           undefined,
         ).open();
       });
+
+      const syncBtn = head.createDiv({ cls: "ogenda-panel-syncbtn" });
+      setIcon(syncBtn, "refresh-cw");
+      syncBtn.createSpan({ text: t("panel.sync") });
+      if (this.getSyncProvider() === "none") {
+        syncBtn.addClass("ogenda-disabled");
+      } else {
+        syncBtn.addEventListener("click", () => this.triggerSync());
+      }
 
       const onEventClick = (event: AgendaEvent) => {
         new EventFormModal(
@@ -230,8 +243,9 @@ export class AgendaPanelView extends ItemView {
           // by the leaf), NOT daySide — daySide sits in a stretch flex row and reports the day's
           // event-stack height, which would tie the month count to how many events the day has.
           const monthCount = monthsToFill(this.contentEl.clientHeight);
-          const miniStart = new Date(this.anchor.getFullYear(), this.anchor.getMonth(), 1);
-          const miniEnd = new Date(this.anchor.getFullYear(), this.anchor.getMonth() + monthCount, 1);
+          const shift = monthCount >= 2 ? 1 : 0;
+          const miniStart = new Date(this.anchor.getFullYear(), this.anchor.getMonth() - shift, 1);
+          const miniEnd = new Date(this.anchor.getFullYear(), this.anchor.getMonth() - shift + monthCount, 1);
           const miniOccs = expandOccurrences(events, miniStart, miniEnd);
           renderMiniCalendar(
             daySide,

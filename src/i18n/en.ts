@@ -84,6 +84,7 @@ export const en: Record<string, string> = {
   "view.tab.stats": "Stats",
   "panel.today": "Today",
   "panel.newEvent": "+ New",
+  "panel.sync": "Sync",
   "confirm.delete.title": "Delete event",
   "confirm.delete.body": "Delete \"{title}\"?",
   "notice.icsReadonly": "ICS is a read-only subscription; local changes will not sync back.",
