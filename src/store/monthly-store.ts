@@ -8,6 +8,9 @@ export function monthOf(startIso: string): string {
   return m ? `${m[1]}-${m[2]}` : "unknown";
 }
 
+/** Optional fields the panel edit form owns — blanking one should delete it. Metadata is never here. */
+const PANEL_CLEARABLE_FIELDS = ["end", "location", "organizer", "attendees", "status", "rsvp", "category", "tags"];
+
 export interface SyncSummary {
   added: number;
   updated: number;
@@ -80,6 +83,24 @@ export class MonthlyStore {
 
   async writeSyncState(state: SyncState): Promise<void> {
     return writeSyncStateFile(this.store, this.folder, state);
+  }
+
+  /**
+   * Panel-edit write path: like sync() for a single event, but blanked optional
+   * fields are DELETED (clearFields). Sync's merge semantics (which protect
+   * href/etag/base_hash) are intentionally left untouched — see upsertEvents.
+   */
+  async savePanelEvent(event: AgendaEvent): Promise<SyncSummary> {
+    await this.store.ensureFolder(this.folder);
+    const month = monthOf(event.start);
+    const path = this.pathFor(month);
+    const existing = (await this.store.read(path)) ?? "";
+    const seed = existing || `# ${month}\n`;
+    const r = upsertEvents(seed, [event], { clearFields: PANEL_CLEARABLE_FIELDS });
+    if (r.added > 0 || r.updated > 0) {
+      await this.store.write(path, r.text);
+    }
+    return { added: r.added, updated: r.updated, months: r.added > 0 || r.updated > 0 ? [month] : [] };
   }
 
   /** Removes event blocks matching the given uids from whichever monthly files contain them. */

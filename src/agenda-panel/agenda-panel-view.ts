@@ -80,7 +80,7 @@ export class AgendaPanelView extends ItemView {
   }
 
   private async saveEvent(event: AgendaEvent): Promise<void> {
-    await this.store.sync([event]);
+    await this.store.savePanelEvent(event);
     this.triggerSync();
     await this.render();
   }

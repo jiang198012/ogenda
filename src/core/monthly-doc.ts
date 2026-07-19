@@ -94,8 +94,13 @@ export interface UpsertResult {
   updated: number;
 }
 
-export function upsertEvents(text: string, events: AgendaEvent[]): UpsertResult {
+export function upsertEvents(
+  text: string,
+  events: AgendaEvent[],
+  opts?: { clearFields?: string[] },
+): UpsertResult {
   const { preamble, blocks } = parseMonthlyDoc(text);
+  const clearable = opts?.clearFields ?? [];
   const byUid = new Map<string, EventBlock>();
   for (const b of blocks) {
     const u = b.fields["uid"];
@@ -112,11 +117,20 @@ export function upsertEvents(text: string, events: AgendaEvent[]): UpsertResult 
       for (const [k, v] of Object.entries(mf)) {
         if (existing.fields[k] !== v) changed = true;
       }
+      for (const k of clearable) {
+        if (!(k in mf) && k in existing.fields) changed = true;
+      }
       // only rewrite + count as "updated" when the event actually changed
       if (changed) {
         for (const [k, v] of Object.entries(mf)) {
           if (!existing.fieldOrder.includes(k)) existing.fieldOrder.push(k);
           existing.fields[k] = v;
+        }
+        for (const k of clearable) {
+          if (!(k in mf) && k in existing.fields) {
+            delete existing.fields[k];
+            existing.fieldOrder = existing.fieldOrder.filter((f) => f !== k);
+          }
         }
         existing.heading = heading;
         updated++;

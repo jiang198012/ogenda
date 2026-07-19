@@ -86,3 +86,22 @@ describe("MonthlyStore.readEvents", () => {
     expect(await store.readEvents()).toEqual([]);
   });
 });
+
+describe("MonthlyStore.savePanelEvent (#53)", () => {
+  it("clears a blanked optional field but preserves sync metadata (href)", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    const ev: AgendaEvent = {
+      uid: "a@x", title: "会", start: "2026-07-14T10:00:00", origin: "synced",
+      href: "https://x/a.ics", location: "会议室",
+    };
+    await store.savePanelEvent(ev);
+    const p = "Agenda/2026-07.md";
+    expect(await fs.read(p)).toContain("会议室");
+
+    await store.savePanelEvent({ ...ev, location: undefined }); // user cleared location
+    const text = (await fs.read(p))!;
+    expect(text).not.toContain("会议室");
+    expect(text).toContain("href:: https://x/a.ics");
+  });
+});
