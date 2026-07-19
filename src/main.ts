@@ -3,7 +3,6 @@ import { OgendaSettings, sanitizeSettings } from "./settings/settings";
 import { OgendaSettingTab } from "./settings/settings-tab";
 import { ObsidianFileStore } from "./store/obsidian-file-store";
 import { MonthlyStore } from "./store/monthly-store";
-import { GmailImapConnector } from "./connectors/gmail-imap";
 import { CalDavConnector } from "./connectors/caldav/caldav-connector";
 import { CalDavWriter } from "./connectors/caldav/caldav-writer";
 import { SyncService } from "./sync/sync-service";
@@ -20,7 +19,6 @@ export default class OgendaPlugin extends Plugin {
     await this.loadSettings();
     this.addSettingTab(new OgendaSettingTab(this.app, this));
 
-    this.addCommand({ id: "ogenda-sync-now", name: "Sync now (Gmail invites)", callback: () => void this.syncNow() });
     this.addCommand({
       id: "ogenda-caldav-sync",
       name: "Sync iCloud calendar",
@@ -57,30 +55,12 @@ export default class OgendaPlugin extends Plugin {
     this.addRibbonIcon("calendar-days", "Open Agenda panel", () => void this.openAgendaPanel());
 
     if (this.settings.syncOnStartup) {
-      this.app.workspace.onLayoutReady(() => void this.syncNow());
+      this.app.workspace.onLayoutReady(() => void this.caldavSyncTwoWay());
     }
   }
 
   private store(): MonthlyStore {
     return new MonthlyStore(new ObsidianFileStore(this.app.vault), this.settings.storageFolder);
-  }
-
-  async syncNow(): Promise<void> {
-    if (!this.settings.email || !this.settings.appPassword) {
-      new Notice("请先在 ogenda 设置里填 Gmail 地址 + App 密码");
-      return;
-    }
-    const connector = new GmailImapConnector(
-      { email: this.settings.email, appPassword: this.settings.appPassword },
-      this.settings.scanCount,
-    );
-    const svc = new SyncService([connector], this.store(), (m) => new Notice(m, 10000));
-    try {
-      await svc.syncNow();
-    } catch (e) {
-      new Notice("同步出错: " + (e as Error).message);
-      console.error("[ogenda] syncNow error", e);
-    }
   }
 
   async caldavSync(): Promise<void> {

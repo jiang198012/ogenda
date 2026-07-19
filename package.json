@@ -20,7 +20,6 @@
     "vitest": "^2"
   },
   "dependencies": {
-    "ical.js": "^2",
-    "imapflow": "^1"
+    "ical.js": "^2"
   }
 }

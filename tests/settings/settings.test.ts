@@ -4,10 +4,7 @@ import { sanitizeSettings, DEFAULT_SETTINGS } from "../../src/settings/settings"
 describe("sanitizeSettings", () => {
   it("keeps the known fields (incl. appPassword + iCloud) and drops unknown keys", () => {
     const s = sanitizeSettings({
-      email: "a@x",
-      appPassword: "pw123",
       storageFolder: "Cal",
-      scanCount: 10,
       syncOnStartup: true,
       icloudUser: "me@icloud.com",
       icloudAppPassword: "abcd",
@@ -15,10 +12,7 @@ describe("sanitizeSettings", () => {
       bogus: "x",
     });
     expect(s).toEqual({
-      email: "a@x",
-      appPassword: "pw123",
       storageFolder: "Cal",
-      scanCount: 10,
       syncOnStartup: true,
       icloudUser: "me@icloud.com",
       icloudAppPassword: "abcd",
