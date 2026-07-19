@@ -1,10 +1,11 @@
 import { AgendaEvent } from "../../core/event";
 import { EventOccurrence } from "../occurrences";
+import { ColorResolver, createColorResolver, statusStyle } from "../colors";
 
 const STATUS_ORDER = ["confirmed", "tentative", "cancelled"];
 
 interface StatusGroup {
-  label: string;
+  key: string;
   items: EventOccurrence[];
 }
 
@@ -22,7 +23,7 @@ function groupByStatus(occurrences: EventOccurrence[]): StatusGroup[] {
   const otherKeys = [...buckets.keys()].filter((k) => k !== "" && !STATUS_ORDER.includes(k)).sort();
   const orderedKeys = [...knownKeys, ...otherKeys];
   if (buckets.has("")) orderedKeys.push("");
-  return orderedKeys.map((key) => ({ label: key || "未设置", items: buckets.get(key)! }));
+  return orderedKeys.map((key) => ({ key, items: buckets.get(key)! }));
 }
 
 function formatTime(occ: EventOccurrence): string {
@@ -37,44 +38,64 @@ export function renderListView(
   container: HTMLElement,
   occurrences: EventOccurrence[],
   onEventClick: (event: AgendaEvent) => void,
+  colors: ColorResolver = createColorResolver({}),
 ): void {
   container.innerHTML = "";
   for (const group of groupByStatus(occurrences)) {
+    const st = statusStyle(group.key);
     const groupEl = document.createElement("div");
     groupEl.className = "ogenda-list-statusgroup";
 
     const header = document.createElement("div");
     header.className = "ogenda-list-statusheader";
-    header.textContent = `${group.label} (${group.items.length})`;
+    header.textContent = `${st.label} · ${group.items.length}`;
 
     const itemsEl = document.createElement("div");
     itemsEl.className = "ogenda-list-statusitems";
-
-    header.addEventListener("click", () => {
-      itemsEl.classList.toggle("collapsed");
-    });
+    header.addEventListener("click", () => itemsEl.classList.toggle("collapsed"));
     groupEl.appendChild(header);
 
     for (const occ of group.items) {
+      const ev = occ.event;
       const row = document.createElement("div");
       row.className = "ogenda-event-row";
-      row.addEventListener("click", () => onEventClick(occ.event));
+      row.style.borderLeftColor = colors.category(ev.category);
+      row.addEventListener("click", () => onEventClick(ev));
 
       const time = document.createElement("span");
       time.className = "ogenda-event-time";
       time.textContent = formatTime(occ);
       row.appendChild(time);
 
-      const title = document.createElement("span");
+      const main = document.createElement("div");
+      main.className = "ogenda-event-main";
+      const title = document.createElement("div");
       title.className = "ogenda-event-title";
-      title.textContent = occ.event.title;
-      row.appendChild(title);
-
-      if (occ.event.location) {
-        const loc = document.createElement("span");
+      title.textContent = ev.title;
+      main.appendChild(title);
+      if (ev.location) {
+        const loc = document.createElement("div");
         loc.className = "ogenda-event-loc";
-        loc.textContent = occ.event.location;
-        row.appendChild(loc);
+        loc.textContent = ev.location;
+        main.appendChild(loc);
+      }
+      row.appendChild(main);
+
+      if ((ev.status ?? "").trim() !== "") {
+        const pill = document.createElement("span");
+        pill.className = "ogenda-status-pill";
+        pill.textContent = st.label;
+        pill.style.color = st.text;
+        pill.style.background = st.bg;
+        row.appendChild(pill);
+      }
+      if (ev.category) {
+        const cat = document.createElement("span");
+        cat.className = "ogenda-cat-pill";
+        cat.textContent = ev.category;
+        cat.style.color = colors.category(ev.category);
+        cat.style.background = colors.categoryPillBg(ev.category);
+        row.appendChild(cat);
       }
 
       itemsEl.appendChild(row);

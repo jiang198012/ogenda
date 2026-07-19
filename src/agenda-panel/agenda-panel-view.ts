@@ -15,6 +15,7 @@ import { renderMonthView } from "./views/month-view";
 import { renderStatsView } from "./views/stats-view";
 import { renderMiniCalendar } from "./mini-calendar";
 import { localToEvent } from "./local-to-event";
+import { createColorResolver } from "./colors";
 
 export const AGENDA_PANEL_VIEW_TYPE = "ogenda-agenda-panel";
 
@@ -151,6 +152,7 @@ export class AgendaPanelView extends ItemView {
     try {
       const local: LocalEvent[] = await this.store.readEvents();
       const events: AgendaEvent[] = local.map(localToEvent);
+      const colors = createColorResolver({});
       const categories = this.existingCategories(events);
 
       const newBtn = head.createDiv({ cls: "ogenda-panel-newbtn", text: "+ 新建" });
@@ -197,7 +199,7 @@ export class AgendaPanelView extends ItemView {
       } else {
         const { start, end } = this.rangeForTab();
         const occurrences = expandOccurrences(events, start, end);
-        if (this.tab === "list") renderListView(body, occurrences, onEventClick);
+        if (this.tab === "list") renderListView(body, occurrences, onEventClick, colors);
         else if (this.tab === "day") {
           const dayWrap = body.createDiv({ cls: "ogenda-day-layout" });
           const dayMain = dayWrap.createDiv({ cls: "ogenda-day-main" });

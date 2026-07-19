@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { AgendaEvent } from "../../../src/core/event";
 import { EventOccurrence } from "../../../src/agenda-panel/occurrences";
 import { renderListView } from "../../../src/agenda-panel/views/list-view";
+import { createColorResolver } from "../../../src/agenda-panel/colors";
 
 const mkOcc = (uid: string, start: string, title: string, status?: string, location?: string): EventOccurrence => ({
   event: { uid, title, start, status, location, origin: "synced" },
@@ -21,8 +22,8 @@ describe("renderListView", () => {
 
     const headers = container.querySelectorAll(".ogenda-list-statusheader");
     expect(headers.length).toBe(3);
-    expect(headers[0].textContent).toContain("confirmed");
-    expect(headers[1].textContent).toContain("tentative");
+    expect(headers[0].textContent).toContain("已确认");
+    expect(headers[1].textContent).toContain("待定");
     expect(headers[2].textContent).toContain("未设置");
   });
 
@@ -68,5 +69,28 @@ describe("renderListView", () => {
     const container = document.createElement("div");
     renderListView(container, [mkOcc("a", "2026-07-18T14:00:00", "x", "confirmed", "线上")], () => {});
     expect(container.textContent).toContain("线上");
+  });
+
+  it("puts a status pill and a category pill on a row, and colors the left bar from the category", () => {
+    const container = document.createElement("div");
+    const occ: EventOccurrence = {
+      event: { uid: "a", title: "评审", start: "2026-07-18T14:00:00", status: "confirmed", category: "工作", origin: "synced" },
+      start: "2026-07-18T14:00:00",
+    };
+    renderListView(container, [occ], () => {}, createColorResolver({}));
+    const row = container.querySelector(".ogenda-event-row") as HTMLElement;
+    expect(container.querySelector(".ogenda-status-pill")?.textContent).toBe("已确认");
+    expect(container.querySelector(".ogenda-cat-pill")?.textContent).toBe("工作");
+    expect(row.style.borderLeftColor).not.toBe("");
+  });
+
+  it("omits the status pill for an unset-status event", () => {
+    const container = document.createElement("div");
+    const occ: EventOccurrence = {
+      event: { uid: "a", title: "无状态", start: "2026-07-18T14:00:00", origin: "synced" },
+      start: "2026-07-18T14:00:00",
+    };
+    renderListView(container, [occ], () => {}, createColorResolver({}));
+    expect(container.querySelector(".ogenda-status-pill")).toBeNull();
   });
 });
