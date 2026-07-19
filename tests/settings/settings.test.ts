@@ -17,6 +17,11 @@ describe("sanitizeSettings", () => {
       icloudUser: "me@icloud.com",
       icloudAppPassword: "abcd",
       icloudCalUrl: "https://p1-caldav.icloud.com/1/calendars/home/",
+      syncProvider: "none",
+      caldavUrl: "",
+      caldavUser: "",
+      caldavPass: "",
+      icsUrl: "",
       timezone: "",
       language: "auto",
     });
@@ -36,5 +41,12 @@ describe("sanitizeSettings", () => {
     expect(sanitizeSettings({ language: "zh" }).language).toBe("zh");
     expect(sanitizeSettings({ language: "bogus" }).language).toBe("auto");
     expect(sanitizeSettings({}).language).toBe("auto");
+  });
+  it("keeps a valid syncProvider and defaults to none", () => {
+    expect(sanitizeSettings({ syncProvider: "icloud" }).syncProvider).toBe("icloud");
+    expect(sanitizeSettings({ syncProvider: "caldav" }).syncProvider).toBe("caldav");
+    expect(sanitizeSettings({ syncProvider: "ics" }).syncProvider).toBe("ics");
+    expect(sanitizeSettings({ syncProvider: "bogus" }).syncProvider).toBe("none");
+    expect(sanitizeSettings({}).syncProvider).toBe("none");
   });
 });
