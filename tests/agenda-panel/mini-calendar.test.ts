@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderMiniCalendar, monthsToFill, daysWithEvents } from "../../src/agenda-panel/mini-calendar";
+import { setLanguage } from "../../src/i18n";
+beforeEach(() => setLanguage("zh"));
 
 describe("renderMiniCalendar", () => {
   it("renders a 7x5 grid for July 2026", () => {
@@ -67,12 +69,36 @@ describe("renderMiniCalendar", () => {
 
   it("does not double-dot a day that is real in one month block but padding in an adjacent one", () => {
     const container = document.createElement("div");
-    // July 29 2026 is a real cell in the July block and a padding cell in the August block
+    // With the 1-month back-shift, monthCount:3 anchored in July shows Jun/Jul/Aug.
+    // 2026-07-29 is a real cell in the July block and a padding cell in the August block
     // (the Aug grid starts Mon 2026-07-27). It must be dotted exactly once — in its own month.
     renderMiniCalendar(container, new Date(2026, 6, 15), () => {}, {
-      monthCount: 2,
+      monthCount: 3,
       eventDays: new Set(["2026-07-29"]),
     });
     expect(container.querySelectorAll(".ogenda-mini-cal-dot").length).toBe(1);
+  });
+
+  it("shifts back one month for 2+ months: first block is the previous month", () => {
+    const container = document.createElement("div");
+    renderMiniCalendar(container, new Date(2026, 6, 15), () => {}, { monthCount: 2 });
+    const headers = container.querySelectorAll(".ogenda-mini-cal-header");
+    expect(headers[0].textContent).toBe("2026年6月");
+    expect(headers[1].textContent).toBe("2026年7月");
+  });
+
+  it("keeps the current month (no shift) when only one month fits", () => {
+    const container = document.createElement("div");
+    renderMiniCalendar(container, new Date(2026, 6, 15), () => {}, { monthCount: 1 });
+    const headers = container.querySelectorAll(".ogenda-mini-cal-header");
+    expect(headers[0].textContent).toBe("2026年7月");
+  });
+
+  it("highlights the anchor day in the current-month block, not the first block", () => {
+    const container = document.createElement("div");
+    renderMiniCalendar(container, new Date(2026, 6, 18), () => {}, { monthCount: 2 });
+    const months = container.querySelectorAll(".ogenda-mini-cal-month");
+    expect(months[0].querySelector(".ogenda-mini-cal-selected")).toBeNull();
+    expect(months[1].querySelector(".ogenda-mini-cal-selected")?.textContent).toBe("18");
   });
 });

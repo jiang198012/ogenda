@@ -86,11 +86,13 @@ export function renderMiniCalendar(
   wrap.className = "ogenda-mini-cal";
 
   const count = Math.max(1, opts.monthCount ?? 1);
+  const shift = count >= 2 ? 1 : 0;
   const eventDays = opts.eventDays ?? new Set<string>();
   for (let i = 0; i < count; i++) {
-    const monthAnchor = new Date(anchor.getFullYear(), anchor.getMonth() + i, 1);
-    // Only the current month (i === 0) carries the selected-day highlight.
-    renderOneMonth(wrap, monthAnchor, i === 0 ? anchor : null, eventDays, onDayClick);
+    const monthAnchor = new Date(anchor.getFullYear(), anchor.getMonth() - shift + i, 1);
+    const isCurrent =
+      monthAnchor.getFullYear() === anchor.getFullYear() && monthAnchor.getMonth() === anchor.getMonth();
+    renderOneMonth(wrap, monthAnchor, isCurrent ? anchor : null, eventDays, onDayClick);
   }
   container.appendChild(wrap);
 }
