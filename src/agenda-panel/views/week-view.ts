@@ -4,6 +4,9 @@ import { startOfWeek, startOfDay, addDays } from "../date-grid";
 import { ColorResolver, createColorResolver } from "../colors";
 import { t } from "../../i18n";
 
+// Mon..Sun: weekdays cool, weekend warm.
+const WEEK_COLORS = ["#3B82F6", "#22C55E", "#06B6D4", "#A855F7", "#64748B", "#F59E0B", "#EF4444"];
+
 function formatTime(occ: EventOccurrence): string {
   if (occ.event.allDay) return t("view.allDay");
   return occ.start.slice(11, 16);
@@ -30,6 +33,7 @@ export function renderWeekView(
     const head = document.createElement("div");
     head.className = "ogenda-week-col-head";
     head.textContent = `${weekdayLabels[i]} ${days[i].getDate()}`;
+    head.style.color = WEEK_COLORS[i];
     grid.appendChild(head);
   }
 

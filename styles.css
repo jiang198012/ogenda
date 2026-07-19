@@ -211,8 +211,8 @@
 }
 .ogenda-week-col-head {
   text-align: center;
-  font-size: 0.72em;
-  color: var(--text-muted);
+  font-size: 0.95em;
+  font-weight: 700;
   padding-bottom: 0.4em;
 }
 .ogenda-week-col {
@@ -263,7 +263,7 @@
   padding-bottom: 0.25em;
 }
 .ogenda-month-cell {
-  min-height: 5em;
+  min-height: 6.5em;
   border-radius: 6px;
   background: var(--background-secondary);
   padding: 0.35em;

@@ -97,4 +97,15 @@ describe("renderWeekView", () => {
     const card = container.querySelector(".ogenda-week-card") as HTMLElement;
     expect(card.style.borderLeftColor).not.toBe("");
   });
+
+  it("colors each weekday header, with weekend distinct from a weekday", () => {
+    const container = document.createElement("div");
+    renderWeekView(container, [], new Date(2026, 6, 15), () => {});
+    const heads = container.querySelectorAll(".ogenda-week-col-head");
+    const mon = (heads[0] as HTMLElement).style.color;
+    const sat = (heads[5] as HTMLElement).style.color;
+    expect(mon).not.toBe("");
+    expect(sat).not.toBe("");
+    expect(mon).not.toBe(sat);
+  });
 });
