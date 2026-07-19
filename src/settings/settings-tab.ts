@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type OgendaPlugin from "../main";
+import { buildTimezoneOptions } from "./timezone-options";
 
 export class OgendaSettingTab extends PluginSettingTab {
   plugin: OgendaPlugin;
@@ -61,13 +62,18 @@ export class OgendaSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("时区")
-      .setDesc("IANA 时区名,如 Asia/Shanghai、America/Los_Angeles。留空 = 用电脑系统时区(默认行为)。")
-      .addText((t) =>
-        t.setValue(this.plugin.settings.timezone).onChange(async (v) => {
-          this.plugin.settings.timezone = v.trim();
+      .setDesc("面板\"今天\"等日期判断依据的时区。选\"跟随系统\"= 用电脑当前时区(默认行为)。")
+      .addDropdown((d) => {
+        d.addOption("", "跟随系统");
+        for (const opt of buildTimezoneOptions()) {
+          d.addOption(opt.iana, opt.label);
+        }
+        d.setValue(this.plugin.settings.timezone);
+        d.onChange(async (v) => {
+          this.plugin.settings.timezone = v;
           await this.plugin.saveSettings();
-        })
-      );
+        });
+      });
 
     // --- iCloud CalDAV (D0 spike) ---
     containerEl.createEl("h3", { text: "iCloud CalDAV (D0 探针)" });
