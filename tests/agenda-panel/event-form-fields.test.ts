@@ -1,6 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { AgendaEvent } from "../../src/core/event";
-import { validateEventForm, buildEventFromFields, RawFormFields } from "../../src/agenda-panel/event-form-fields";
+import {
+  validateEventForm,
+  buildEventFromFields,
+  RawFormFields,
+  isoToDatetimeLocalValue,
+  datetimeLocalValueToIso,
+  isoToDateValue,
+  dateValueToIso,
+  initialStart,
+} from "../../src/agenda-panel/event-form-fields";
 
 const blankFields = (): RawFormFields => ({
   title: "", start: "", end: "", allDay: false,
@@ -18,6 +27,19 @@ describe("validateEventForm", () => {
 
   it("rejects whitespace-only title/start", () => {
     expect(validateEventForm({ title: "   ", start: "2026-07-20" }).valid).toBe(false);
+  });
+
+  it("rejects an all-day event whose end is on or before the start (zero-length, #54)", () => {
+    expect(validateEventForm({ title: "x", start: "2026-07-14", end: "2026-07-14", allDay: true }).valid).toBe(false);
+    expect(validateEventForm({ title: "x", start: "2026-07-14", end: "2026-07-13", allDay: true }).valid).toBe(false);
+  });
+  it("accepts an all-day event whose end is the next day (exclusive)", () => {
+    expect(validateEventForm({ title: "x", start: "2026-07-14", end: "2026-07-15", allDay: true }).valid).toBe(true);
+  });
+  it("does not apply the all-day end rule to timed events", () => {
+    expect(
+      validateEventForm({ title: "x", start: "2026-07-14T10:00:00", end: "2026-07-14T09:00:00", allDay: false }).valid,
+    ).toBe(true);
   });
 });
 
@@ -101,5 +123,42 @@ describe("buildEventFromFields", () => {
     expect(ev.organizer).toBeUndefined();
     expect(ev.rsvp).toBeUndefined();
     expect(ev.status).toBeUndefined();
+  });
+});
+
+describe("datetime field conversions (#51)", () => {
+  it("isoToDatetimeLocalValue: ISO datetime → minute-precision local value", () => {
+    expect(isoToDatetimeLocalValue("2026-07-14T15:00:00")).toBe("2026-07-14T15:00");
+  });
+  it("isoToDatetimeLocalValue: date-only → midnight local value", () => {
+    expect(isoToDatetimeLocalValue("2026-07-14")).toBe("2026-07-14T00:00");
+  });
+  it("isoToDatetimeLocalValue: tolerates a lowercase t separator", () => {
+    expect(isoToDatetimeLocalValue("2026-07-14t15:00:00")).toBe("2026-07-14T15:00");
+  });
+  it("datetimeLocalValueToIso: local value → ISO datetime with seconds", () => {
+    expect(datetimeLocalValueToIso("2026-07-14T15:00")).toBe("2026-07-14T15:00:00");
+  });
+  it("isoToDateValue: datetime or date → date-only", () => {
+    expect(isoToDateValue("2026-07-14T15:00:00")).toBe("2026-07-14");
+    expect(isoToDateValue("2026-07-14")).toBe("2026-07-14");
+  });
+  it("dateValueToIso: date value → date-only ISO", () => {
+    expect(dateValueToIso("2026-07-14")).toBe("2026-07-14");
+  });
+});
+
+describe("initialStart (#52)", () => {
+  it("all-day → date-only", () => {
+    expect(initialStart("2026-07-14", true)).toBe("2026-07-14");
+  });
+  it("timed with a date-only prefill → injects a 09:00 default", () => {
+    expect(initialStart("2026-07-14", false)).toBe("2026-07-14T09:00:00");
+  });
+  it("timed with a datetime prefill → keeps the time", () => {
+    expect(initialStart("2026-07-14T15:30:00", false)).toBe("2026-07-14T15:30:00");
+  });
+  it("empty prefill → empty", () => {
+    expect(initialStart("", false)).toBe("");
   });
 });

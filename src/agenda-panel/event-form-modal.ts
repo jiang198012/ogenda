@@ -1,16 +1,28 @@
 import { App, Modal, Setting } from "obsidian";
 import { AgendaEvent } from "../core/event";
 import { generateUid } from "./uid";
-import { validateEventForm, buildEventFromFields, RawFormFields } from "./event-form-fields";
+import {
+  validateEventForm,
+  buildEventFromFields,
+  RawFormFields,
+  initialStart,
+  isoToDateValue,
+  isoToDatetimeLocalValue,
+  dateValueToIso,
+  datetimeLocalValueToIso,
+} from "./event-form-fields";
 
 export class EventFormModal extends Modal {
   private fields: RawFormFields;
   private errorEl: HTMLElement | null = null;
+  private startInput!: HTMLInputElement;
+  private endInput!: HTMLInputElement;
 
   constructor(
     app: App,
     private existing: AgendaEvent | null,
     prefillStart: string | undefined,
+    defaultAllDay: boolean,
     private existingCategories: string[],
     private onSubmit: (event: AgendaEvent) => void,
     private onViewInNote: (() => void) | undefined,
@@ -18,11 +30,12 @@ export class EventFormModal extends Modal {
   ) {
     super(app);
     const isKnownCategory = existing?.category !== undefined && existingCategories.includes(existing.category);
+    const allDay = existing?.allDay ?? defaultAllDay;
     this.fields = {
       title: existing?.title ?? "",
-      start: existing?.start ?? prefillStart ?? "",
+      start: existing?.start ?? initialStart(prefillStart ?? "", allDay),
       end: existing?.end ?? "",
-      allDay: existing?.allDay ?? Boolean(prefillStart && !existing),
+      allDay,
       location: existing?.location ?? "",
       organizer: existing?.organizer ?? "",
       attendees: existing?.attendees?.join(", ") ?? "",
@@ -42,16 +55,23 @@ export class EventFormModal extends Modal {
       t.setValue(this.fields.title).onChange((v) => (this.fields.title = v)),
     );
     new Setting(contentEl).setName("全天").addToggle((tg) =>
-      tg.setValue(this.fields.allDay).onChange((v) => (this.fields.allDay = v)),
+      tg.setValue(this.fields.allDay).onChange((v) => {
+        // Preserve entered values across the input-type switch (read with the OLD allDay first).
+        this.fields.start = this.readDateInput(this.startInput);
+        this.fields.end = this.readDateInput(this.endInput);
+        this.fields.allDay = v;
+        this.applyDateInputs();
+      }),
     );
-    new Setting(contentEl)
-      .setName("开始时间")
-      .setDesc("全天填 YYYY-MM-DD,非全天填 YYYY-MM-DDTHH:mm:ss")
-      .addText((t) => t.setValue(this.fields.start).onChange((v) => (this.fields.start = v)));
-    new Setting(contentEl)
-      .setName("结束时间")
-      .setDesc("可留空")
-      .addText((t) => t.setValue(this.fields.end).onChange((v) => (this.fields.end = v)));
+
+    const startRow = new Setting(contentEl).setName("开始时间");
+    this.startInput = startRow.controlEl.createEl("input", { cls: "ogenda-form-datetime" });
+    const endRow = new Setting(contentEl).setName("结束时间").setDesc("可留空(全天填次日,排他)");
+    this.endInput = endRow.controlEl.createEl("input", { cls: "ogenda-form-datetime" });
+    this.applyDateInputs();
+    this.startInput.addEventListener("change", () => (this.fields.start = this.readDateInput(this.startInput)));
+    this.endInput.addEventListener("change", () => (this.fields.end = this.readDateInput(this.endInput)));
+
     new Setting(contentEl).setName("地点").addText((t) =>
       t.setValue(this.fields.location).onChange((v) => (this.fields.location = v)),
     );
@@ -113,7 +133,29 @@ export class EventFormModal extends Modal {
     saveBtn.addEventListener("click", () => this.handleSave());
   }
 
+  private applyDateInputs(): void {
+    if (this.fields.allDay) {
+      this.startInput.type = "date";
+      this.endInput.type = "date";
+      this.startInput.value = isoToDateValue(this.fields.start);
+      this.endInput.value = this.fields.end ? isoToDateValue(this.fields.end) : "";
+    } else {
+      this.startInput.type = "datetime-local";
+      this.endInput.type = "datetime-local";
+      this.startInput.value = isoToDatetimeLocalValue(this.fields.start);
+      this.endInput.value = this.fields.end ? isoToDatetimeLocalValue(this.fields.end) : "";
+    }
+  }
+
+  private readDateInput(input: HTMLInputElement): string {
+    const v = input.value;
+    if (!v) return "";
+    return this.fields.allDay ? dateValueToIso(v) : datetimeLocalValueToIso(v);
+  }
+
   private handleSave(): void {
+    this.fields.start = this.readDateInput(this.startInput);
+    this.fields.end = this.readDateInput(this.endInput);
     const result = validateEventForm(this.fields);
     if (!result.valid) {
       if (this.errorEl) this.errorEl.setText(result.errors.join("; "));
