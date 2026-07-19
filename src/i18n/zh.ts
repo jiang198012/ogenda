@@ -55,4 +55,13 @@ export const zh: Record<string, string> = {
   "validate.titleRequired": "标题不能为空",
   "validate.startRequired": "开始时间不能为空",
   "validate.allDayEnd": "全天事件结束日期需晚于开始日期(次日为排他)",
+  "view.allDay": "全天",
+  "field.location": "地点",
+  "field.organizer": "组织者",
+  "field.attendees": "参与人",
+  "field.category": "分类",
+  "field.tags": "标签",
+  "field.rrule": "重复规则",
+  "weekday.min": "一,二,三,四,五,六,日",
+  "weekday.long": "周一,周二,周三,周四,周五,周六,周日",
 };

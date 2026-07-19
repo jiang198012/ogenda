@@ -1,13 +1,16 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventOccurrence } from "../../../src/agenda-panel/occurrences";
 import { renderWeekView } from "../../../src/agenda-panel/views/week-view";
 import { createColorResolver } from "../../../src/agenda-panel/colors";
+import { setLanguage } from "../../../src/i18n";
 
 const mkOcc = (start: string, title: string): EventOccurrence => ({
   event: { uid: title, title, start, origin: "synced" },
   start,
 });
+
+beforeEach(() => setLanguage("zh"));
 
 describe("renderWeekView", () => {
   it("renders 7 day columns, each with its own events", () => {

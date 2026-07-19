@@ -2,9 +2,10 @@ import { AgendaEvent } from "../../core/event";
 import { EventOccurrence, parseLocalDate } from "../occurrences";
 import { startOfWeek, startOfDay, addDays } from "../date-grid";
 import { ColorResolver, createColorResolver } from "../colors";
+import { t } from "../../i18n";
 
 function formatTime(occ: EventOccurrence): string {
-  if (occ.event.allDay) return "全天";
+  if (occ.event.allDay) return t("view.allDay");
   return occ.start.slice(11, 16);
 }
 
@@ -23,7 +24,7 @@ export function renderWeekView(
   const grid = document.createElement("div");
   grid.className = "ogenda-week-grid";
 
-  const weekdayLabels = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+  const weekdayLabels = t("weekday.long").split(",");
 
   for (let i = 0; i < days.length; i++) {
     const head = document.createElement("div");

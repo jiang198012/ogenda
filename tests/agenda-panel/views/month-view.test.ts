@@ -1,13 +1,16 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventOccurrence } from "../../../src/agenda-panel/occurrences";
 import { renderMonthView } from "../../../src/agenda-panel/views/month-view";
 import { createColorResolver } from "../../../src/agenda-panel/colors";
+import { setLanguage } from "../../../src/i18n";
 
 const mkOcc = (start: string, title: string): EventOccurrence => ({
   event: { uid: title, title, start, origin: "synced" },
   start,
 });
+
+beforeEach(() => setLanguage("zh"));
 
 describe("renderMonthView", () => {
   it("renders a 7x5 grid for July 2026 with day numbers, including padding days", () => {

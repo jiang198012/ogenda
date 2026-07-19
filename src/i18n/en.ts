@@ -55,4 +55,13 @@ export const en: Record<string, string> = {
   "validate.titleRequired": "Title is required",
   "validate.startRequired": "Start time is required",
   "validate.allDayEnd": "All-day end date must be after the start date (next day, exclusive)",
+  "view.allDay": "All-day",
+  "field.location": "Location",
+  "field.organizer": "Organizer",
+  "field.attendees": "Attendees",
+  "field.category": "Category",
+  "field.tags": "Tags",
+  "field.rrule": "Recurrence",
+  "weekday.min": "Mo,Tu,We,Th,Fr,Sa,Su",
+  "weekday.long": "Mon,Tue,Wed,Thu,Fri,Sat,Sun",
 };

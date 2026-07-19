@@ -1,6 +1,6 @@
 import { monthGridWeeks, startOfDay, toDateKey } from "./date-grid";
 import { formatMonth } from "./date-format";
-import { getLanguage } from "../i18n";
+import { getLanguage, t } from "../i18n";
 import { EventOccurrence, parseLocalDate } from "./occurrences";
 
 /** How many months fit in the sidebar. Unknown height (≤0) → show a few; else fill by per-month height. */
@@ -40,7 +40,7 @@ function renderOneMonth(
 
   const grid = document.createElement("div");
   grid.className = "ogenda-mini-cal-grid";
-  const weekdayLabels = ["一", "二", "三", "四", "五", "六", "日"];
+  const weekdayLabels = t("weekday.min").split(",");
   for (const label of weekdayLabels) {
     const dow = document.createElement("div");
     dow.className = "ogenda-mini-cal-dow";

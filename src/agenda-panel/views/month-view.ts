@@ -2,6 +2,7 @@ import { AgendaEvent } from "../../core/event";
 import { EventOccurrence, parseLocalDate } from "../occurrences";
 import { monthGridWeeks, startOfDay } from "../date-grid";
 import { ColorResolver, createColorResolver } from "../colors";
+import { t } from "../../i18n";
 
 export function renderMonthView(
   container: HTMLElement,
@@ -18,7 +19,7 @@ export function renderMonthView(
   const grid = document.createElement("div");
   grid.className = "ogenda-month-grid";
 
-  const weekdayLabels = ["一", "二", "三", "四", "五", "六", "日"];
+  const weekdayLabels = t("weekday.min").split(",");
   for (const label of weekdayLabels) {
     const dow = document.createElement("div");
     dow.className = "ogenda-month-dow";

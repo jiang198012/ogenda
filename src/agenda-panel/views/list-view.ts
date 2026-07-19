@@ -1,6 +1,7 @@
 import { AgendaEvent } from "../../core/event";
 import { EventOccurrence } from "../occurrences";
 import { ColorResolver, createColorResolver, statusStyle } from "../colors";
+import { t } from "../../i18n";
 
 const STATUS_ORDER = ["confirmed", "tentative", "cancelled"];
 
@@ -27,7 +28,7 @@ function groupByStatus(occurrences: EventOccurrence[]): StatusGroup[] {
 }
 
 function formatTime(occ: EventOccurrence): string {
-  if (occ.event.allDay) return "全天";
+  if (occ.event.allDay) return t("view.allDay");
   const hhmm = (iso?: string) => (iso ? iso.slice(11, 16) : "");
   const s = hhmm(occ.start);
   const e = hhmm(occ.end);

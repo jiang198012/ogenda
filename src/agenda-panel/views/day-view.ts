@@ -1,6 +1,7 @@
 import { AgendaEvent } from "../../core/event";
 import { EventOccurrence } from "../occurrences";
 import { ColorResolver, createColorResolver, statusStyle } from "../colors";
+import { t } from "../../i18n";
 
 function addField(grid: HTMLElement, label: string, value: string | undefined): void {
   if (!value) return;
@@ -18,7 +19,7 @@ function addField(grid: HTMLElement, label: string, value: string | undefined): 
 }
 
 function formatTime(occ: EventOccurrence): string {
-  if (occ.event.allDay) return "全天";
+  if (occ.event.allDay) return t("view.allDay");
   const hhmm = (iso?: string) => (iso ? iso.slice(11, 16) : "");
   const e = hhmm(occ.end);
   return e ? `${hhmm(occ.start)}–${e}` : hhmm(occ.start);
@@ -62,13 +63,13 @@ export function renderDayView(
 
     const grid = document.createElement("div");
     grid.className = "ogenda-field-grid";
-    addField(grid, "地点", ev.location);
-    addField(grid, "组织者", ev.organizer);
-    addField(grid, "参与人", ev.attendees?.length ? ev.attendees.join("、") : undefined);
+    addField(grid, t("field.location"), ev.location);
+    addField(grid, t("field.organizer"), ev.organizer);
+    addField(grid, t("field.attendees"), ev.attendees?.length ? ev.attendees.join("、") : undefined);
     addField(grid, "RSVP", ev.rsvp);
-    addField(grid, "分类", ev.category);
-    addField(grid, "标签", ev.tags?.length ? ev.tags.join("、") : undefined);
-    addField(grid, "重复规则", ev.rrule);
+    addField(grid, t("field.category"), ev.category);
+    addField(grid, t("field.tags"), ev.tags?.length ? ev.tags.join("、") : undefined);
+    addField(grid, t("field.rrule"), ev.rrule);
     card.appendChild(grid);
 
     container.appendChild(card);
