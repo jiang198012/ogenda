@@ -122,6 +122,6 @@ export function renderStatsView(
   addMini(t("stats.allDayTimed"), `${stats.allDayCount} / ${stats.timedCount}`);
   addMini(t("stats.recurring"), String(stats.recurringCount));
   const busiest = stats.busiestDays[0];
-  addMini(t("stats.busiest"), busiest ? `${busiest.date} · ${busiest.count} 个` : "—");
+  addMini(t("stats.busiest"), busiest ? t("stats.busiestValue", { date: busiest.date, count: busiest.count }) : "—");
   container.appendChild(minis);
 }

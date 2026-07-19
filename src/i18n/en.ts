@@ -18,4 +18,5 @@ export const en: Record<string, string> = {
   "stats.allDayTimed": "All-day / Timed",
   "stats.recurring": "Recurring",
   "stats.busiest": "Busiest day",
+  "stats.busiestValue": "{date} · {count} events",
 };

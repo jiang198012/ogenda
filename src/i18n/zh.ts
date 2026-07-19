@@ -18,4 +18,5 @@ export const zh: Record<string, string> = {
   "stats.allDayTimed": "全天 / 带时间",
   "stats.recurring": "循环事件",
   "stats.busiest": "最忙一天",
+  "stats.busiestValue": "{date} · {count} 个",
 };
