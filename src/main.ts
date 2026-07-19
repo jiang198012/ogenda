@@ -5,8 +5,10 @@ import { ObsidianFileStore } from "./store/obsidian-file-store";
 import { MonthlyStore } from "./store/monthly-store";
 import { CalDavConnector } from "./connectors/caldav/caldav-connector";
 import { CalDavWriter } from "./connectors/caldav/caldav-writer";
+import { IcsConnector } from "./connectors/ics/ics-connector";
 import { SyncService } from "./sync/sync-service";
 import { syncBidirectional, CalDavSource } from "./sync/bidirectional";
+import { resolveSyncProvider } from "./sync/resolve-provider";
 import { davRequest, hrefInside } from "./net/dav-request";
 import { AgendaPanelView, AGENDA_PANEL_VIEW_TYPE } from "./agenda-panel/agenda-panel-view";
 import { setLanguage, resolveLanguage, t } from "./i18n";
@@ -22,14 +24,9 @@ export default class OgendaPlugin extends Plugin {
     this.addSettingTab(new OgendaSettingTab(this.app, this));
 
     this.addCommand({
-      id: "ogenda-caldav-sync",
-      name: t("command.syncIcloud"),
-      callback: () => void this.caldavSync(),
-    });
-    this.addCommand({
-      id: "ogenda-caldav-sync-bidirectional",
-      name: t("command.syncTwoWay"),
-      callback: () => void this.caldavSyncTwoWay(),
+      id: "ogenda-sync-now",
+      name: t("command.syncNow"),
+      callback: () => void this.syncCalendarNow(),
     });
     this.addCommand({
       id: "ogenda-caldav-discovery",
@@ -45,7 +42,7 @@ export default class OgendaPlugin extends Plugin {
           this.store(),
           this.settings.storageFolder,
           this.settings.timezone,
-          () => void this.caldavSyncTwoWay(),
+          () => void this.syncCalendarNow(),
         ),
     );
     this.addCommand({
@@ -56,7 +53,7 @@ export default class OgendaPlugin extends Plugin {
     this.addRibbonIcon("calendar-days", t("command.openPanel"), () => void this.openAgendaPanel());
 
     if (this.settings.syncOnStartup) {
-      this.app.workspace.onLayoutReady(() => void this.caldavSyncTwoWay());
+      this.app.workspace.onLayoutReady(() => void this.syncCalendarNow());
     }
   }
 
@@ -64,47 +61,36 @@ export default class OgendaPlugin extends Plugin {
     return new MonthlyStore(new ObsidianFileStore(this.app.vault), this.settings.storageFolder);
   }
 
-  async caldavSync(): Promise<void> {
-    const c = this.icloudCreds();
-    if (!c || !this.settings.icloudCalUrl) {
-      new Notice(t("notice.needIcloudSetup"));
+  async syncCalendarNow(): Promise<void> {
+    const r = resolveSyncProvider(this.settings);
+    if (r.provider === "none") {
+      new Notice(t("notice.noSyncProvider"));
       return;
     }
-    const connector = new CalDavConnector({
-      user: c.user,
-      pass: c.pass,
-      calendarUrl: this.settings.icloudCalUrl,
-      label: "icloud",
-    });
-    const svc = new SyncService([connector], this.store(), (m) => new Notice(m, 10000));
-    try {
-      await svc.syncNow();
-    } catch (e) {
-      new Notice(t("notice.icloudSyncError", { msg: (e as Error).message }));
-      console.error("[ogenda] caldav sync error", e);
-    }
-  }
-
-  async caldavSyncTwoWay(): Promise<void> {
-    const c = this.icloudCreds();
-    if (!c || !this.settings.icloudCalUrl) {
-      new Notice(t("notice.needIcloudSetup"));
+    if (r.provider === "incomplete") {
+      new Notice(t("notice.syncIncomplete"));
       return;
     }
-    const connector = new CalDavConnector({
-      user: c.user,
-      pass: c.pass,
-      calendarUrl: this.settings.icloudCalUrl,
-      label: "icloud",
-    });
-    const writer = new CalDavWriter({ user: c.user, pass: c.pass });
+    if (r.provider === "ics") {
+      try {
+        const svc = new SyncService([new IcsConnector(r.url)], this.store(), (m) => new Notice(m, 10000));
+        await svc.syncNow();
+      } catch (e) {
+        new Notice(t("notice.icsImportError", { msg: (e as Error).message }));
+        console.error("[ogenda] ics import error", e);
+      }
+      return;
+    }
+    // icloud | caldav → bidirectional
+    const connector = new CalDavConnector({ user: r.user, pass: r.pass, calendarUrl: r.calUrl, label: r.provider });
+    const writer = new CalDavWriter({ user: r.user, pass: r.pass });
     const source: CalDavSource = {
       fetch: () => connector.fetch(),
       putEvent: (url, ics, ifMatch) => writer.putEvent(url, ics, ifMatch),
       deleteEvent: (url, ifMatch) => writer.deleteEvent(url, ifMatch),
     };
     try {
-      await syncBidirectional(source, this.settings.icloudCalUrl, this.store(), (m) => new Notice(m, 10000));
+      await syncBidirectional(source, r.calUrl, this.store(), (m) => new Notice(m, 10000));
     } catch (e) {
       new Notice(t("notice.icloudTwoWaySyncError", { msg: (e as Error).message }));
       console.error("[ogenda] bidirectional sync error", e);
