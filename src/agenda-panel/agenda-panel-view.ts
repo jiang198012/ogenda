@@ -16,7 +16,8 @@ import { renderStatsView } from "./views/stats-view";
 import { renderMiniCalendar, monthsToFill, daysWithEvents } from "./mini-calendar";
 import { localToEvent } from "./local-to-event";
 import { createColorResolver } from "./colors";
-import { formatChineseDate } from "./date-format";
+import { formatDate } from "./date-format";
+import { getLanguage } from "../i18n";
 
 export const AGENDA_PANEL_VIEW_TYPE = "ogenda-agenda-panel";
 
@@ -141,7 +142,7 @@ export class AgendaPanelView extends ItemView {
     const isToday = startOfDay(this.anchor).getTime() === startOfDay(this.safeToday()).getTime();
     const todayBtn = nav.createSpan({
       cls: "ogenda-navbtn ogenda-navtoday",
-      text: isToday ? `今天 · ${formatChineseDate(this.anchor)}` : formatChineseDate(this.anchor),
+      text: isToday ? `今天 · ${formatDate(this.anchor, getLanguage())}` : formatDate(this.anchor, getLanguage()),
     });
     todayBtn.addEventListener("click", () => {
       this.anchor = this.safeToday();

@@ -1,20 +1,24 @@
 import { describe, it, expect } from "vitest";
-import { formatChineseDate, formatChineseMonth } from "../../src/agenda-panel/date-format";
+import { formatDate, formatMonth } from "../../src/agenda-panel/date-format";
 
-describe("formatChineseDate", () => {
-  it("formats a date as 2026年7月19日 星期日", () => {
-    expect(formatChineseDate(new Date(2026, 6, 19))).toBe("2026年7月19日 星期日");
+describe("formatDate (language-aware)", () => {
+  it("zh: 2026年7月19日 星期日", () => {
+    expect(formatDate(new Date(2026, 6, 19), "zh")).toBe("2026年7月19日 星期日");
   });
-  it("uses the correct weekday name for a weekday", () => {
-    expect(formatChineseDate(new Date(2026, 6, 17))).toBe("2026年7月17日 星期五");
+  it("en: Sun, Jul 19, 2026", () => {
+    expect(formatDate(new Date(2026, 6, 19), "en")).toBe("Sun, Jul 19, 2026");
   });
-  it("handles single-digit month and day without padding", () => {
-    expect(formatChineseDate(new Date(2026, 0, 3))).toBe("2026年1月3日 星期六");
+  it("zh: uses the correct weekday name for a weekday", () => {
+    expect(formatDate(new Date(2026, 6, 17), "zh")).toBe("2026年7月17日 星期五");
+  });
+  it("zh: handles single-digit month and day without padding", () => {
+    expect(formatDate(new Date(2026, 0, 3), "zh")).toBe("2026年1月3日 星期六");
   });
 });
 
-describe("formatChineseMonth", () => {
-  it("formats a month as 2026年7月", () => {
-    expect(formatChineseMonth(new Date(2026, 6, 1))).toBe("2026年7月");
+describe("formatMonth (language-aware)", () => {
+  it("zh 2026年7月 / en Jul 2026", () => {
+    expect(formatMonth(new Date(2026, 6, 1), "zh")).toBe("2026年7月");
+    expect(formatMonth(new Date(2026, 6, 1), "en")).toBe("Jul 2026");
   });
 });

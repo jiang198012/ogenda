@@ -1,5 +1,6 @@
 import { monthGridWeeks, startOfDay, toDateKey } from "./date-grid";
-import { formatChineseMonth } from "./date-format";
+import { formatMonth } from "./date-format";
+import { getLanguage } from "../i18n";
 import { EventOccurrence, parseLocalDate } from "./occurrences";
 
 /** How many months fit in the sidebar. Unknown height (≤0) → show a few; else fill by per-month height. */
@@ -34,7 +35,7 @@ function renderOneMonth(
 
   const header = document.createElement("div");
   header.className = "ogenda-mini-cal-header";
-  header.textContent = formatChineseMonth(monthAnchor);
+  header.textContent = formatMonth(monthAnchor, getLanguage());
   monthEl.appendChild(header);
 
   const grid = document.createElement("div");
