@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { AgendaEvent } from "../../../src/core/event";
 import { EventOccurrence } from "../../../src/agenda-panel/occurrences";
 import { renderListView } from "../../../src/agenda-panel/views/list-view";
 import { createColorResolver } from "../../../src/agenda-panel/colors";
