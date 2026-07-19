@@ -15,8 +15,10 @@ export class OgendaSettingTab extends PluginSettingTab {
   }
   display(): void {
     const { containerEl } = this;
+    const s = this.plugin.settings;
     containerEl.empty();
 
+    // Language
     new Setting(containerEl)
       .setName(t("settings.language.name"))
       .setDesc(t("settings.language.desc"))
@@ -24,77 +26,82 @@ export class OgendaSettingTab extends PluginSettingTab {
         d.addOption("auto", t("settings.language.auto"));
         d.addOption("zh", "简体中文");
         d.addOption("en", "English");
-        d.setValue(this.plugin.settings.language);
+        d.setValue(s.language);
         d.onChange(async (v) => {
-          this.plugin.settings.language = v as "auto" | "zh" | "en";
+          s.language = v as "auto" | "zh" | "en";
           await this.plugin.saveSettings();
-          setLanguage(resolveLanguage(this.plugin.settings.language, getObsidianLocale()));
-          this.display(); // re-render settings in the new language
-          this.plugin.refreshOpenPanels(); // re-render open agenda panels
+          setLanguage(resolveLanguage(s.language, getObsidianLocale()));
+          this.display();
+          this.plugin.refreshOpenPanels();
         });
       });
 
-    new Setting(containerEl).setName(t("settings.storage.folder.name")).addText((t) =>
-      t.setValue(this.plugin.settings.storageFolder).onChange(async (v) => {
-        this.plugin.settings.storageFolder = v.trim() || "Agenda";
-        await this.plugin.saveSettings();
-      })
-    );
+    // Calendar sync
+    containerEl.createEl("h3", { text: t("settings.sync.section") });
+    new Setting(containerEl)
+      .setName(t("settings.sync.provider.name"))
+      .setDesc(t("settings.sync.provider.desc"))
+      .addDropdown((d) => {
+        d.addOption("none", t("settings.sync.provider.none"));
+        d.addOption("icloud", t("settings.sync.provider.icloud"));
+        d.addOption("caldav", t("settings.sync.provider.caldav"));
+        d.addOption("ics", t("settings.sync.provider.ics"));
+        d.setValue(s.syncProvider);
+        d.onChange(async (v) => {
+          s.syncProvider = v as typeof s.syncProvider;
+          await this.plugin.saveSettings();
+          this.display(); // re-render to show only the selected provider's fields
+        });
+      });
+
+    if (s.syncProvider === "icloud") {
+      new Setting(containerEl).setName(t("settings.icloud.user.name")).addText((x) =>
+        x.setValue(s.icloudUser).onChange(async (v) => { s.icloudUser = v.trim(); await this.plugin.saveSettings(); }),
+      );
+      new Setting(containerEl).setName(t("settings.icloud.appPassword.name")).setDesc(t("settings.icloud.appPassword.desc")).addText((x) => {
+        x.inputEl.type = "password";
+        x.setValue(s.icloudAppPassword).onChange(async (v) => { s.icloudAppPassword = v.trim(); await this.plugin.saveSettings(); });
+      });
+      new Setting(containerEl).setName(t("settings.icloud.calUrl.name")).setDesc(t("settings.icloud.calUrl.desc")).addText((x) =>
+        x.setValue(s.icloudCalUrl).onChange(async (v) => { s.icloudCalUrl = v.trim(); await this.plugin.saveSettings(); }),
+      );
+    } else if (s.syncProvider === "caldav") {
+      new Setting(containerEl).setName(t("settings.caldav.url.name")).addText((x) =>
+        x.setValue(s.caldavUrl).onChange(async (v) => { s.caldavUrl = v.trim(); await this.plugin.saveSettings(); }),
+      );
+      new Setting(containerEl).setName(t("settings.caldav.user.name")).addText((x) =>
+        x.setValue(s.caldavUser).onChange(async (v) => { s.caldavUser = v.trim(); await this.plugin.saveSettings(); }),
+      );
+      new Setting(containerEl).setName(t("settings.caldav.pass.name")).setDesc(t("settings.caldav.pass.desc")).addText((x) => {
+        x.inputEl.type = "password";
+        x.setValue(s.caldavPass).onChange(async (v) => { s.caldavPass = v.trim(); await this.plugin.saveSettings(); });
+      });
+    } else if (s.syncProvider === "ics") {
+      new Setting(containerEl).setName(t("settings.ics.url.name")).setDesc(t("settings.ics.url.desc")).addText((x) =>
+        x.setValue(s.icsUrl).onChange(async (v) => { s.icsUrl = v.trim(); await this.plugin.saveSettings(); }),
+      );
+    }
 
     new Setting(containerEl)
       .setName(t("settings.sync.startup.name"))
       .setDesc(t("settings.sync.startup.desc"))
       .addToggle((tg) =>
-        tg.setValue(this.plugin.settings.syncOnStartup).onChange(async (v) => {
-          this.plugin.settings.syncOnStartup = v;
-          await this.plugin.saveSettings();
-        })
+        tg.setValue(s.syncOnStartup).onChange(async (v) => { s.syncOnStartup = v; await this.plugin.saveSettings(); }),
       );
 
+    // Storage
+    containerEl.createEl("h3", { text: t("settings.storage.section") });
+    new Setting(containerEl).setName(t("settings.storage.folder.name")).addText((x) =>
+      x.setValue(s.storageFolder).onChange(async (v) => { s.storageFolder = v.trim() || "Agenda"; await this.plugin.saveSettings(); }),
+    );
     new Setting(containerEl)
       .setName(t("settings.tz.name"))
       .setDesc(t("settings.tz.desc"))
       .addDropdown((d) => {
         d.addOption("", t("settings.tz.followSystem"));
-        for (const opt of buildTimezoneOptions()) {
-          d.addOption(opt.iana, opt.label);
-        }
-        d.setValue(this.plugin.settings.timezone);
-        d.onChange(async (v) => {
-          this.plugin.settings.timezone = v;
-          await this.plugin.saveSettings();
-        });
+        for (const opt of buildTimezoneOptions()) d.addOption(opt.iana, opt.label);
+        d.setValue(s.timezone);
+        d.onChange(async (v) => { s.timezone = v; await this.plugin.saveSettings(); });
       });
-
-    // --- iCloud CalDAV (D0 spike) ---
-    containerEl.createEl("h3", { text: t("settings.icloud.section") });
-
-    new Setting(containerEl).setName(t("settings.icloud.user.name")).addText((t) =>
-      t.setValue(this.plugin.settings.icloudUser).onChange(async (v) => {
-        this.plugin.settings.icloudUser = v.trim();
-        await this.plugin.saveSettings();
-      })
-    );
-
-    new Setting(containerEl)
-      .setName(t("settings.icloud.appPassword.name"))
-      .setDesc(t("settings.icloud.appPassword.desc"))
-      .addText((t) => {
-        t.inputEl.type = "password";
-        t.setValue(this.plugin.settings.icloudAppPassword).onChange(async (v) => {
-          this.plugin.settings.icloudAppPassword = v.trim();
-          await this.plugin.saveSettings();
-        });
-      });
-
-    new Setting(containerEl)
-      .setName(t("settings.icloud.calUrl.name"))
-      .setDesc(t("settings.icloud.calUrl.desc"))
-      .addText((t) =>
-        t.setValue(this.plugin.settings.icloudCalUrl).onChange(async (v) => {
-          this.plugin.settings.icloudCalUrl = v.trim();
-          await this.plugin.saveSettings();
-        })
-      );
   }
 }
