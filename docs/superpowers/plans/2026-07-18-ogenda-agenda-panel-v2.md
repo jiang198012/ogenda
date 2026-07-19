@@ -1974,6 +1974,220 @@ git commit -m "feat(v2): wire timezone setting + sync-trigger callback into Agen
 
 ---
 
+### Task 15.5(真机验证中发现的计划缺口补丁): 时区设置改成下拉列表
+
+**背景:** Task 16 真机验证过程中用户反馈:时区设置不该是自由文本输入框,应该是下拉列表,每个选项格式"+xx:xx(代表城市)"(比如"+8:00(北京)"),默认选项是"跟随系统"(对应存储值仍是空字符串,语义不变——只是 UI 从文本框换成下拉)。用户还提到未来要做中英文界面切换,但明确这次 v2 分支范围之外,只要求这次数据结构上留出扩展余地(不是只存中文名一个字段)。
+
+**Files:**
+- Create: `src/settings/timezone-options.ts`
+- Test: `tests/settings/timezone-options.test.ts`
+- Modify: `src/settings/settings-tab.ts`(把时区那个 `Setting` 从 `.addText` 换成 `.addDropdown`)
+
+**Interfaces:**
+- Produces:
+  ```typescript
+  export interface TimezoneOption {
+    iana: string;
+    cityZh: string;
+    cityEn: string;
+    label: string; // e.g. "+8:00(北京)" — 当前固定用中文,数据结构里中英文都存着,为将来切语言留口子
+  }
+  export function buildTimezoneOptions(now: Date = new Date()): TimezoneOption[]
+  ```
+  `settings-tab.ts` 是唯一调用方,用返回的 `iana`/`label` 填充下拉框的 value/display。
+
+- [ ] **Step 1: 写失败测试**
+
+时区偏移量在夏令时期间会变(比如洛杉矶冬天 -8、夏天 -7),所以不能在列表里写死一个数字——`buildTimezoneOptions` 要在调用时根据传入的 `now` 现算每个城市当前的真实偏移量。测试用两个固定的、已知偏移量不受夏令时影响的城市(北京、东京,这两个地区都不实行夏令时,任何季节偏移量都固定)来验证格式,外加验证列表覆盖了主要的整点时区:
+
+```typescript
+// tests/settings/timezone-options.test.ts
+import { describe, it, expect } from "vitest";
+import { buildTimezoneOptions } from "../../src/settings/timezone-options";
+
+describe("buildTimezoneOptions", () => {
+  it("formats each option as '<+/-H:MM>(<city>)' using the current offset for the given instant", () => {
+    const now = new Date("2026-07-18T12:00:00Z");
+    const options = buildTimezoneOptions(now);
+    const beijing = options.find((o) => o.iana === "Asia/Shanghai");
+    expect(beijing?.label).toBe("+8:00(北京)");
+    const tokyo = options.find((o) => o.iana === "Asia/Tokyo");
+    expect(tokyo?.label).toBe("+9:00(东京)");
+  });
+
+  it("recomputes DST-affected offsets correctly across winter/summer", () => {
+    const winter = buildTimezoneOptions(new Date("2026-01-15T12:00:00Z"));
+    const summer = buildTimezoneOptions(new Date("2026-07-15T12:00:00Z"));
+    const laWinter = winter.find((o) => o.iana === "America/Los_Angeles");
+    const laSummer = summer.find((o) => o.iana === "America/Los_Angeles");
+    expect(laWinter?.label).toBe("-8:00(洛杉矶)"); // PST
+    expect(laSummer?.label).toBe("-7:00(洛杉矶)"); // PDT
+  });
+
+  it("covers a representative city for every major UTC offset from -8 to +9 without duplicate ianas", () => {
+    const options = buildTimezoneOptions(new Date("2026-07-18T12:00:00Z"));
+    const ianas = options.map((o) => o.iana);
+    expect(new Set(ianas).size).toBe(ianas.length); // no duplicates
+    for (const required of ["America/Los_Angeles", "America/New_York", "Europe/London", "Asia/Shanghai", "Asia/Tokyo"]) {
+      expect(ianas).toContain(required);
+    }
+  });
+
+  it("each option carries both the Chinese and English city name, not just the rendered label", () => {
+    const options = buildTimezoneOptions(new Date("2026-07-18T12:00:00Z"));
+    const beijing = options.find((o) => o.iana === "Asia/Shanghai")!;
+    expect(beijing.cityZh).toBe("北京");
+    expect(beijing.cityEn).toBe("Beijing");
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试确认失败**
+
+Run: `npx vitest run tests/settings/timezone-options.test.ts`(若输出异常简短,改用 `node node_modules/vitest/vitest.mjs run tests/settings/timezone-options.test.ts`)
+Expected: FAIL — `Cannot find module '../../src/settings/timezone-options'`
+
+- [ ] **Step 3: 实现**
+
+```typescript
+// src/settings/timezone-options.ts
+interface CuratedZone {
+  iana: string;
+  cityZh: string;
+  cityEn: string;
+}
+
+// 每个条目对应一个有代表性的城市,覆盖全球主要时区偏移量(整点为主,不含如尼泊尔 +5:45
+// 这类极少见的 15 分钟偏移——这轮只做"有代表性",不追求穷举全部约 400 个 IANA 时区名)。
+const CURATED_ZONES: CuratedZone[] = [
+  { iana: "Pacific/Honolulu", cityZh: "檀香山", cityEn: "Honolulu" },
+  { iana: "America/Anchorage", cityZh: "安克雷奇", cityEn: "Anchorage" },
+  { iana: "America/Los_Angeles", cityZh: "洛杉矶", cityEn: "Los Angeles" },
+  { iana: "America/Denver", cityZh: "丹佛", cityEn: "Denver" },
+  { iana: "America/Chicago", cityZh: "芝加哥", cityEn: "Chicago" },
+  { iana: "America/New_York", cityZh: "纽约", cityEn: "New York" },
+  { iana: "America/Halifax", cityZh: "哈利法克斯", cityEn: "Halifax" },
+  { iana: "America/Sao_Paulo", cityZh: "圣保罗", cityEn: "Sao Paulo" },
+  { iana: "Atlantic/Azores", cityZh: "亚速尔", cityEn: "Azores" },
+  { iana: "Europe/London", cityZh: "伦敦", cityEn: "London" },
+  { iana: "Europe/Paris", cityZh: "巴黎", cityEn: "Paris" },
+  { iana: "Europe/Athens", cityZh: "雅典", cityEn: "Athens" },
+  { iana: "Europe/Moscow", cityZh: "莫斯科", cityEn: "Moscow" },
+  { iana: "Asia/Dubai", cityZh: "迪拜", cityEn: "Dubai" },
+  { iana: "Asia/Karachi", cityZh: "卡拉奇", cityEn: "Karachi" },
+  { iana: "Asia/Kolkata", cityZh: "新德里", cityEn: "New Delhi" },
+  { iana: "Asia/Dhaka", cityZh: "达卡", cityEn: "Dhaka" },
+  { iana: "Asia/Bangkok", cityZh: "曼谷", cityEn: "Bangkok" },
+  { iana: "Asia/Shanghai", cityZh: "北京", cityEn: "Beijing" },
+  { iana: "Asia/Tokyo", cityZh: "东京", cityEn: "Tokyo" },
+  { iana: "Australia/Adelaide", cityZh: "阿德莱德", cityEn: "Adelaide" },
+  { iana: "Australia/Sydney", cityZh: "悉尼", cityEn: "Sydney" },
+  { iana: "Pacific/Auckland", cityZh: "奥克兰", cityEn: "Auckland" },
+];
+
+function offsetMinutes(iana: string, now: Date): number {
+  const partsFor = (tz: string): number => {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(now);
+    const get = (type: string): number => Number(parts.find((p) => p.type === type)!.value);
+    return Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  };
+  return (partsFor(iana) - partsFor("UTC")) / 60000;
+}
+
+function formatOffset(minutes: number): string {
+  const sign = minutes < 0 ? "-" : "+";
+  const abs = Math.abs(minutes);
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return `${sign}${h}:${String(m).padStart(2, "0")}`;
+}
+
+export interface TimezoneOption {
+  iana: string;
+  cityZh: string;
+  cityEn: string;
+  label: string;
+}
+
+export function buildTimezoneOptions(now: Date = new Date()): TimezoneOption[] {
+  return CURATED_ZONES.map((z) => ({
+    iana: z.iana,
+    cityZh: z.cityZh,
+    cityEn: z.cityEn,
+    label: `${formatOffset(offsetMinutes(z.iana, now))}(${z.cityZh})`,
+  }));
+}
+```
+
+- [ ] **Step 4: 运行测试确认通过**
+
+Run: `npx vitest run tests/settings/timezone-options.test.ts`
+Expected: PASS(4/4)
+
+- [ ] **Step 5: 把 `settings-tab.ts` 的时区输入框换成下拉**
+
+`src/settings/settings-tab.ts` 里(Task 2 加的)那个"时区" `Setting` 块,从:
+
+```typescript
+    new Setting(containerEl)
+      .setName("时区")
+      .setDesc("IANA 时区名,如 Asia/Shanghai、America/Los_Angeles。留空 = 用电脑系统时区(默认行为)。")
+      .addText((t) =>
+        t.setValue(this.plugin.settings.timezone).onChange(async (v) => {
+          this.plugin.settings.timezone = v.trim();
+          await this.plugin.saveSettings();
+        })
+      );
+```
+
+改成:
+
+```typescript
+    new Setting(containerEl)
+      .setName("时区")
+      .setDesc("面板"今天"等日期判断依据的时区。选"跟随系统"= 用电脑当前时区(默认行为)。")
+      .addDropdown((d) => {
+        d.addOption("", "跟随系统");
+        for (const opt of buildTimezoneOptions()) {
+          d.addOption(opt.iana, opt.label);
+        }
+        d.setValue(this.plugin.settings.timezone);
+        d.onChange(async (v) => {
+          this.plugin.settings.timezone = v;
+          await this.plugin.saveSettings();
+        });
+      });
+```
+
+文件顶部加一行 import:
+
+```typescript
+import { buildTimezoneOptions } from "./timezone-options";
+```
+
+- [ ] **Step 6: 类型检查 + 全量测试确认无回归**
+
+Run: `./node_modules/.bin/tsc -noEmit -skipLibCheck && npx vitest run`(若 `npx vitest` 输出异常简短,改用 `node node_modules/vitest/vitest.mjs run`)
+Expected: tsc 0 错误;测试套件全绿,新增 4 条(timezone-options),其余不变
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/settings/timezone-options.ts tests/settings/timezone-options.test.ts src/settings/settings-tab.ts
+git commit -m "feat(v2): timezone setting as a dropdown of representative cities per UTC offset"
+```
+
+---
+
 ### Task 16: 真机验证
 
 - `npm run build` 后,把新的 `styles.css` 追加规则(见下方"样式补充"清单)一并加上、重载插件。
