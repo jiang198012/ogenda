@@ -14,6 +14,7 @@ import { renderWeekView } from "./views/week-view";
 import { renderMonthView } from "./views/month-view";
 import { renderStatsView } from "./views/stats-view";
 import { renderMiniCalendar } from "./mini-calendar";
+import { localToEvent } from "./local-to-event";
 
 export const AGENDA_PANEL_VIEW_TYPE = "ogenda-agenda-panel";
 
@@ -63,7 +64,7 @@ export class AgendaPanelView extends ItemView {
       const start = startOfWeek(this.anchor);
       return { start, end: addDays(start, 7) };
     }
-    if (this.tab === "month" || this.tab === "stats") {
+    if (this.tab === "month") {
       const weeks = monthGridWeeks(this.anchor);
       return { start: weeks[0][0], end: addDays(weeks[weeks.length - 1][6], 1) };
     }
@@ -149,7 +150,7 @@ export class AgendaPanelView extends ItemView {
     const body = container.createDiv({ cls: "ogenda-panel-body" });
     try {
       const local: LocalEvent[] = await this.store.readEvents();
-      const events: AgendaEvent[] = local.map((l) => this.localToEvent(l));
+      const events: AgendaEvent[] = local.map(localToEvent);
       const categories = this.existingCategories(events);
 
       const newBtn = head.createDiv({ cls: "ogenda-panel-newbtn", text: "+ 新建" });
@@ -189,8 +190,10 @@ export class AgendaPanelView extends ItemView {
       };
 
       if (this.tab === "stats") {
-        const { start } = this.rangeForTab();
-        renderStatsView(body, computeStats(events, local, start));
+        // Anchor stats on the shown month via this.anchor — NOT rangeForTab().start, which is
+        // the month grid's first cell and sits in the PREVIOUS month whenever the 1st isn't a
+        // Monday, silently reporting the wrong month.
+        renderStatsView(body, computeStats(events, local, this.anchor));
       } else {
         const { start, end } = this.rangeForTab();
         const occurrences = expandOccurrences(events, start, end);
@@ -222,25 +225,4 @@ export class AgendaPanelView extends ItemView {
     return new Date(this.anchor.getFullYear(), targetMonth, day);
   }
 
-  // MonthlyStore.readEvents() 返回的是原始字段(LocalEvent),不是 AgendaEvent —— 面板只读展示,
-  // 复用 store/monthly-store.ts 的字段命名(snake_case)转换成 AgendaEvent 展示用的最小子集。
-  private localToEvent(local: LocalEvent): AgendaEvent {
-    const f = local.fields;
-    return {
-      uid: local.uid,
-      title: f.title ?? "",
-      start: f.start ?? "",
-      end: f.end,
-      allDay: f.all_day === "true",
-      location: f.location,
-      organizer: f.organizer,
-      attendees: f.attendees ? f.attendees.split(", ") : undefined,
-      status: f.status,
-      rsvp: f.rsvp,
-      category: f.category,
-      tags: f.tags ? f.tags.split(", ") : undefined,
-      rrule: f.rrule,
-      origin: "synced",
-    };
-  }
 }

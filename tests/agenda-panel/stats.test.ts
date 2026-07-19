@@ -80,4 +80,13 @@ describe("computeStats", () => {
     const stats1 = computeStats([], local, new Date(2026, 6, 15));
     expect(stats1.unsyncedCount).toBe(2); // a (no href) + b (hash mismatch); d is filtered out (wrong month)
   });
+
+  it("keys off the anchor date's own month even when the 1st isn't a Monday (guards the stats-tab month-off-by-one)", () => {
+    // 2026-07 starts on a Wednesday, so the month grid's first cell is Mon 2026-06-29 (previous month).
+    // The stats tab must anchor on a date INSIDE the shown month (this.anchor), never the grid's first
+    // cell, or it silently reports June while the panel shows July.
+    const july = [ev({ uid: "j", start: "2026-07-01T09:00:00" })];
+    expect(computeStats(july, [], new Date(2026, 6, 1)).total).toBe(1); // anchor inside July -> July
+    expect(computeStats(july, [], new Date(2026, 5, 29)).total).toBe(0); // grid first cell -> June (wrong month)
+  });
 });
