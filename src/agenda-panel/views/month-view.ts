@@ -9,7 +9,7 @@ export function renderMonthView(
   anchor: Date,
   onEventClick: (event: AgendaEvent) => void,
   onEmptyClick?: (day: Date) => void,
-  colors: ColorResolver = createColorResolver({}),
+  colors: ColorResolver = createColorResolver(),
 ): void {
   container.innerHTML = "";
   const weeks = monthGridWeeks(anchor);

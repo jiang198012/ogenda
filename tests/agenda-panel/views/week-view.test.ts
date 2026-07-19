@@ -90,7 +90,7 @@ describe("renderWeekView", () => {
       event: { uid: "a", title: "会", start: "2026-07-13T14:00:00", category: "工作", origin: "synced" },
       start: "2026-07-13T14:00:00",
     };
-    renderWeekView(container, [occ], new Date(2026, 6, 15), () => {}, undefined, createColorResolver({}));
+    renderWeekView(container, [occ], new Date(2026, 6, 15), () => {}, undefined, createColorResolver());
     const card = container.querySelector(".ogenda-week-card") as HTMLElement;
     expect(card.style.borderLeftColor).not.toBe("");
   });

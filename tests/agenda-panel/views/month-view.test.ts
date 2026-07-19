@@ -96,7 +96,7 @@ describe("renderMonthView", () => {
       event: { uid: "a", title: "早会", start: "2026-07-06T09:00:00", category: "工作", origin: "synced" },
       start: "2026-07-06T09:00:00",
     };
-    renderMonthView(container, [occ], new Date(2026, 6, 15), () => {}, undefined, createColorResolver({}));
+    renderMonthView(container, [occ], new Date(2026, 6, 15), () => {}, undefined, createColorResolver());
     const mini = container.querySelector(".ogenda-month-mini") as HTMLElement;
     expect(mini.style.borderLeftColor).not.toBe("");
   });

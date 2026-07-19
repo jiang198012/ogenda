@@ -45,7 +45,7 @@ describe("renderDayView", () => {
       uid: "a@x", title: "评审会", start: "2026-07-16T14:00:00", status: "confirmed", category: "工作", origin: "synced",
     };
     const container = document.createElement("div");
-    renderDayView(container, [{ event: ev, start: ev.start }], () => {}, createColorResolver({}));
+    renderDayView(container, [{ event: ev, start: ev.start }], () => {}, createColorResolver());
     const card = container.querySelector(".ogenda-day-card") as HTMLElement;
     expect(card.style.borderLeftColor).not.toBe("");
     expect(container.querySelector(".ogenda-status-pill")?.textContent).toBe("已确认");

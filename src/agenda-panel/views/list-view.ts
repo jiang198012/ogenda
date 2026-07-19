@@ -38,7 +38,7 @@ export function renderListView(
   container: HTMLElement,
   occurrences: EventOccurrence[],
   onEventClick: (event: AgendaEvent) => void,
-  colors: ColorResolver = createColorResolver({}),
+  colors: ColorResolver = createColorResolver(),
 ): void {
   container.innerHTML = "";
   for (const group of groupByStatus(occurrences)) {

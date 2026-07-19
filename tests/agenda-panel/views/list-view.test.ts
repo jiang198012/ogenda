@@ -76,7 +76,7 @@ describe("renderListView", () => {
       event: { uid: "a", title: "评审", start: "2026-07-18T14:00:00", status: "confirmed", category: "工作", origin: "synced" },
       start: "2026-07-18T14:00:00",
     };
-    renderListView(container, [occ], () => {}, createColorResolver({}));
+    renderListView(container, [occ], () => {}, createColorResolver());
     const row = container.querySelector(".ogenda-event-row") as HTMLElement;
     expect(container.querySelector(".ogenda-status-pill")?.textContent).toBe("已确认");
     expect(container.querySelector(".ogenda-cat-pill")?.textContent).toBe("工作");
@@ -89,7 +89,7 @@ describe("renderListView", () => {
       event: { uid: "a", title: "无状态", start: "2026-07-18T14:00:00", origin: "synced" },
       start: "2026-07-18T14:00:00",
     };
-    renderListView(container, [occ], () => {}, createColorResolver({}));
+    renderListView(container, [occ], () => {}, createColorResolver());
     expect(container.querySelector(".ogenda-status-pill")).toBeNull();
   });
 });

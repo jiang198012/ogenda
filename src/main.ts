@@ -44,7 +44,6 @@ export default class OgendaPlugin extends Plugin {
           this.settings.storageFolder,
           this.settings.timezone,
           () => void this.caldavSyncTwoWay(),
-          this.settings.categoryColors,
         ),
     );
     this.addCommand({

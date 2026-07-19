@@ -28,7 +28,7 @@ export function renderDayView(
   container: HTMLElement,
   occurrences: EventOccurrence[],
   onEventClick: (event: AgendaEvent) => void,
-  colors: ColorResolver = createColorResolver({}),
+  colors: ColorResolver = createColorResolver(),
 ): void {
   container.innerHTML = "";
   for (const occ of occurrences) {

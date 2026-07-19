@@ -27,7 +27,7 @@ function orderedStatusKeys(byStatus: Record<string, number>): string[] {
 export function renderStatsView(
   container: HTMLElement,
   stats: AgendaStats,
-  colors: ColorResolver = createColorResolver({}),
+  colors: ColorResolver = createColorResolver(),
 ): void {
   container.innerHTML = "";
 

@@ -45,15 +45,9 @@ function paletteIndex(name: string): number {
   return (h >>> 0) % CATEGORY_PALETTE.length;
 }
 
-function isHex6(v: string): boolean {
-  return /^#[0-9a-fA-F]{6}$/.test(v);
-}
-
-export function categoryColorFor(name: string, overrides: Record<string, string>): string {
+export function categoryColorFor(name: string): string {
   const key = name.trim();
   if (key === "") return NEUTRAL_CATEGORY;
-  const ov = overrides[key];
-  if (ov && isHex6(ov)) return ov;
   return CATEGORY_PALETTE[paletteIndex(key)];
 }
 
@@ -72,10 +66,10 @@ export interface ColorResolver {
   categoryPillBg(name: string | undefined): string;
 }
 
-export function createColorResolver(overrides: Record<string, string> = {}): ColorResolver {
+export function createColorResolver(): ColorResolver {
   return {
     status: (raw) => statusStyle(raw),
-    category: (name) => categoryColorFor(name ?? "", overrides),
-    categoryPillBg: (name) => hexToRgba(categoryColorFor(name ?? "", overrides), 0.15),
+    category: (name) => categoryColorFor(name ?? ""),
+    categoryPillBg: (name) => hexToRgba(categoryColorFor(name ?? ""), 0.15),
   };
 }

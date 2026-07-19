@@ -26,22 +26,16 @@ describe("statusStyle", () => {
 
 describe("categoryColorFor", () => {
   it("is deterministic — same name always yields the same palette color", () => {
-    expect(categoryColorFor("工作", {})).toBe(categoryColorFor("工作", {}));
-    expect(CATEGORY_PALETTE).toContain(categoryColorFor("工作", {}));
+    expect(categoryColorFor("工作")).toBe(categoryColorFor("工作"));
+    expect(CATEGORY_PALETTE).toContain(categoryColorFor("工作"));
   });
-  it("maps different names to palette entries (indices within bounds)", () => {
+  it("maps various names into the palette", () => {
     for (const name of ["工作", "生活", "学习", "团队", "商务", "健康"]) {
-      expect(CATEGORY_PALETTE).toContain(categoryColorFor(name, {}));
+      expect(CATEGORY_PALETTE).toContain(categoryColorFor(name));
     }
   });
   it("returns a neutral gray for an empty category", () => {
-    expect(categoryColorFor("", {})).toBe("#98a0ad");
-  });
-  it("lets a valid hex override win over the auto color", () => {
-    expect(categoryColorFor("工作", { 工作: "#123456" })).toBe("#123456");
-  });
-  it("ignores a malformed override and falls back to the palette", () => {
-    expect(categoryColorFor("工作", { 工作: "blue" })).toBe(categoryColorFor("工作", {}));
+    expect(categoryColorFor("")).toBe("#98a0ad");
   });
 });
 
@@ -55,10 +49,10 @@ describe("hexToRgba", () => {
 });
 
 describe("createColorResolver", () => {
-  it("resolves category color + pill bg, honoring overrides", () => {
-    const r = createColorResolver({ 工作: "#4c8dff" });
-    expect(r.category("工作")).toBe("#4c8dff");
-    expect(r.categoryPillBg("工作")).toBe("rgba(76, 141, 255, 0.15)");
+  it("resolves category color + pill bg", () => {
+    const r = createColorResolver();
+    expect(r.category("工作")).toBe(categoryColorFor("工作"));
+    expect(r.categoryPillBg("工作")).toBe(hexToRgba(categoryColorFor("工作"), 0.15));
   });
   it("resolves status through the same object", () => {
     expect(createColorResolver().status("confirmed").label).toBe("已确认");
