@@ -26,6 +26,7 @@ type Tab = "list" | "day" | "week" | "month" | "stats";
 export class AgendaPanelView extends ItemView {
   private tab: Tab = "list";
   private anchor: Date;
+  private icsWarned = false;
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -33,6 +34,7 @@ export class AgendaPanelView extends ItemView {
     private folder: string,
     private timezone: string | undefined,
     private triggerSync: () => void,
+    private getSyncProvider: () => string,
   ) {
     super(leaf);
     this.anchor = this.safeToday();
@@ -84,8 +86,17 @@ export class AgendaPanelView extends ItemView {
     return [...new Set(events.map((e) => e.category).filter((c): c is string => Boolean(c)))].sort();
   }
 
+  /** Under an ICS (read-only) subscription, warn once that local edits won't sync back. */
+  private maybeWarnIcsReadonly(): void {
+    if (this.getSyncProvider() === "ics" && !this.icsWarned) {
+      this.icsWarned = true;
+      new Notice(t("notice.icsReadonly"), 10000);
+    }
+  }
+
   private async saveEvent(event: AgendaEvent): Promise<void> {
     await this.store.savePanelEvent(event);
+    this.maybeWarnIcsReadonly();
     this.triggerSync();
     await this.render();
   }
@@ -104,6 +115,7 @@ export class AgendaPanelView extends ItemView {
       modal.close();
       void (async () => {
         await this.store.removeByUid([event.uid]);
+        this.maybeWarnIcsReadonly();
         this.triggerSync();
         await this.render();
       })();

@@ -43,6 +43,7 @@ export default class OgendaPlugin extends Plugin {
           this.settings.storageFolder,
           this.settings.timezone,
           () => void this.syncCalendarNow(),
+          () => this.settings.syncProvider,
         ),
     );
     this.addCommand({
