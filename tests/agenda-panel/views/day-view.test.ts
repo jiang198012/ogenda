@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { AgendaEvent } from "../../../src/core/event";
 import { EventOccurrence } from "../../../src/agenda-panel/occurrences";
 import { renderDayView } from "../../../src/agenda-panel/views/day-view";
+import { createColorResolver } from "../../../src/agenda-panel/colors";
 
 describe("renderDayView", () => {
   it("renders all present calendar fields but omits absent ones and sync metadata", () => {
@@ -18,7 +19,7 @@ describe("renderDayView", () => {
     expect(container.textContent).toContain("团队周会");
     expect(container.textContent).toContain("会议室 A");
     expect(container.textContent).toContain("alice@example.com");
-    expect(container.textContent).toContain("confirmed");
+    expect(container.textContent).toContain("已确认");
     expect(container.textContent).toContain("accepted");
     expect(container.textContent).not.toContain("https://example.com/a.ics");
     expect(container.textContent).not.toContain('"e1"');
@@ -38,5 +39,16 @@ describe("renderDayView", () => {
     renderDayView(container, [{ event: ev, start: ev.start }], onClick);
     (container.querySelector(".ogenda-day-card") as HTMLElement).click();
     expect(onClick).toHaveBeenCalledWith(ev);
+  });
+
+  it("colors the card's left bar from the category and shows a status pill", () => {
+    const ev: AgendaEvent = {
+      uid: "a@x", title: "评审会", start: "2026-07-16T14:00:00", status: "confirmed", category: "工作", origin: "synced",
+    };
+    const container = document.createElement("div");
+    renderDayView(container, [{ event: ev, start: ev.start }], () => {}, createColorResolver({}));
+    const card = container.querySelector(".ogenda-day-card") as HTMLElement;
+    expect(card.style.borderLeftColor).not.toBe("");
+    expect(container.querySelector(".ogenda-status-pill")?.textContent).toBe("已确认");
   });
 });

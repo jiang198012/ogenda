@@ -204,7 +204,7 @@ export class AgendaPanelView extends ItemView {
           const dayWrap = body.createDiv({ cls: "ogenda-day-layout" });
           const dayMain = dayWrap.createDiv({ cls: "ogenda-day-main" });
           const daySide = dayWrap.createDiv({ cls: "ogenda-day-side" });
-          renderDayView(dayMain, occurrences, onEventClick);
+          renderDayView(dayMain, occurrences, onEventClick, colors);
           renderMiniCalendar(daySide, this.anchor, (day) => {
             this.anchor = day;
             void this.render();
