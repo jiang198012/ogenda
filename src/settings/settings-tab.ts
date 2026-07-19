@@ -1,6 +1,11 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type OgendaPlugin from "../main";
 import { buildTimezoneOptions } from "./timezone-options";
+import { t, setLanguage, resolveLanguage } from "../i18n";
+
+export function getObsidianLocale(): string {
+  return window.localStorage.getItem("language") ?? "en";
+}
 
 export class OgendaSettingTab extends PluginSettingTab {
   plugin: OgendaPlugin;
@@ -11,6 +16,23 @@ export class OgendaSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
+
+    new Setting(containerEl)
+      .setName(t("settings.language.name"))
+      .setDesc(t("settings.language.desc"))
+      .addDropdown((d) => {
+        d.addOption("auto", t("settings.language.auto"));
+        d.addOption("zh", "简体中文");
+        d.addOption("en", "English");
+        d.setValue(this.plugin.settings.language);
+        d.onChange(async (v) => {
+          this.plugin.settings.language = v as "auto" | "zh" | "en";
+          await this.plugin.saveSettings();
+          setLanguage(resolveLanguage(this.plugin.settings.language, getObsidianLocale()));
+          this.display(); // re-render settings in the new language
+          this.plugin.refreshOpenPanels(); // re-render open agenda panels
+        });
+      });
 
     new Setting(containerEl).setName("Storage folder").addText((t) =>
       t.setValue(this.plugin.settings.storageFolder).onChange(async (v) => {

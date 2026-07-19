@@ -18,6 +18,7 @@ describe("sanitizeSettings", () => {
       icloudAppPassword: "abcd",
       icloudCalUrl: "https://p1-caldav.icloud.com/1/calendars/home/",
       timezone: "",
+      language: "auto",
     });
     expect("bogus" in s).toBe(false);
   });
@@ -29,5 +30,11 @@ describe("sanitizeSettings", () => {
     expect(sanitizeSettings({ timezone: "America/Los_Angeles" }).timezone).toBe("America/Los_Angeles");
     expect(sanitizeSettings({}).timezone).toBe("");
     expect(DEFAULT_SETTINGS.timezone).toBe("");
+  });
+  it("keeps a valid language and defaults to auto", () => {
+    expect(sanitizeSettings({ language: "en" }).language).toBe("en");
+    expect(sanitizeSettings({ language: "zh" }).language).toBe("zh");
+    expect(sanitizeSettings({ language: "bogus" }).language).toBe("auto");
+    expect(sanitizeSettings({}).language).toBe("auto");
   });
 });

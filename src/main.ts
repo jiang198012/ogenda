@@ -1,6 +1,6 @@
 import { Plugin, Notice } from "obsidian";
 import { OgendaSettings, sanitizeSettings } from "./settings/settings";
-import { OgendaSettingTab } from "./settings/settings-tab";
+import { OgendaSettingTab, getObsidianLocale } from "./settings/settings-tab";
 import { ObsidianFileStore } from "./store/obsidian-file-store";
 import { MonthlyStore } from "./store/monthly-store";
 import { CalDavConnector } from "./connectors/caldav/caldav-connector";
@@ -9,6 +9,7 @@ import { SyncService } from "./sync/sync-service";
 import { syncBidirectional, CalDavSource } from "./sync/bidirectional";
 import { davRequest, hrefInside } from "./net/dav-request";
 import { AgendaPanelView, AGENDA_PANEL_VIEW_TYPE } from "./agenda-panel/agenda-panel-view";
+import { setLanguage, resolveLanguage } from "./i18n";
 
 const XML_CT = "application/xml; charset=utf-8";
 
@@ -17,6 +18,7 @@ export default class OgendaPlugin extends Plugin {
 
   async onload() {
     await this.loadSettings();
+    setLanguage(resolveLanguage(this.settings.language, getObsidianLocale()));
     this.addSettingTab(new OgendaSettingTab(this.app, this));
 
     this.addCommand({
@@ -118,6 +120,15 @@ export default class OgendaPlugin extends Plugin {
     const leaf = this.app.workspace.getLeaf(true);
     await leaf.setViewState({ type: AGENDA_PANEL_VIEW_TYPE, active: true });
     await this.app.workspace.revealLeaf(leaf);
+  }
+
+  refreshOpenPanels(): void {
+    for (const leaf of this.app.workspace.getLeavesOfType(AGENDA_PANEL_VIEW_TYPE)) {
+      const v = leaf.view as AgendaPanelView;
+      if (typeof (v as unknown as { rerender?: () => void }).rerender === "function") {
+        (v as unknown as { rerender: () => void }).rerender();
+      }
+    }
   }
 
   // --- iCloud CalDAV discovery helper (prints calendar URLs to console) ---

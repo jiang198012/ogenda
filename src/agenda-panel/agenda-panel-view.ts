@@ -57,6 +57,10 @@ export class AgendaPanelView extends ItemView {
     await this.render();
   }
 
+  rerender(): void {
+    void this.render();
+  }
+
   private rangeForTab(): { start: Date; end: Date } {
     if (this.tab === "day") {
       const start = new Date(this.anchor.getFullYear(), this.anchor.getMonth(), this.anchor.getDate());
