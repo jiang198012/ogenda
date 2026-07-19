@@ -59,7 +59,9 @@ function renderOneMonth(
       const dayKey = toDateKey(day);
       if (selKey && dayKey === selKey) cell.classList.add("ogenda-mini-cal-selected");
       cell.textContent = String(day.getDate());
-      if (eventDays.has(dayKey)) {
+      // Only dot a day in its OWN month block — a padding (othermonth) cell that repeats a day
+      // shown as a real cell in an adjacent stacked block must not double-dot it.
+      if (eventDays.has(dayKey) && day.getMonth() === month) {
         const dot = document.createElement("span");
         dot.className = "ogenda-mini-cal-dot";
         cell.appendChild(dot);

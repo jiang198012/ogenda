@@ -64,4 +64,15 @@ describe("renderMiniCalendar", () => {
     renderMiniCalendar(container, new Date(2026, 6, 15), () => {}, { eventDays: new Set(["2026-07-06"]) });
     expect(container.querySelectorAll(".ogenda-mini-cal-dot").length).toBe(1);
   });
+
+  it("does not double-dot a day that is real in one month block but padding in an adjacent one", () => {
+    const container = document.createElement("div");
+    // July 29 2026 is a real cell in the July block and a padding cell in the August block
+    // (the Aug grid starts Mon 2026-07-27). It must be dotted exactly once — in its own month.
+    renderMiniCalendar(container, new Date(2026, 6, 15), () => {}, {
+      monthCount: 2,
+      eventDays: new Set(["2026-07-29"]),
+    });
+    expect(container.querySelectorAll(".ogenda-mini-cal-dot").length).toBe(1);
+  });
 });

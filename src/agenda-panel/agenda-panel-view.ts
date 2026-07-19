@@ -206,7 +206,10 @@ export class AgendaPanelView extends ItemView {
           const dayMain = dayWrap.createDiv({ cls: "ogenda-day-main" });
           const daySide = dayWrap.createDiv({ cls: "ogenda-day-side" });
           renderDayView(dayMain, occurrences, onEventClick, colors);
-          const monthCount = monthsToFill(daySide.clientHeight);
+          // Measure the panel's scroll viewport (.view-content = this.contentEl, height-constrained
+          // by the leaf), NOT daySide — daySide sits in a stretch flex row and reports the day's
+          // event-stack height, which would tie the month count to how many events the day has.
+          const monthCount = monthsToFill(this.contentEl.clientHeight);
           const miniStart = new Date(this.anchor.getFullYear(), this.anchor.getMonth(), 1);
           const miniEnd = new Date(this.anchor.getFullYear(), this.anchor.getMonth() + monthCount, 1);
           const miniOccs = expandOccurrences(events, miniStart, miniEnd);
