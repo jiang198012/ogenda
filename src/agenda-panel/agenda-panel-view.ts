@@ -13,7 +13,7 @@ import { renderDayView } from "./views/day-view";
 import { renderWeekView } from "./views/week-view";
 import { renderMonthView } from "./views/month-view";
 import { renderStatsView } from "./views/stats-view";
-import { renderMiniCalendar } from "./mini-calendar";
+import { renderMiniCalendar, monthsToFill, daysWithEvents } from "./mini-calendar";
 import { localToEvent } from "./local-to-event";
 import { createColorResolver } from "./colors";
 import { formatChineseDate } from "./date-format";
@@ -206,10 +206,19 @@ export class AgendaPanelView extends ItemView {
           const dayMain = dayWrap.createDiv({ cls: "ogenda-day-main" });
           const daySide = dayWrap.createDiv({ cls: "ogenda-day-side" });
           renderDayView(dayMain, occurrences, onEventClick, colors);
-          renderMiniCalendar(daySide, this.anchor, (day) => {
-            this.anchor = day;
-            void this.render();
-          });
+          const monthCount = monthsToFill(daySide.clientHeight);
+          const miniStart = new Date(this.anchor.getFullYear(), this.anchor.getMonth(), 1);
+          const miniEnd = new Date(this.anchor.getFullYear(), this.anchor.getMonth() + monthCount, 1);
+          const miniOccs = expandOccurrences(events, miniStart, miniEnd);
+          renderMiniCalendar(
+            daySide,
+            this.anchor,
+            (day) => {
+              this.anchor = day;
+              void this.render();
+            },
+            { monthCount, eventDays: daysWithEvents(miniOccs) },
+          );
         } else if (this.tab === "week") renderWeekView(body, occurrences, this.anchor, onEventClick, onEmptyClick, colors);
         else renderMonthView(body, occurrences, this.anchor, onEventClick, onEmptyClick, colors);
       }

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { renderMiniCalendar } from "../../src/agenda-panel/mini-calendar";
+import { renderMiniCalendar, monthsToFill, daysWithEvents } from "../../src/agenda-panel/mini-calendar";
 
 describe("renderMiniCalendar", () => {
   it("renders a 7x5 grid for July 2026", () => {
@@ -33,5 +33,35 @@ describe("renderMiniCalendar", () => {
     const day1 = cells.find((c) => c.textContent === "1" && !c.classList.contains("ogenda-mini-cal-othermonth"));
     (day1 as HTMLElement).click();
     expect(onClick).toHaveBeenCalledWith(new Date(2026, 6, 1));
+  });
+
+  it("monthsToFill: falls back to 3 when height is unknown, else fills by per-month height", () => {
+    expect(monthsToFill(0)).toBe(3);
+    expect(monthsToFill(-10)).toBe(3);
+    expect(monthsToFill(720, 240)).toBe(3);
+    expect(monthsToFill(500, 240)).toBe(2);
+    expect(monthsToFill(100, 240)).toBe(1);
+  });
+
+  it("daysWithEvents: collects the date keys that carry events", () => {
+    const set = daysWithEvents([
+      { event: { uid: "a", title: "x", start: "2026-07-06T09:00:00", origin: "synced" }, start: "2026-07-06T09:00:00" },
+      { event: { uid: "b", title: "y", start: "2026-07-20", origin: "synced" }, start: "2026-07-20" },
+    ]);
+    expect(set.has("2026-07-06")).toBe(true);
+    expect(set.has("2026-07-20")).toBe(true);
+    expect(set.has("2026-07-07")).toBe(false);
+  });
+
+  it("renders monthCount month blocks stacked vertically", () => {
+    const container = document.createElement("div");
+    renderMiniCalendar(container, new Date(2026, 6, 15), () => {}, { monthCount: 3 });
+    expect(container.querySelectorAll(".ogenda-mini-cal-month").length).toBe(3);
+  });
+
+  it("marks a dot on days that have events", () => {
+    const container = document.createElement("div");
+    renderMiniCalendar(container, new Date(2026, 6, 15), () => {}, { eventDays: new Set(["2026-07-06"]) });
+    expect(container.querySelectorAll(".ogenda-mini-cal-dot").length).toBe(1);
   });
 });

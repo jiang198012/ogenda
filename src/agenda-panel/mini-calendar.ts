@@ -1,18 +1,44 @@
-import { monthGridWeeks, startOfDay } from "./date-grid";
+import { monthGridWeeks, startOfDay, toDateKey } from "./date-grid";
+import { formatChineseMonth } from "./date-format";
+import { EventOccurrence, parseLocalDate } from "./occurrences";
 
-export function renderMiniCalendar(container: HTMLElement, anchor: Date, onDayClick: (day: Date) => void): void {
-  container.innerHTML = "";
-  const wrap = document.createElement("div");
-  wrap.className = "ogenda-mini-cal";
+/** How many months fit in the sidebar. Unknown height (≤0) → show a few; else fill by per-month height. */
+export function monthsToFill(availableHeightPx: number, perMonthPx = 240): number {
+  if (!(availableHeightPx > 0)) return 3;
+  return Math.max(1, Math.floor(availableHeightPx / perMonthPx));
+}
+
+/** The set of date keys (YYYY-MM-DD) that carry at least one event occurrence. */
+export function daysWithEvents(occurrences: EventOccurrence[]): Set<string> {
+  const set = new Set<string>();
+  for (const occ of occurrences) {
+    set.add(toDateKey(startOfDay(parseLocalDate(occ.start))));
+  }
+  return set;
+}
+
+interface MiniCalOpts {
+  monthCount?: number;
+  eventDays?: Set<string>;
+}
+
+function renderOneMonth(
+  wrap: HTMLElement,
+  monthAnchor: Date,
+  selected: Date | null,
+  eventDays: Set<string>,
+  onDayClick: (day: Date) => void,
+): void {
+  const monthEl = document.createElement("div");
+  monthEl.className = "ogenda-mini-cal-month";
 
   const header = document.createElement("div");
   header.className = "ogenda-mini-cal-header";
-  header.textContent = `${anchor.getFullYear()}年${anchor.getMonth() + 1}月`;
-  wrap.appendChild(header);
+  header.textContent = formatChineseMonth(monthAnchor);
+  monthEl.appendChild(header);
 
   const grid = document.createElement("div");
   grid.className = "ogenda-mini-cal-grid";
-
   const weekdayLabels = ["一", "二", "三", "四", "五", "六", "日"];
   for (const label of weekdayLabels) {
     const dow = document.createElement("div");
@@ -21,21 +47,47 @@ export function renderMiniCalendar(container: HTMLElement, anchor: Date, onDayCl
     grid.appendChild(dow);
   }
 
-  const weeks = monthGridWeeks(anchor);
-  const month = anchor.getMonth();
-  const anchorDay = startOfDay(anchor);
+  const weeks = monthGridWeeks(monthAnchor);
+  const month = monthAnchor.getMonth();
+  const selKey = selected ? toDateKey(startOfDay(selected)) : null;
 
   for (const week of weeks) {
     for (const day of week) {
       const cell = document.createElement("div");
       cell.className = "ogenda-mini-cal-cell";
       if (day.getMonth() !== month) cell.classList.add("ogenda-mini-cal-othermonth");
-      if (day.getTime() === anchorDay.getTime()) cell.classList.add("ogenda-mini-cal-selected");
+      const dayKey = toDateKey(day);
+      if (selKey && dayKey === selKey) cell.classList.add("ogenda-mini-cal-selected");
       cell.textContent = String(day.getDate());
+      if (eventDays.has(dayKey)) {
+        const dot = document.createElement("span");
+        dot.className = "ogenda-mini-cal-dot";
+        cell.appendChild(dot);
+      }
       cell.addEventListener("click", () => onDayClick(day));
       grid.appendChild(cell);
     }
   }
-  wrap.appendChild(grid);
+  monthEl.appendChild(grid);
+  wrap.appendChild(monthEl);
+}
+
+export function renderMiniCalendar(
+  container: HTMLElement,
+  anchor: Date,
+  onDayClick: (day: Date) => void,
+  opts: MiniCalOpts = {},
+): void {
+  container.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.className = "ogenda-mini-cal";
+
+  const count = Math.max(1, opts.monthCount ?? 1);
+  const eventDays = opts.eventDays ?? new Set<string>();
+  for (let i = 0; i < count; i++) {
+    const monthAnchor = new Date(anchor.getFullYear(), anchor.getMonth() + i, 1);
+    // Only the current month (i === 0) carries the selected-day highlight.
+    renderOneMonth(wrap, monthAnchor, i === 0 ? anchor : null, eventDays, onDayClick);
+  }
   container.appendChild(wrap);
 }
