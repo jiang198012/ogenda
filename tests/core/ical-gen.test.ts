@@ -32,4 +32,32 @@ describe("eventToVCalendar", () => {
     expect(ics).toContain("DTSTART;TZID=Asia/Shanghai:20190712T180000");
     expect(ics).toContain("SUMMARY:a\\;b\\,c");
   });
+
+  it("emits an explicit DTEND;VALUE=DATE for an all-day event with no end set, defaulting to start+1 day", () => {
+    const ics = eventToVCalendar(base({ start: "2026-07-21", allDay: true }));
+    expect(ics).toContain("DTSTART;VALUE=DATE:20260721");
+    expect(ics).toContain("DTEND;VALUE=DATE:20260722");
+  });
+
+  it("rolls the default all-day DTEND over a month/year boundary", () => {
+    const ics = eventToVCalendar(base({ start: "2026-12-31", allDay: true }));
+    expect(ics).toContain("DTEND;VALUE=DATE:20270101");
+  });
+
+  it("uses the explicit end date for an all-day event when one is set", () => {
+    const ics = eventToVCalendar(base({ start: "2026-07-21", end: "2026-07-23", allDay: true }));
+    expect(ics).toContain("DTEND;VALUE=DATE:20260723");
+  });
+
+  it("tolerates a lowercase 't' date/time separator (common typo) for an all-day event", () => {
+    const ics = eventToVCalendar(base({ start: "2026-07-19t14:00:00", allDay: true }));
+    expect(ics).toContain("DTSTART;VALUE=DATE:20260719");
+    expect(ics).toContain("DTEND;VALUE=DATE:20260720");
+    expect(ics).not.toContain("NaN");
+  });
+
+  it("tolerates a lowercase 't' date/time separator for a timed event", () => {
+    const ics = eventToVCalendar(base({ start: "2026-07-19t14:00:00" }));
+    expect(ics).toContain("DTSTART:20260719T140000");
+  });
 });
