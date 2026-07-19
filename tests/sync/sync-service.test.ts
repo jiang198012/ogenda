@@ -1,12 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { AgendaEvent } from "../../src/core/event";
 import { InMemoryFileStore } from "../../src/store/file-store";
 import { MonthlyStore } from "../../src/store/monthly-store";
 import { SyncService } from "../../src/sync/sync-service";
+import { setLanguage } from "../../src/i18n";
 
 const mk = (uid: string, start: string): AgendaEvent => ({
   uid, title: "t", start, origin: "synced", source: "s", protocol: "imap",
 });
+
+beforeEach(() => setLanguage("zh"));
 
 describe("SyncService", () => {
   it("collects from connectors, writes to store, reports summary", async () => {

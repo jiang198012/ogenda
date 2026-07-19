@@ -17,7 +17,7 @@ import { renderMiniCalendar, monthsToFill, daysWithEvents } from "./mini-calenda
 import { localToEvent } from "./local-to-event";
 import { createColorResolver } from "./colors";
 import { formatDate } from "./date-format";
-import { getLanguage } from "../i18n";
+import { getLanguage, t } from "../i18n";
 
 export const AGENDA_PANEL_VIEW_TYPE = "ogenda-agenda-panel";
 
@@ -51,7 +51,7 @@ export class AgendaPanelView extends ItemView {
   }
 
   getDisplayText(): string {
-    return "Agenda";
+    return t("view.title");
   }
 
   async onOpen(): Promise<void> {
@@ -94,12 +94,12 @@ export class AgendaPanelView extends ItemView {
     // Plain Modal, not ConfirmationModal — that API needs Obsidian 1.13.0+ and
     // silently throws (no dialog, no error) on older installs.
     const modal = new Modal(this.app);
-    modal.setTitle("删除事件");
-    modal.contentEl.createEl("p", { text: `确定删除《${event.title}》吗?这会同步删除 iCloud 上的对应事件。` });
+    modal.setTitle(t("confirm.delete.title"));
+    modal.contentEl.createEl("p", { text: t("confirm.delete.body", { title: event.title }) });
     const buttonRow = modal.contentEl.createDiv({ cls: "ogenda-form-buttons" });
-    const cancelBtn = buttonRow.createEl("button", { text: "取消" });
+    const cancelBtn = buttonRow.createEl("button", { text: t("common.cancel") });
     cancelBtn.addEventListener("click", () => modal.close());
-    const deleteBtn = buttonRow.createEl("button", { text: "删除", cls: "mod-warning" });
+    const deleteBtn = buttonRow.createEl("button", { text: t("common.delete"), cls: "mod-warning" });
     deleteBtn.addEventListener("click", () => {
       modal.close();
       void (async () => {
@@ -119,11 +119,11 @@ export class AgendaPanelView extends ItemView {
     const head = container.createDiv({ cls: "ogenda-panel-head" });
     const tabs = head.createDiv({ cls: "ogenda-panel-tabs" });
     const tabDefs: { key: Tab; label: string }[] = [
-      { key: "list", label: "清单" },
-      { key: "day", label: "日" },
-      { key: "week", label: "周" },
-      { key: "month", label: "月" },
-      { key: "stats", label: "统计" },
+      { key: "list", label: t("view.tab.list") },
+      { key: "day", label: t("view.tab.day") },
+      { key: "week", label: t("view.tab.week") },
+      { key: "month", label: t("view.tab.month") },
+      { key: "stats", label: t("view.tab.stats") },
     ];
     for (const t of tabDefs) {
       const el = tabs.createDiv({ cls: "ogenda-panel-tab" + (this.tab === t.key ? " active" : ""), text: t.label });
@@ -142,7 +142,7 @@ export class AgendaPanelView extends ItemView {
     const isToday = startOfDay(this.anchor).getTime() === startOfDay(this.safeToday()).getTime();
     const todayBtn = nav.createSpan({
       cls: "ogenda-navbtn ogenda-navtoday",
-      text: isToday ? `今天 · ${formatDate(this.anchor, getLanguage())}` : formatDate(this.anchor, getLanguage()),
+      text: isToday ? `${t("panel.today")} · ${formatDate(this.anchor, getLanguage())}` : formatDate(this.anchor, getLanguage()),
     });
     todayBtn.addEventListener("click", () => {
       this.anchor = this.safeToday();
@@ -161,7 +161,7 @@ export class AgendaPanelView extends ItemView {
       const colors = createColorResolver();
       const categories = this.existingCategories(events);
 
-      const newBtn = head.createDiv({ cls: "ogenda-panel-newbtn", text: "+ 新建" });
+      const newBtn = head.createDiv({ cls: "ogenda-panel-newbtn", text: t("panel.newEvent") });
       newBtn.addEventListener("click", () => {
         new EventFormModal(
           this.app,
@@ -234,7 +234,7 @@ export class AgendaPanelView extends ItemView {
         else renderMonthView(body, occurrences, this.anchor, onEventClick, onEmptyClick, colors);
       }
     } catch (e) {
-      new Notice("Agenda 面板加载出错: " + (e as Error).message);
+      new Notice(t("notice.panelLoadError", { msg: (e as Error).message }));
       console.error("[ogenda] agenda panel render error", e);
     }
   }

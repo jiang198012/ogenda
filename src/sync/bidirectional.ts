@@ -2,6 +2,7 @@ import { AgendaEvent, hashEvent } from "../core/event";
 import { eventToVCalendar } from "../core/ical-gen";
 import { MonthlyStore, SyncSummary } from "../store/monthly-store";
 import { planSync } from "./plan";
+import { t } from "../i18n";
 
 export type Notify = (message: string) => void;
 
@@ -54,9 +55,9 @@ export async function syncBidirectional(
       toApply.push(withBaseHash({ ...ev, etag: res.etag ?? ev.etag }));
       pushed++;
     } else if (res.status === 412) {
-      notify(`本地改动未推送(${ev.title}):服务器版本已变,已跳过,下次同步会拉取服务器较新版本`);
+      notify(t("sync.pushSkipped", { title: ev.title }));
     } else {
-      notify(`推送失败(${ev.title}):HTTP ${res.status}`);
+      notify(t("sync.pushFailed", { title: ev.title, status: res.status }));
       console.error(`[ogenda] pushUpdate failed for ${ev.uid} (${ev.title}): HTTP ${res.status}`, {
         url: ev.href,
         ics: eventToVCalendar(ev),
@@ -72,7 +73,7 @@ export async function syncBidirectional(
       toApply.push(withBaseHash({ ...ev, origin: "synced", href: url, etag: res.etag }));
       created++;
     } else {
-      notify(`创建失败(${ev.title}):HTTP ${res.status}`);
+      notify(t("sync.createFailed", { title: ev.title, status: res.status }));
       console.error(`[ogenda] pushCreate failed for ${ev.uid} (${ev.title}): HTTP ${res.status}`, {
         url,
         ics: eventToVCalendar(ev),
@@ -83,7 +84,7 @@ export async function syncBidirectional(
 
   for (const c of plan.conflicts) {
     toApply.push(withBaseHash(c.server));
-    notify(`冲突(${c.server.title}):本地改动已被服务器较新版本覆盖`);
+    notify(t("sync.conflict", { title: c.server.title }));
   }
 
   let deleted = 0;
@@ -94,9 +95,9 @@ export async function syncBidirectional(
       confirmedDeleted.push(d.uid);
       deleted++;
     } else if (res.status === 412) {
-      notify(`删除未推送(${d.uid}):服务器版本已变,已跳过,下次同步重试`);
+      notify(t("sync.deleteSkipped", { uid: d.uid }));
     } else {
-      notify(`删除失败(${d.uid}):HTTP ${res.status}`);
+      notify(t("sync.deleteFailed", { uid: d.uid, status: res.status }));
     }
   }
   if (confirmedDeleted.length) await store.removeByUid(confirmedDeleted);
@@ -134,9 +135,15 @@ export async function syncBidirectional(
   // what's actually on disk (e.g. a pushCreate's new href tracked but never written locally).
   await store.writeSyncState({ tracked: newTracked });
   notify(
-    `双向同步完成:拉取 ${plan.applyServer.length}、推送 ${pushed}、新建 ${created}、冲突 ${plan.conflicts.length}、` +
-      `删除 ${deleted}、服务器已删 ${markedServerDeleted}` +
-      `(${summary.months.join(", ") || "无变化"})`,
+    t("sync.complete", {
+      applied: plan.applyServer.length,
+      pushed,
+      created,
+      conflicts: plan.conflicts.length,
+      deleted,
+      serverDeleted: markedServerDeleted,
+      months: summary.months.join(", ") || t("sync.noChange"),
+    }),
   );
 
   return {

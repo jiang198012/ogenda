@@ -1,6 +1,7 @@
 import { AgendaEvent } from "../core/event";
 import { Connector } from "../connectors/connector";
 import { MonthlyStore, SyncSummary } from "../store/monthly-store";
+import { t } from "../i18n";
 
 export type Notify = (message: string) => void;
 
@@ -17,12 +18,18 @@ export class SyncService {
       try {
         all.push(...(await c.fetch()));
       } catch (e) {
-        this.notify(`同步失败(${c.id}): ${(e as Error).message}`);
+        this.notify(t("sync.connectorFailed", { id: c.id, msg: (e as Error).message }));
         console.error(`[ogenda] connector ${c.id} failed`, e);
       }
     }
     const summary = await this.store.sync(all);
-    this.notify(`同步完成:新增 ${summary.added}、更新 ${summary.updated}(${summary.months.join(", ") || "无"})`);
+    this.notify(
+      t("sync.importComplete", {
+        added: summary.added,
+        updated: summary.updated,
+        months: summary.months.join(", ") || t("sync.none"),
+      }),
+    );
     return summary;
   }
 }

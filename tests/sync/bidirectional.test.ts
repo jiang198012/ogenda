@@ -1,10 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { AgendaEvent, hashEvent } from "../../src/core/event";
 import { InMemoryFileStore } from "../../src/store/file-store";
 import { MonthlyStore } from "../../src/store/monthly-store";
 import { CalDavSource, syncBidirectional } from "../../src/sync/bidirectional";
+import { setLanguage } from "../../src/i18n";
 
 const CAL_URL = "https://cal.example/home";
+
+beforeEach(() => setLanguage("zh"));
 
 const mkSynced = (o: Partial<AgendaEvent> = {}): AgendaEvent => {
   const ev: AgendaEvent = {

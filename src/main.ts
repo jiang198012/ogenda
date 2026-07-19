@@ -9,7 +9,7 @@ import { SyncService } from "./sync/sync-service";
 import { syncBidirectional, CalDavSource } from "./sync/bidirectional";
 import { davRequest, hrefInside } from "./net/dav-request";
 import { AgendaPanelView, AGENDA_PANEL_VIEW_TYPE } from "./agenda-panel/agenda-panel-view";
-import { setLanguage, resolveLanguage } from "./i18n";
+import { setLanguage, resolveLanguage, t } from "./i18n";
 
 const XML_CT = "application/xml; charset=utf-8";
 
@@ -23,17 +23,17 @@ export default class OgendaPlugin extends Plugin {
 
     this.addCommand({
       id: "ogenda-caldav-sync",
-      name: "Sync iCloud calendar",
+      name: t("command.syncIcloud"),
       callback: () => void this.caldavSync(),
     });
     this.addCommand({
       id: "ogenda-caldav-sync-bidirectional",
-      name: "Sync iCloud (two-way)",
+      name: t("command.syncTwoWay"),
       callback: () => void this.caldavSyncTwoWay(),
     });
     this.addCommand({
       id: "ogenda-caldav-discovery",
-      name: "CalDAV discovery probe (iCloud)",
+      name: t("command.discovery"),
       callback: () => void this.caldavDiscover(),
     });
 
@@ -50,10 +50,10 @@ export default class OgendaPlugin extends Plugin {
     );
     this.addCommand({
       id: "ogenda-open-agenda-panel",
-      name: "Open Agenda panel",
+      name: t("command.openPanel"),
       callback: () => void this.openAgendaPanel(),
     });
-    this.addRibbonIcon("calendar-days", "Open Agenda panel", () => void this.openAgendaPanel());
+    this.addRibbonIcon("calendar-days", t("command.openPanel"), () => void this.openAgendaPanel());
 
     if (this.settings.syncOnStartup) {
       this.app.workspace.onLayoutReady(() => void this.caldavSyncTwoWay());
@@ -67,7 +67,7 @@ export default class OgendaPlugin extends Plugin {
   async caldavSync(): Promise<void> {
     const c = this.icloudCreds();
     if (!c || !this.settings.icloudCalUrl) {
-      new Notice("先填 iCloud 凭据 + 日历 URL(用 discovery 探针拿 URL)");
+      new Notice(t("notice.needIcloudSetup"));
       return;
     }
     const connector = new CalDavConnector({
@@ -80,7 +80,7 @@ export default class OgendaPlugin extends Plugin {
     try {
       await svc.syncNow();
     } catch (e) {
-      new Notice("iCloud 同步出错: " + (e as Error).message);
+      new Notice(t("notice.icloudSyncError", { msg: (e as Error).message }));
       console.error("[ogenda] caldav sync error", e);
     }
   }
@@ -88,7 +88,7 @@ export default class OgendaPlugin extends Plugin {
   async caldavSyncTwoWay(): Promise<void> {
     const c = this.icloudCreds();
     if (!c || !this.settings.icloudCalUrl) {
-      new Notice("先填 iCloud 凭据 + 日历 URL(用 discovery 探针拿 URL)");
+      new Notice(t("notice.needIcloudSetup"));
       return;
     }
     const connector = new CalDavConnector({
@@ -106,7 +106,7 @@ export default class OgendaPlugin extends Plugin {
     try {
       await syncBidirectional(source, this.settings.icloudCalUrl, this.store(), (m) => new Notice(m, 10000));
     } catch (e) {
-      new Notice("iCloud 双向同步出错: " + (e as Error).message);
+      new Notice(t("notice.icloudTwoWaySyncError", { msg: (e as Error).message }));
       console.error("[ogenda] bidirectional sync error", e);
     }
   }
@@ -137,7 +137,7 @@ export default class OgendaPlugin extends Plugin {
     const user = this.settings.icloudUser;
     const pass = this.settings.icloudAppPassword;
     if (!user || !pass) {
-      new Notice("先在设置里填 iCloud 邮箱 + App 专用密码");
+      new Notice(t("notice.needIcloudCreds"));
       return null;
     }
     return { user, pass };
@@ -157,7 +157,7 @@ export default class OgendaPlugin extends Plugin {
       });
       const principalHref = hrefInside(r1.text, "current-user-principal");
       if (!principalHref) {
-        new Notice(`discovery: principal=${r1.status},没解析到 href(见控制台)`);
+        new Notice(t("notice.discoveryNoPrincipal", { status: r1.status }));
         console.log("[ogenda] principal", r1.status, "\n" + r1.text);
         return;
       }
@@ -175,7 +175,7 @@ export default class OgendaPlugin extends Plugin {
       });
       const homeHref = hrefInside(r2.text, "calendar-home-set");
       if (!homeHref) {
-        new Notice(`discovery: home=${r2.status},没解析到 calendar-home(见控制台)`);
+        new Notice(t("notice.discoveryNoHome", { status: r2.status }));
         console.log("[ogenda] home", r2.status, "\n" + r2.text);
         return;
       }
@@ -191,11 +191,11 @@ export default class OgendaPlugin extends Plugin {
       console.log("[ogenda] calendars status", r3.status, "\n" + r3.text);
       const home = new URL(homeHref);
       new Notice(
-        `discovery: principal=${r1.status} home=${r2.status} calendars=${r3.status}。日历列表见控制台;完整 URL = ${home.origin} + 某日历路径,粘进设置「iCloud 日历 URL」。`,
+        t("notice.discoveryDone", { principal: r1.status, home: r2.status, calendars: r3.status, origin: home.origin }),
       );
     } catch (e) {
       console.error("[ogenda] discovery failed", e);
-      new Notice("discovery 出错: " + (e as Error).message);
+      new Notice(t("notice.discoveryError", { msg: (e as Error).message }));
     }
   }
 
