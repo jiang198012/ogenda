@@ -34,7 +34,7 @@ export class OgendaSettingTab extends PluginSettingTab {
         });
       });
 
-    new Setting(containerEl).setName("Storage folder").addText((t) =>
+    new Setting(containerEl).setName(t("settings.storage.folder.name")).addText((t) =>
       t.setValue(this.plugin.settings.storageFolder).onChange(async (v) => {
         this.plugin.settings.storageFolder = v.trim() || "Agenda";
         await this.plugin.saveSettings();
@@ -42,8 +42,8 @@ export class OgendaSettingTab extends PluginSettingTab {
     );
 
     new Setting(containerEl)
-      .setName("Sync on startup")
-      .setDesc("启动 Obsidian 时自动同步一次")
+      .setName(t("settings.sync.startup.name"))
+      .setDesc(t("settings.sync.startup.desc"))
       .addToggle((tg) =>
         tg.setValue(this.plugin.settings.syncOnStartup).onChange(async (v) => {
           this.plugin.settings.syncOnStartup = v;
@@ -52,10 +52,10 @@ export class OgendaSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("时区")
-      .setDesc("面板\"今天\"等日期判断依据的时区。选\"跟随系统\"= 用电脑当前时区(默认行为)。")
+      .setName(t("settings.tz.name"))
+      .setDesc(t("settings.tz.desc"))
       .addDropdown((d) => {
-        d.addOption("", "跟随系统");
+        d.addOption("", t("settings.tz.followSystem"));
         for (const opt of buildTimezoneOptions()) {
           d.addOption(opt.iana, opt.label);
         }
@@ -67,9 +67,9 @@ export class OgendaSettingTab extends PluginSettingTab {
       });
 
     // --- iCloud CalDAV (D0 spike) ---
-    containerEl.createEl("h3", { text: "iCloud CalDAV (D0 探针)" });
+    containerEl.createEl("h3", { text: t("settings.icloud.section") });
 
-    new Setting(containerEl).setName("iCloud 邮箱 (Apple ID)").addText((t) =>
+    new Setting(containerEl).setName(t("settings.icloud.user.name")).addText((t) =>
       t.setValue(this.plugin.settings.icloudUser).onChange(async (v) => {
         this.plugin.settings.icloudUser = v.trim();
         await this.plugin.saveSettings();
@@ -77,8 +77,8 @@ export class OgendaSettingTab extends PluginSettingTab {
     );
 
     new Setting(containerEl)
-      .setName("iCloud App 专用密码")
-      .setDesc("appleid.apple.com 生成的,照抄原样(带横杠,别改格式);明文存 data.json。")
+      .setName(t("settings.icloud.appPassword.name"))
+      .setDesc(t("settings.icloud.appPassword.desc"))
       .addText((t) => {
         t.inputEl.type = "password";
         t.setValue(this.plugin.settings.icloudAppPassword).onChange(async (v) => {
@@ -88,8 +88,8 @@ export class OgendaSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("iCloud 日历 URL")
-      .setDesc("D0.2 用:先跑 discovery 探针,从控制台复制某个日历的 href 粘这里。")
+      .setName(t("settings.icloud.calUrl.name"))
+      .setDesc(t("settings.icloud.calUrl.desc"))
       .addText((t) =>
         t.setValue(this.plugin.settings.icloudCalUrl).onChange(async (v) => {
           this.plugin.settings.icloudCalUrl = v.trim();
