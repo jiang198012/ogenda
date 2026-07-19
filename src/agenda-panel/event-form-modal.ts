@@ -11,6 +11,7 @@ import {
   dateValueToIso,
   datetimeLocalValueToIso,
 } from "./event-form-fields";
+import { t } from "../i18n";
 
 export class EventFormModal extends Modal {
   private fields: RawFormFields;
@@ -48,13 +49,13 @@ export class EventFormModal extends Modal {
   }
 
   onOpen(): void {
-    this.setTitle(this.existing ? "编辑事件" : "新建事件");
+    this.setTitle(t(this.existing ? "form.titleEdit" : "form.titleNew"));
     const { contentEl } = this;
 
-    new Setting(contentEl).setName("标题").addText((t) =>
+    new Setting(contentEl).setName(t("form.title.name")).addText((t) =>
       t.setValue(this.fields.title).onChange((v) => (this.fields.title = v)),
     );
-    new Setting(contentEl).setName("全天").addToggle((tg) =>
+    new Setting(contentEl).setName(t("form.allDay.name")).addToggle((tg) =>
       tg.setValue(this.fields.allDay).onChange((v) => {
         // Preserve entered values across the input-type switch (read with the OLD allDay first).
         this.fields.start = this.readDateInput(this.startInput);
@@ -64,27 +65,27 @@ export class EventFormModal extends Modal {
       }),
     );
 
-    const startRow = new Setting(contentEl).setName("开始时间");
+    const startRow = new Setting(contentEl).setName(t("form.start.name"));
     this.startInput = startRow.controlEl.createEl("input", { cls: "ogenda-form-datetime" });
-    const endRow = new Setting(contentEl).setName("结束时间").setDesc("可留空(全天填次日,排他)");
+    const endRow = new Setting(contentEl).setName(t("form.end.name")).setDesc(t("form.end.desc"));
     this.endInput = endRow.controlEl.createEl("input", { cls: "ogenda-form-datetime" });
     this.applyDateInputs();
     this.startInput.addEventListener("change", () => (this.fields.start = this.readDateInput(this.startInput)));
     this.endInput.addEventListener("change", () => (this.fields.end = this.readDateInput(this.endInput)));
 
-    new Setting(contentEl).setName("地点").addText((t) =>
+    new Setting(contentEl).setName(t("form.location.name")).addText((t) =>
       t.setValue(this.fields.location).onChange((v) => (this.fields.location = v)),
     );
-    new Setting(contentEl).setName("组织者").addText((t) =>
+    new Setting(contentEl).setName(t("form.organizer.name")).addText((t) =>
       t.setValue(this.fields.organizer).onChange((v) => (this.fields.organizer = v)),
     );
     new Setting(contentEl)
-      .setName("参与人")
-      .setDesc("多个用逗号分隔")
+      .setName(t("form.attendees.name"))
+      .setDesc(t("form.commaSeparated"))
       .addText((t) => t.setValue(this.fields.attendees).onChange((v) => (this.fields.attendees = v)));
-    new Setting(contentEl).setName("状态").addDropdown((d) =>
+    new Setting(contentEl).setName(t("form.status.name")).addDropdown((d) =>
       d
-        .addOption("", "(未设置)")
+        .addOption("", t("form.status.unset"))
         .addOption("confirmed", "confirmed")
         .addOption("tentative", "tentative")
         .addOption("cancelled", "cancelled")
@@ -95,41 +96,41 @@ export class EventFormModal extends Modal {
       t.setValue(this.fields.rsvp).onChange((v) => (this.fields.rsvp = v)),
     );
     new Setting(contentEl)
-      .setName("分类")
-      .setDesc("下拉选已有分类")
+      .setName(t("form.category.name"))
+      .setDesc(t("form.category.desc"))
       .addDropdown((d) => {
-        d.addOption("", "(未设置)");
+        d.addOption("", t("form.status.unset"));
         for (const c of this.existingCategories) d.addOption(c, c);
         d.setValue(this.fields.categoryDropdown);
         d.onChange((v) => (this.fields.categoryDropdown = v));
       });
     new Setting(contentEl)
-      .setName("新分类")
-      .setDesc("可选,填了就优先用这个而不是上面的下拉选择")
+      .setName(t("form.newCategory.name"))
+      .setDesc(t("form.newCategory.desc"))
       .addText((t) => t.setValue(this.fields.categoryText).onChange((v) => (this.fields.categoryText = v)));
     new Setting(contentEl)
-      .setName("标签")
-      .setDesc("多个用逗号分隔")
+      .setName(t("form.tags.name"))
+      .setDesc(t("form.commaSeparated"))
       .addText((t) => t.setValue(this.fields.tags).onChange((v) => (this.fields.tags = v)));
 
     this.errorEl = contentEl.createDiv({ cls: "ogenda-form-error" });
 
     const buttonRow = contentEl.createDiv({ cls: "ogenda-form-buttons" });
     if (this.existing && this.onViewInNote) {
-      const viewBtn = buttonRow.createEl("button", { text: "在笔记中查看" });
+      const viewBtn = buttonRow.createEl("button", { text: t("form.viewInNote") });
       viewBtn.addEventListener("click", () => {
         this.close();
         this.onViewInNote!();
       });
     }
     if (this.existing && this.onDelete) {
-      const delBtn = buttonRow.createEl("button", { text: "删除" });
+      const delBtn = buttonRow.createEl("button", { text: t("form.delete") });
       delBtn.addEventListener("click", () => {
         this.close();
         this.onDelete!();
       });
     }
-    const saveBtn = buttonRow.createEl("button", { text: "保存", cls: "mod-cta" });
+    const saveBtn = buttonRow.createEl("button", { text: t("form.save"), cls: "mod-cta" });
     saveBtn.addEventListener("click", () => this.handleSave());
   }
 

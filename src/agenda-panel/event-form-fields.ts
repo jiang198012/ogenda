@@ -1,4 +1,5 @@
 import { AgendaEvent } from "../core/event";
+import { t } from "../i18n";
 
 export interface RawFormFields {
   title: string;
@@ -67,12 +68,12 @@ export function validateEventForm(fields: {
   allDay?: boolean;
 }): ValidationResult {
   const errors: string[] = [];
-  if (!fields.title.trim()) errors.push("标题不能为空");
-  if (!fields.start.trim()) errors.push("开始时间不能为空");
+  if (!fields.title.trim()) errors.push(t("validate.titleRequired"));
+  if (!fields.start.trim()) errors.push(t("validate.startRequired"));
   if (fields.allDay && fields.end && fields.end.trim()) {
     const s = isoToDateValue(fields.start);
     const e = isoToDateValue(fields.end);
-    if (e <= s) errors.push("全天事件结束日期需晚于开始日期(次日为排他)");
+    if (e <= s) errors.push(t("validate.allDayEnd"));
   }
   return { valid: errors.length === 0, errors };
 }
