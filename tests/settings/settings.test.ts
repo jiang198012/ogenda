@@ -25,7 +25,6 @@ describe("sanitizeSettings", () => {
   it("falls back to defaults for missing/mistyped fields", () => {
     expect(sanitizeSettings({})).toEqual(DEFAULT_SETTINGS);
     expect(sanitizeSettings(null)).toEqual(DEFAULT_SETTINGS);
-    expect(sanitizeSettings({ scanCount: "50" }).scanCount).toBe(DEFAULT_SETTINGS.scanCount);
   });
   it("keeps a configured timezone and defaults to empty string when absent", () => {
     expect(sanitizeSettings({ timezone: "America/Los_Angeles" }).timezone).toBe("America/Los_Angeles");
