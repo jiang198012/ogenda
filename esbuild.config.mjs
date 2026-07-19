@@ -9,9 +9,8 @@ const context = await esbuild.context({
   bundle: true,
   platform: "node",
   format: "cjs",
-  // es2020+ required: imapflow deps (pino, ip-address) use BigInt literals,
-  // which esbuild cannot down-level to es2018. Obsidian desktop (Electron)
-  // runs a modern Chromium, so es2020 is safe.
+  // Obsidian desktop (Electron) runs a modern Chromium, so es2020 is safe;
+  // keep it as the floor so modern dependency syntax (e.g. ical.js) isn't down-leveled.
   target: "es2020",
   external: ["obsidian", "electron", ...builtins],
   sourcemap: prod ? false : "inline",
