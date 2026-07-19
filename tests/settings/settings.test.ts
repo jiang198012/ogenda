@@ -24,6 +24,7 @@ describe("sanitizeSettings", () => {
       icloudAppPassword: "abcd",
       icloudCalUrl: "https://p1-caldav.icloud.com/1/calendars/home/",
       timezone: "",
+      categoryColors: {},
     });
     expect("bogus" in s).toBe(false);
   });
@@ -36,5 +37,12 @@ describe("sanitizeSettings", () => {
     expect(sanitizeSettings({ timezone: "America/Los_Angeles" }).timezone).toBe("America/Los_Angeles");
     expect(sanitizeSettings({}).timezone).toBe("");
     expect(DEFAULT_SETTINGS.timezone).toBe("");
+  });
+  it("keeps a category-colors map, dropping non-string values, defaulting to {}", () => {
+    expect(sanitizeSettings({ categoryColors: { 工作: "#4c8dff", 生活: 123 } }).categoryColors).toEqual({
+      工作: "#4c8dff",
+    });
+    expect(sanitizeSettings({}).categoryColors).toEqual({});
+    expect(DEFAULT_SETTINGS.categoryColors).toEqual({});
   });
 });

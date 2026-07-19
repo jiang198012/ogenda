@@ -32,6 +32,7 @@ export class AgendaPanelView extends ItemView {
     private folder: string,
     private timezone: string | undefined,
     private triggerSync: () => void,
+    private categoryColors: Record<string, string>,
   ) {
     super(leaf);
     this.anchor = this.safeToday();
@@ -153,7 +154,7 @@ export class AgendaPanelView extends ItemView {
     try {
       const local: LocalEvent[] = await this.store.readEvents();
       const events: AgendaEvent[] = local.map(localToEvent);
-      const colors = createColorResolver({});
+      const colors = createColorResolver(this.categoryColors);
       const categories = this.existingCategories(events);
 
       const newBtn = head.createDiv({ cls: "ogenda-panel-newbtn", text: "+ 新建" });

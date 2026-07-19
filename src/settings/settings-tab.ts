@@ -75,6 +75,10 @@ export class OgendaSettingTab extends PluginSettingTab {
         });
       });
 
+    containerEl.createEl("h3", { text: "分类颜色(可选覆盖)" });
+    const catWrap = containerEl.createDiv();
+    this.renderCategoryColors(catWrap);
+
     // --- iCloud CalDAV (D0 spike) ---
     containerEl.createEl("h3", { text: "iCloud CalDAV (D0 探针)" });
 
@@ -105,5 +109,40 @@ export class OgendaSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         })
       );
+  }
+
+  private renderCategoryColors(wrap: HTMLElement): void {
+    wrap.empty();
+    const colors = this.plugin.settings.categoryColors;
+    for (const name of Object.keys(colors)) {
+      const row = new Setting(wrap).setName(name);
+      row.addColorPicker((cp) =>
+        cp.setValue(colors[name]).onChange(async (v) => {
+          this.plugin.settings.categoryColors[name] = v;
+          await this.plugin.saveSettings();
+        }),
+      );
+      row.addExtraButton((b) =>
+        b
+          .setIcon("trash")
+          .setTooltip("移除此覆盖")
+          .onClick(async () => {
+            delete this.plugin.settings.categoryColors[name];
+            await this.plugin.saveSettings();
+            this.renderCategoryColors(wrap);
+          }),
+      );
+    }
+    let newName = "";
+    const addRow = new Setting(wrap).setName("新增覆盖").setDesc("填分类名后点添加(默认蓝,可再改)");
+    addRow.addText((t) => t.setPlaceholder("分类名").onChange((v) => (newName = v.trim())));
+    addRow.addButton((b) =>
+      b.setButtonText("添加").onClick(async () => {
+        if (!newName || this.plugin.settings.categoryColors[newName]) return;
+        this.plugin.settings.categoryColors[newName] = "#4c8dff";
+        await this.plugin.saveSettings();
+        this.renderCategoryColors(wrap);
+      }),
+    );
   }
 }
