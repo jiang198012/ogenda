@@ -8,6 +8,7 @@ export interface CalDavWriterConfig {
 export interface PutResult {
   status: number;
   etag?: string;
+  text?: string;
 }
 
 export class CalDavWriter {
@@ -23,7 +24,7 @@ export class CalDavWriter {
       body: ics,
       ifMatch,
     });
-    return { status: res.status, etag: res.etag };
+    return { status: res.status, etag: res.etag, text: res.text };
   }
 
   async deleteEvent(url: string, ifMatch: string): Promise<{ status: number }> {

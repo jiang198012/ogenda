@@ -7,7 +7,7 @@ export type Notify = (message: string) => void;
 
 export interface CalDavSource {
   fetch(): Promise<AgendaEvent[]>;
-  putEvent(url: string, ics: string, ifMatch?: string): Promise<{ status: number; etag?: string }>;
+  putEvent(url: string, ics: string, ifMatch?: string): Promise<{ status: number; etag?: string; text?: string }>;
   deleteEvent(url: string, ifMatch: string): Promise<{ status: number }>;
 }
 
@@ -57,6 +57,11 @@ export async function syncBidirectional(
       notify(`本地改动未推送(${ev.title}):服务器版本已变,已跳过,下次同步会拉取服务器较新版本`);
     } else {
       notify(`推送失败(${ev.title}):HTTP ${res.status}`);
+      console.error(`[ogenda] pushUpdate failed for ${ev.uid} (${ev.title}): HTTP ${res.status}`, {
+        url: ev.href,
+        ics: eventToVCalendar(ev),
+        responseBody: res.text,
+      });
     }
   }
 
@@ -68,6 +73,11 @@ export async function syncBidirectional(
       created++;
     } else {
       notify(`创建失败(${ev.title}):HTTP ${res.status}`);
+      console.error(`[ogenda] pushCreate failed for ${ev.uid} (${ev.title}): HTTP ${res.status}`, {
+        url,
+        ics: eventToVCalendar(ev),
+        responseBody: res.text,
+      });
     }
   }
 
