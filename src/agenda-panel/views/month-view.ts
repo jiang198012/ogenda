@@ -1,6 +1,7 @@
 import { AgendaEvent } from "../../core/event";
 import { EventOccurrence, parseLocalDate } from "../occurrences";
 import { monthGridWeeks, startOfDay } from "../date-grid";
+import { ColorResolver, createColorResolver } from "../colors";
 
 export function renderMonthView(
   container: HTMLElement,
@@ -8,6 +9,7 @@ export function renderMonthView(
   anchor: Date,
   onEventClick: (event: AgendaEvent) => void,
   onEmptyClick?: (day: Date) => void,
+  colors: ColorResolver = createColorResolver({}),
 ): void {
   container.innerHTML = "";
   const weeks = monthGridWeeks(anchor);
@@ -44,6 +46,7 @@ export function renderMonthView(
       for (const occ of dayOccs) {
         const mini = document.createElement("div");
         mini.className = "ogenda-month-mini";
+        mini.style.borderLeftColor = colors.category(occ.event.category);
         mini.textContent = occ.event.title;
         mini.addEventListener("click", () => onEventClick(occ.event));
         cell.appendChild(mini);

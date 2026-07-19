@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { AgendaEvent } from "../../../src/core/event";
 import { EventOccurrence } from "../../../src/agenda-panel/occurrences";
 import { renderWeekView } from "../../../src/agenda-panel/views/week-view";
+import { createColorResolver } from "../../../src/agenda-panel/colors";
 
 const mkOcc = (start: string, title: string): EventOccurrence => ({
   event: { uid: title, title, start, origin: "synced" },
@@ -82,5 +83,16 @@ describe("renderWeekView", () => {
     (container.querySelector(".ogenda-week-card") as HTMLElement).click();
     expect(onEventClick).toHaveBeenCalled();
     expect(onEmpty).not.toHaveBeenCalled();
+  });
+
+  it("colors a card's left bar from the event category", () => {
+    const container = document.createElement("div");
+    const occ: EventOccurrence = {
+      event: { uid: "a", title: "会", start: "2026-07-13T14:00:00", category: "工作", origin: "synced" },
+      start: "2026-07-13T14:00:00",
+    };
+    renderWeekView(container, [occ], new Date(2026, 6, 15), () => {}, undefined, createColorResolver({}));
+    const card = container.querySelector(".ogenda-week-card") as HTMLElement;
+    expect(card.style.borderLeftColor).not.toBe("");
   });
 });

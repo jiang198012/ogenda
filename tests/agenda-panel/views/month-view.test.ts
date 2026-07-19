@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { AgendaEvent } from "../../../src/core/event";
 import { EventOccurrence } from "../../../src/agenda-panel/occurrences";
 import { renderMonthView } from "../../../src/agenda-panel/views/month-view";
+import { createColorResolver } from "../../../src/agenda-panel/colors";
 
 const mkOcc = (start: string, title: string): EventOccurrence => ({
   event: { uid: title, title, start, origin: "synced" },
@@ -88,5 +89,16 @@ describe("renderMonthView", () => {
     (container.querySelector(".ogenda-month-mini") as HTMLElement).click();
     expect(onEventClick).toHaveBeenCalled();
     expect(onEmpty).not.toHaveBeenCalled();
+  });
+
+  it("colors a mini-title's left bar from the event category", () => {
+    const container = document.createElement("div");
+    const occ: EventOccurrence = {
+      event: { uid: "a", title: "早会", start: "2026-07-06T09:00:00", category: "工作", origin: "synced" },
+      start: "2026-07-06T09:00:00",
+    };
+    renderMonthView(container, [occ], new Date(2026, 6, 15), () => {}, undefined, createColorResolver({}));
+    const mini = container.querySelector(".ogenda-month-mini") as HTMLElement;
+    expect(mini.style.borderLeftColor).not.toBe("");
   });
 });

@@ -210,8 +210,8 @@ export class AgendaPanelView extends ItemView {
             this.anchor = day;
             void this.render();
           });
-        } else if (this.tab === "week") renderWeekView(body, occurrences, this.anchor, onEventClick, onEmptyClick);
-        else renderMonthView(body, occurrences, this.anchor, onEventClick, onEmptyClick);
+        } else if (this.tab === "week") renderWeekView(body, occurrences, this.anchor, onEventClick, onEmptyClick, colors);
+        else renderMonthView(body, occurrences, this.anchor, onEventClick, onEmptyClick, colors);
       }
     } catch (e) {
       new Notice("Agenda 面板加载出错: " + (e as Error).message);

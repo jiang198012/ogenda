@@ -1,6 +1,7 @@
 import { AgendaEvent } from "../../core/event";
 import { EventOccurrence, parseLocalDate } from "../occurrences";
 import { startOfWeek, startOfDay, addDays } from "../date-grid";
+import { ColorResolver, createColorResolver } from "../colors";
 
 function formatTime(occ: EventOccurrence): string {
   if (occ.event.allDay) return "全天";
@@ -13,6 +14,7 @@ export function renderWeekView(
   anchor: Date,
   onEventClick: (event: AgendaEvent) => void,
   onEmptyClick?: (day: Date) => void,
+  colors: ColorResolver = createColorResolver({}),
 ): void {
   container.innerHTML = "";
   const weekStart = startOfWeek(anchor);
@@ -43,6 +45,7 @@ export function renderWeekView(
     for (const occ of dayOccs) {
       const card = document.createElement("div");
       card.className = "ogenda-week-card";
+      card.style.borderLeftColor = colors.category(occ.event.category);
       card.addEventListener("click", () => onEventClick(occ.event));
 
       const time = document.createElement("div");
