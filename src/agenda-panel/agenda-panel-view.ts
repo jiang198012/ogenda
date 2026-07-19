@@ -1,5 +1,5 @@
 // src/agenda-panel/agenda-panel-view.ts
-import { ItemView, WorkspaceLeaf, ConfirmationModal, Notice } from "obsidian";
+import { ItemView, WorkspaceLeaf, Modal, Notice } from "obsidian";
 import { AgendaEvent } from "../core/event";
 import { LocalEvent, MonthlyStore } from "../store/monthly-store";
 import { expandOccurrences } from "./occurrences";
@@ -83,20 +83,23 @@ export class AgendaPanelView extends ItemView {
   }
 
   private confirmDelete(event: AgendaEvent): void {
-    const modal = new ConfirmationModal(this.app);
+    // Plain Modal, not ConfirmationModal — that API needs Obsidian 1.13.0+ and
+    // silently throws (no dialog, no error) on older installs.
+    const modal = new Modal(this.app);
     modal.setTitle("删除事件");
     modal.contentEl.createEl("p", { text: `确定删除《${event.title}》吗?这会同步删除 iCloud 上的对应事件。` });
-    modal.addButton((btn) =>
-      btn
-        .setButtonText("删除")
-        .setDestructive()
-        .onClick(async () => {
-          await this.store.removeByUid([event.uid]);
-          this.triggerSync();
-          await this.render();
-        }),
-    );
-    modal.addCancelButton("取消");
+    const buttonRow = modal.contentEl.createDiv({ cls: "ogenda-form-buttons" });
+    const cancelBtn = buttonRow.createEl("button", { text: "取消" });
+    cancelBtn.addEventListener("click", () => modal.close());
+    const deleteBtn = buttonRow.createEl("button", { text: "删除", cls: "mod-warning" });
+    deleteBtn.addEventListener("click", () => {
+      modal.close();
+      void (async () => {
+        await this.store.removeByUid([event.uid]);
+        this.triggerSync();
+        await this.render();
+      })();
+    });
     modal.open();
   }
 
