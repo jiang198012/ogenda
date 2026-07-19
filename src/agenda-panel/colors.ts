@@ -1,0 +1,81 @@
+export interface StatusStyle {
+  label: string;
+  text: string;
+  bg: string;
+}
+
+const STATUS_STYLES: Record<string, StatusStyle> = {
+  confirmed: { label: "已确认", text: "#1e9e4a", bg: "#e3f7e8" },
+  tentative: { label: "待定", text: "#b26a00", bg: "#fff2dd" },
+  cancelled: { label: "已取消", text: "#98a0ad", bg: "#f0f0f2" },
+};
+
+const UNSET_STATUS: StatusStyle = { label: "未设置", text: "var(--text-muted)", bg: "transparent" };
+
+export function statusStyle(raw: string | undefined): StatusStyle {
+  const key = (raw ?? "").trim();
+  if (key === "") return UNSET_STATUS;
+  if (STATUS_STYLES[key]) return STATUS_STYLES[key];
+  // Unknown non-empty status: keep it visible under its own name, neutral colors.
+  return { label: key, text: "var(--text-muted)", bg: "transparent" };
+}
+
+export const CATEGORY_PALETTE = [
+  "#4c8dff",
+  "#ff9500",
+  "#06b6d4",
+  "#34c759",
+  "#a855f7",
+  "#ef4444",
+  "#ec4899",
+  "#eab308",
+  "#14b8a6",
+  "#6366f1",
+];
+
+const NEUTRAL_CATEGORY = "#98a0ad";
+
+/** FNV-1a 32-bit hash → palette index. Deterministic: the same name always maps to the same color. */
+function paletteIndex(name: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < name.length; i++) {
+    h ^= name.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0) % CATEGORY_PALETTE.length;
+}
+
+function isHex6(v: string): boolean {
+  return /^#[0-9a-fA-F]{6}$/.test(v);
+}
+
+export function categoryColorFor(name: string, overrides: Record<string, string>): string {
+  const key = name.trim();
+  if (key === "") return NEUTRAL_CATEGORY;
+  const ov = overrides[key];
+  if (ov && isHex6(ov)) return ov;
+  return CATEGORY_PALETTE[paletteIndex(key)];
+}
+
+export function hexToRgba(hex: string, alpha: number): string {
+  const m = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/.exec(hex);
+  if (!m) return hex;
+  const r = parseInt(m[1], 16);
+  const g = parseInt(m[2], 16);
+  const b = parseInt(m[3], 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+export interface ColorResolver {
+  status(raw: string | undefined): StatusStyle;
+  category(name: string | undefined): string;
+  categoryPillBg(name: string | undefined): string;
+}
+
+export function createColorResolver(overrides: Record<string, string> = {}): ColorResolver {
+  return {
+    status: (raw) => statusStyle(raw),
+    category: (name) => categoryColorFor(name ?? "", overrides),
+    categoryPillBg: (name) => hexToRgba(categoryColorFor(name ?? "", overrides), 0.15),
+  };
+}
