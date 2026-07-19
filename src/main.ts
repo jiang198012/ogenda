@@ -92,7 +92,7 @@ export default class OgendaPlugin extends Plugin {
     try {
       await syncBidirectional(source, r.calUrl, this.store(), (m) => new Notice(m, 10000));
     } catch (e) {
-      new Notice(t("notice.icloudTwoWaySyncError", { msg: (e as Error).message }));
+      new Notice(t("notice.twoWaySyncError", { msg: (e as Error).message }));
       console.error("[ogenda] bidirectional sync error", e);
     }
   }
