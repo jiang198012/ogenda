@@ -1,5 +1,6 @@
 import { AgendaStats } from "../stats";
 import { ColorResolver, createColorResolver, statusStyle } from "../colors";
+import { t } from "../../i18n";
 
 const STATUS_ORDER = ["confirmed", "tentative", "cancelled"];
 
@@ -34,10 +35,10 @@ export function renderStatsView(
   // ① KPI row
   const kpis = document.createElement("div");
   kpis.className = "ogenda-stat-kpis";
-  addKpi(kpis, stats.total, "本月事件");
-  addKpi(kpis, stats.byStatus["confirmed"] ?? 0, "已确认", { color: statusStyle("confirmed").text });
-  addKpi(kpis, stats.byStatus["tentative"] ?? 0, "待定", { color: statusStyle("tentative").text });
-  addKpi(kpis, stats.unsyncedCount, "未同步", { warn: true, color: "var(--text-error)" });
+  addKpi(kpis, stats.total, t("stats.total"));
+  addKpi(kpis, stats.byStatus["confirmed"] ?? 0, t("stats.confirmed"), { color: statusStyle("confirmed").text });
+  addKpi(kpis, stats.byStatus["tentative"] ?? 0, t("stats.tentative"), { color: statusStyle("tentative").text });
+  addKpi(kpis, stats.unsyncedCount, t("stats.unsynced"), { warn: true, color: "var(--text-error)" });
   container.appendChild(kpis);
 
   // ② Status distribution bars
@@ -45,12 +46,12 @@ export function renderStatsView(
   statusCard.className = "ogenda-stat-card";
   const statusTitle = document.createElement("div");
   statusTitle.className = "ogenda-stat-card-title";
-  statusTitle.textContent = "状态分布";
+  statusTitle.textContent = t("stats.statusDist");
   statusCard.appendChild(statusTitle);
   const maxStatus = Math.max(1, ...Object.values(stats.byStatus));
   for (const key of orderedStatusKeys(stats.byStatus)) {
     const count = stats.byStatus[key];
-    const style = statusStyle(key === "未设置" ? "" : key);
+    const style = statusStyle(key);
     const row = document.createElement("div");
     row.className = "ogenda-stat-bar-row";
     const label = document.createElement("span");
@@ -79,7 +80,7 @@ export function renderStatsView(
   catCard.className = "ogenda-stat-card";
   const catTitle = document.createElement("div");
   catTitle.className = "ogenda-stat-card-title";
-  catTitle.textContent = "分类分布";
+  catTitle.textContent = t("stats.categoryDist");
   catCard.appendChild(catTitle);
   const chips = document.createElement("div");
   chips.className = "ogenda-cat-chips";
@@ -90,7 +91,7 @@ export function renderStatsView(
     bar.className = "ogenda-cat-chip-bar";
     bar.style.background = colors.category(name);
     const nm = document.createElement("span");
-    nm.textContent = name;
+    nm.textContent = name === "" ? t("stats.uncategorized") : name;
     const cc = document.createElement("span");
     cc.className = "ogenda-cat-chip-count";
     cc.textContent = String(count);
@@ -118,9 +119,9 @@ export function renderStatsView(
     m.appendChild(v);
     minis.appendChild(m);
   };
-  addMini("全天 / 带时间", `${stats.allDayCount} / ${stats.timedCount}`);
-  addMini("循环事件", String(stats.recurringCount));
+  addMini(t("stats.allDayTimed"), `${stats.allDayCount} / ${stats.timedCount}`);
+  addMini(t("stats.recurring"), String(stats.recurringCount));
   const busiest = stats.busiestDays[0];
-  addMini("最忙一天", busiest ? `${busiest.date} · ${busiest.count} 个` : "—");
+  addMini(t("stats.busiest"), busiest ? `${busiest.date} · ${busiest.count} 个` : "—");
   container.appendChild(minis);
 }

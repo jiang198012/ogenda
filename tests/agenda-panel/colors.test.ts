@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   statusStyle,
   categoryColorFor,
@@ -6,6 +6,9 @@ import {
   createColorResolver,
   CATEGORY_PALETTE,
 } from "../../src/agenda-panel/colors";
+import { setLanguage } from "../../src/i18n";
+
+beforeEach(() => setLanguage("zh"));
 
 describe("statusStyle", () => {
   it("maps the three known statuses to Chinese labels + fixed colors", () => {

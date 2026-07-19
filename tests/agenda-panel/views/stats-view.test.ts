@@ -1,20 +1,23 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { AgendaStats } from "../../../src/agenda-panel/stats";
 import { renderStatsView } from "../../../src/agenda-panel/views/stats-view";
+import { setLanguage } from "../../../src/i18n";
 
 const mkStats = (o: Partial<AgendaStats> = {}): AgendaStats => ({
   total: 5,
-  byStatus: { confirmed: 3, "未设置": 2 },
+  byStatus: { confirmed: 3, "": 2 },
   allDayCount: 1,
   timedCount: 4,
   recurringCount: 1,
   onceCount: 4,
-  byCategory: { "工作": 2, "未分类": 3 },
+  byCategory: { "工作": 2, "": 3 },
   busiestDays: [{ date: "2026-07-06", count: 3 }],
   unsyncedCount: 2,
   ...o,
 });
+
+beforeEach(() => setLanguage("zh"));
 
 describe("renderStatsView (dashboard)", () => {
   it("renders four KPI cards: total / confirmed / tentative / unsynced", () => {

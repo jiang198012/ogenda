@@ -1,21 +1,27 @@
+import { t } from "../i18n";
+
 export interface StatusStyle {
   label: string;
   text: string;
   bg: string;
 }
 
-const STATUS_STYLES: Record<string, StatusStyle> = {
-  confirmed: { label: "已确认", text: "#1e9e4a", bg: "#e3f7e8" },
-  tentative: { label: "待定", text: "#b26a00", bg: "#fff2dd" },
-  cancelled: { label: "已取消", text: "#98a0ad", bg: "#f0f0f2" },
+const STATUS_COLORS: Record<string, { text: string; bg: string }> = {
+  confirmed: { text: "#1e9e4a", bg: "#e3f7e8" },
+  tentative: { text: "#b26a00", bg: "#fff2dd" },
+  cancelled: { text: "#98a0ad", bg: "#f0f0f2" },
 };
 
-const UNSET_STATUS: StatusStyle = { label: "未设置", text: "var(--text-muted)", bg: "transparent" };
+const STATUS_LABEL_KEY: Record<string, string> = {
+  confirmed: "status.confirmed",
+  tentative: "status.tentative",
+  cancelled: "status.cancelled",
+};
 
 export function statusStyle(raw: string | undefined): StatusStyle {
   const key = (raw ?? "").trim();
-  if (key === "") return UNSET_STATUS;
-  if (STATUS_STYLES[key]) return STATUS_STYLES[key];
+  if (key === "") return { label: t("status.unset"), text: "var(--text-muted)", bg: "transparent" };
+  if (STATUS_COLORS[key]) return { label: t(STATUS_LABEL_KEY[key]), ...STATUS_COLORS[key] };
   // Unknown non-empty status: keep it visible under its own name, neutral colors.
   return { label: key, text: "var(--text-muted)", bg: "transparent" };
 }

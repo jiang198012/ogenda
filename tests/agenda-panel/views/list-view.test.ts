@@ -1,13 +1,16 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventOccurrence } from "../../../src/agenda-panel/occurrences";
 import { renderListView } from "../../../src/agenda-panel/views/list-view";
 import { createColorResolver } from "../../../src/agenda-panel/colors";
+import { setLanguage } from "../../../src/i18n";
 
 const mkOcc = (uid: string, start: string, title: string, status?: string, location?: string): EventOccurrence => ({
   event: { uid, title, start, status, location, origin: "synced" },
   start,
 });
+
+beforeEach(() => setLanguage("zh"));
 
 describe("renderListView", () => {
   it("groups occurrences by status, in confirmed/tentative/cancelled/未设置 order", () => {

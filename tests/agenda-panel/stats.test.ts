@@ -14,7 +14,7 @@ describe("computeStats", () => {
     expect(stats.total).toBe(1);
   });
 
-  it("buckets by status, defaulting missing status to '未设置'", () => {
+  it("buckets by status, defaulting missing status to the '' sentinel", () => {
     const events = [
       ev({ uid: "a", status: "confirmed" }),
       ev({ uid: "b", status: "confirmed" }),
@@ -22,7 +22,7 @@ describe("computeStats", () => {
       ev({ uid: "d" }),
     ];
     const stats = computeStats(events, [], new Date(2026, 6, 15));
-    expect(stats.byStatus).toEqual({ confirmed: 2, tentative: 1, "未设置": 1 });
+    expect(stats.byStatus).toEqual({ confirmed: 2, tentative: 1, "": 1 });
   });
 
   it("counts all-day vs timed, and recurring vs one-off", () => {
@@ -39,10 +39,10 @@ describe("computeStats", () => {
     expect(stats.onceCount).toBe(3);
   });
 
-  it("buckets by category, defaulting missing category to '未分类'", () => {
+  it("buckets by category, defaulting missing category to the '' sentinel", () => {
     const events = [ev({ uid: "a", category: "工作" }), ev({ uid: "b", category: "工作" }), ev({ uid: "c" })];
     const stats = computeStats(events, [], new Date(2026, 6, 15));
-    expect(stats.byCategory).toEqual({ "工作": 2, "未分类": 1 });
+    expect(stats.byCategory).toEqual({ "工作": 2, "": 1 });
   });
 
   it("ranks the top 3 busiest days descending by event count", () => {

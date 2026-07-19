@@ -1,8 +1,11 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AgendaEvent } from "../../../src/core/event";
 import { renderDayView } from "../../../src/agenda-panel/views/day-view";
 import { createColorResolver } from "../../../src/agenda-panel/colors";
+import { setLanguage } from "../../../src/i18n";
+
+beforeEach(() => setLanguage("zh"));
 
 describe("renderDayView", () => {
   it("renders all present calendar fields but omits absent ones and sync metadata", () => {

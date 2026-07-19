@@ -33,9 +33,9 @@ export function computeStats(events: AgendaEvent[], local: LocalEvent[], monthAn
   const dayCounts = new Map<string, number>();
 
   for (const ev of monthEvents) {
-    const statusKey = ev.status ?? "未设置";
+    const statusKey = ev.status ?? "";
     byStatus[statusKey] = (byStatus[statusKey] ?? 0) + 1;
-    const catKey = ev.category ?? "未分类";
+    const catKey = ev.category ?? "";
     byCategory[catKey] = (byCategory[catKey] ?? 0) + 1;
     if (ev.allDay) allDayCount++;
     else timedCount++;
