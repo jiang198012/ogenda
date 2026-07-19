@@ -196,7 +196,7 @@ export class AgendaPanelView extends ItemView {
         // Anchor stats on the shown month via this.anchor — NOT rangeForTab().start, which is
         // the month grid's first cell and sits in the PREVIOUS month whenever the 1st isn't a
         // Monday, silently reporting the wrong month.
-        renderStatsView(body, computeStats(events, local, this.anchor));
+        renderStatsView(body, computeStats(events, local, this.anchor), colors);
       } else {
         const { start, end } = this.rangeForTab();
         const occurrences = expandOccurrences(events, start, end);
