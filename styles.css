@@ -103,8 +103,16 @@
 .ogenda-event-row:hover {
   background: var(--background-modifier-hover);
 }
+.ogenda-event-when {
+  display: flex;
+  flex-direction: column;
+  min-width: 6.5em;
+}
+.ogenda-event-date {
+  font-size: 0.72em;
+  color: var(--text-normal);
+}
 .ogenda-event-time {
-  min-width: 5.4em;
   font-size: 0.8em;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;

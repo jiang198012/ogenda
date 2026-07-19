@@ -95,4 +95,13 @@ describe("renderListView", () => {
     renderListView(container, [occ], () => {}, createColorResolver());
     expect(container.querySelector(".ogenda-status-pill")).toBeNull();
   });
+
+  it("shows the date above the time on each row", () => {
+    const container = document.createElement("div");
+    renderListView(container, [mkOcc("a", "2026-07-18T14:00:00", "周会", "confirmed")], () => {});
+    const when = container.querySelector(".ogenda-event-when") as HTMLElement;
+    expect(when).not.toBeNull();
+    expect(when.querySelector(".ogenda-event-date")?.textContent).toBe("7月18日 周六");
+    expect(when.querySelector(".ogenda-event-time")?.textContent).toBe("14:00");
+  });
 });

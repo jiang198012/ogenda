@@ -1,7 +1,8 @@
 import { AgendaEvent } from "../../core/event";
-import { EventOccurrence } from "../occurrences";
+import { EventOccurrence, parseLocalDate } from "../occurrences";
 import { ColorResolver, createColorResolver, statusStyle } from "../colors";
-import { t } from "../../i18n";
+import { formatDayShort } from "../date-format";
+import { getLanguage, t } from "../../i18n";
 
 const STATUS_ORDER = ["confirmed", "tentative", "cancelled"];
 
@@ -63,10 +64,17 @@ export function renderListView(
       row.style.borderLeftColor = colors.category(ev.category);
       row.addEventListener("click", () => onEventClick(ev));
 
+      const when = document.createElement("div");
+      when.className = "ogenda-event-when";
+      const date = document.createElement("span");
+      date.className = "ogenda-event-date";
+      date.textContent = formatDayShort(parseLocalDate(occ.start), getLanguage());
+      when.appendChild(date);
       const time = document.createElement("span");
       time.className = "ogenda-event-time";
       time.textContent = formatTime(occ);
-      row.appendChild(time);
+      when.appendChild(time);
+      row.appendChild(when);
 
       const main = document.createElement("div");
       main.className = "ogenda-event-main";
