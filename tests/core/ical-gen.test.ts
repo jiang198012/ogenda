@@ -61,3 +61,70 @@ describe("eventToVCalendar", () => {
     expect(ics).toContain("DTSTART:20260719T140000");
   });
 });
+
+describe("eventToVCalendar — extended push fields", () => {
+  it("emits DESCRIPTION with escaping (newline/semicolon/comma/backslash)", () => {
+    const ics = eventToVCalendar(base({ description: "第一行\n第二行;含,标点\\尾" }));
+    expect(ics).toContain("DESCRIPTION:第一行\\n第二行\\;含\\,标点\\\\尾");
+    expect(icalToEvents(ics, "test")[0].description).toBe("第一行\n第二行;含,标点\\尾");
+  });
+
+  it("emits ORGANIZER/ATTENDEE with exactly one mailto: prefix even if the value already has one", () => {
+    const ics = eventToVCalendar(
+      base({ organizer: "mailto:alice@example.com", attendees: ["bob@example.com", "mailto:carol@example.com"] }),
+    );
+    expect(ics).toContain("ORGANIZER:mailto:alice@example.com");
+    expect(ics).not.toContain("mailto:mailto:");
+    expect(ics).toContain("ATTENDEE:mailto:bob@example.com");
+    expect(ics).toContain("ATTENDEE:mailto:carol@example.com");
+  });
+
+  it("emits STATUS uppercased; model stays lowercase", () => {
+    const ics = eventToVCalendar(base({ status: "tentative" }));
+    expect(ics).toContain("STATUS:TENTATIVE");
+    expect(icalToEvents(ics, "test")[0].status).toBe("tentative");
+  });
+
+  it("emits CATEGORIES escaped (a comma stays a single value)", () => {
+    const ics = eventToVCalendar(base({ category: "a, b" }));
+    expect(ics).toContain("CATEGORIES:a\\, b");
+    expect(icalToEvents(ics, "test")[0].category).toBe("a, b");
+  });
+
+  it("emits RRULE raw (no TEXT escaping; BYDAY keeps its comma)", () => {
+    const ics = eventToVCalendar(base({ rrule: "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE" }));
+    expect(ics).toContain("RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE");
+    expect(icalToEvents(ics, "test")[0].rrule).toBe("FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE");
+  });
+
+  it("omits every extended field when unset (byte-compatible with the pre-extension output)", () => {
+    const ics = eventToVCalendar(base({}));
+    for (const k of ["DESCRIPTION", "ORGANIZER", "ATTENDEE", "STATUS", "CATEGORIES", "RRULE"]) {
+      expect(ics).not.toContain(k);
+    }
+  });
+
+  it("full round-trip: every synced field survives eventToVCalendar → icalToEvents", () => {
+    const ev = base({
+      end: "2026-07-14T08:00:00Z",
+      location: "会议室A",
+      description: "备注\n第二行",
+      organizer: "alice@example.com",
+      attendees: ["bob@example.com", "carol@example.com"],
+      status: "confirmed",
+      category: "工作",
+      rrule: "FREQ=DAILY;COUNT=3",
+    });
+    const back = icalToEvents(eventToVCalendar(ev), "test")[0];
+    expect(back.title).toBe(ev.title);
+    expect(back.start).toContain("2026-07-14T07:00:00");
+    expect(back.end).toContain("2026-07-14T08:00:00");
+    expect(back.location).toBe(ev.location);
+    expect(back.description).toBe(ev.description);
+    expect(back.organizer).toBe(ev.organizer);
+    expect(back.attendees).toEqual(ev.attendees);
+    expect(back.status).toBe(ev.status);
+    expect(back.category).toBe(ev.category);
+    expect(back.rrule).toBe(ev.rrule);
+  });
+});

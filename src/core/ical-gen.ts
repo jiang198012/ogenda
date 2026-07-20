@@ -8,6 +8,11 @@ function escapeText(s: string): string {
     .replace(/\r?\n/g, "\\n");
 }
 
+/** Strips a leading "mailto:" (any case) so a user-typed value never gets double-prefixed. */
+function stripMailto(s: string): string {
+  return s.replace(/^mailto:/i, "");
+}
+
 /** Normalizes a lowercase "t" date/time separator (a common manual-entry typo) to uppercase "T". */
 function normalizeSeparator(iso: string): string {
   return iso.replace(/^(\d{4}-\d{2}-\d{2})t/, "$1T");
@@ -42,6 +47,7 @@ export function eventToVCalendar(ev: AgendaEvent): string {
     `SUMMARY:${escapeText(ev.title)}`,
   ];
   if (ev.location) lines.push(`LOCATION:${escapeText(ev.location)}`);
+  if (ev.description) lines.push(`DESCRIPTION:${escapeText(ev.description)}`);
 
   if (ev.allDay) {
     lines.push(`DTSTART;VALUE=DATE:${toICalDate(ev.start)}`);
@@ -56,6 +62,13 @@ export function eventToVCalendar(ev: AgendaEvent): string {
     lines.push(`DTSTART${param}:${dt}`);
     if (ev.end) lines.push(`DTEND${param}:${toICalDateTime(ev.end)}`);
   }
+
+  if (ev.organizer) lines.push(`ORGANIZER:mailto:${stripMailto(ev.organizer)}`);
+  for (const a of ev.attendees ?? []) lines.push(`ATTENDEE:mailto:${stripMailto(a)}`);
+  if (ev.status) lines.push(`STATUS:${ev.status.toUpperCase()}`);
+  if (ev.category) lines.push(`CATEGORIES:${escapeText(ev.category)}`);
+  // RRULE is a structured value, not TEXT: no escapeText (BYDAY lists carry commas).
+  if (ev.rrule) lines.push(`RRULE:${ev.rrule}`);
 
   lines.push("END:VEVENT", "END:VCALENDAR");
   return lines.join("\r\n");
