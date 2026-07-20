@@ -105,3 +105,68 @@ describe("MonthlyStore.savePanelEvent (#53)", () => {
     expect(text).toContain("href:: https://x/a.ics");
   });
 });
+
+describe("MonthlyStore.sync — server-authoritative field clearing", () => {
+  const full = (uid: string): AgendaEvent => ({
+    uid, title: "会", start: "2026-07-14T10:00:00", origin: "synced",
+    location: "会议室", description: "备注", organizer: "a@x", attendees: ["b@x"],
+    status: "confirmed", category: "工作", rrule: "FREQ=DAILY",
+    rsvp: "ACCEPTED", tags: ["本地标签"],
+    href: "https://x/a.ics", etag: '"e1"',
+  });
+
+  it("deletes synced fields the server no longer has, but never local-only rsvp/tags nor sync metadata", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    await store.sync([full("a@x")]);
+    const p = "Agenda/2026-07.md";
+    let text = (await fs.read(p))!;
+    expect(text).toContain("description:: 备注");
+    expect(text).toContain("rsvp:: ACCEPTED");
+    expect(text).toContain("tags:: 本地标签");
+
+    // server drops location/description/organizer/attendees/status/category/rrule
+    const stripped = full("a@x");
+    delete stripped.location; delete stripped.description; delete stripped.organizer;
+    delete stripped.attendees; delete stripped.status; delete stripped.category; delete stripped.rrule;
+    await store.sync([stripped]);
+
+    text = (await fs.read(p))!;
+    for (const gone of ["location::", "description::", "organizer::", "attendees::", "status::", "category::", "rrule::"]) {
+      expect(text).not.toContain(gone);
+    }
+    // local-only fields and sync metadata survive
+    expect(text).toContain("rsvp:: ACCEPTED");
+    expect(text).toContain("tags:: 本地标签");
+    expect(text).toContain("href:: https://x/a.ics");
+    expect(text).toContain("etag::");
+  });
+
+  it("still updates fields the server DOES send (clearing does not break normal updates)", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    await store.sync([full("a@x")]);
+    const updated = { ...full("a@x"), description: "服务器改过的备注", etag: '"e2"' };
+    await store.sync([updated]);
+    expect(await fs.read("Agenda/2026-07.md")).toContain("description:: 服务器改过的备注");
+  });
+});
+
+describe("MonthlyStore.savePanelEvent — description is panel-clearable", () => {
+  it("clears a blanked description", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    const ev: AgendaEvent = {
+      uid: "a@x", title: "会", start: "2026-07-14T10:00:00", origin: "synced",
+      href: "https://x/a.ics", description: "旧备注",
+    };
+    await store.savePanelEvent(ev);
+    const p = "Agenda/2026-07.md";
+    expect(await fs.read(p)).toContain("description:: 旧备注");
+
+    await store.savePanelEvent({ ...ev, description: undefined });
+    const text = (await fs.read(p))!;
+    expect(text).not.toContain("旧备注");
+    expect(text).toContain("href:: https://x/a.ics");
+  });
+});

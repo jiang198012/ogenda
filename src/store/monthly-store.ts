@@ -9,7 +9,15 @@ export function monthOf(startIso: string): string {
 }
 
 /** Optional fields the panel edit form owns — blanking one should delete it. Metadata is never here. */
-const PANEL_CLEARABLE_FIELDS = ["end", "location", "organizer", "attendees", "status", "rsvp", "category", "tags"];
+const PANEL_CLEARABLE_FIELDS = ["end", "location", "organizer", "attendees", "status", "rsvp", "category", "tags", "description"];
+
+/**
+ * Server-authoritative optional fields: when a synced server event no longer carries one,
+ * the local md field is deleted on apply (otherwise the stale value's hash would differ from
+ * the server-based base_hash and ogenda would "push the ghost back", fighting other devices).
+ * Local-only fields (rsvp/tags) and ALL sync metadata (etag/href/base_hash/...) are never here.
+ */
+const SYNC_CLEARABLE_FIELDS = ["end", "location", "organizer", "attendees", "status", "category", "description", "rrule"];
 
 export interface SyncSummary {
   added: number;
@@ -49,7 +57,7 @@ export class MonthlyStore {
       const path = this.pathFor(month);
       const existing = (await this.store.read(path)) ?? "";
       const seed = existing || `# ${month}\n`;
-      const r = upsertEvents(seed, monthEvents);
+      const r = upsertEvents(seed, monthEvents, { clearFields: SYNC_CLEARABLE_FIELDS });
       // skip the write entirely when nothing changed (avoids churn + misleading "updated" counts)
       if (r.added > 0 || r.updated > 0) {
         await this.store.write(path, r.text);
