@@ -9,6 +9,9 @@ import {
   isoToDateValue,
   dateValueToIso,
   initialStart,
+  shiftEndWithStart,
+  defaultEndFor,
+  RSVP_OPTIONS,
 } from "../../src/agenda-panel/event-form-fields";
 
 const blankFields = (): RawFormFields => ({
@@ -36,10 +39,10 @@ describe("validateEventForm", () => {
   it("accepts an all-day event whose end is the next day (exclusive)", () => {
     expect(validateEventForm({ title: "x", start: "2026-07-14", end: "2026-07-15", allDay: true }).valid).toBe(true);
   });
-  it("does not apply the all-day end rule to timed events", () => {
+  it("applies a timed-specific end rule to timed events (end must be > start)", () => {
     expect(
       validateEventForm({ title: "x", start: "2026-07-14T10:00:00", end: "2026-07-14T09:00:00", allDay: false }).valid,
-    ).toBe(true);
+    ).toBe(false);
   });
 });
 
@@ -160,5 +163,53 @@ describe("initialStart (#52)", () => {
   });
   it("empty prefill → empty", () => {
     expect(initialStart("", false)).toBe("");
+  });
+});
+
+describe("validateEventForm — timed end", () => {
+  it("flags a timed event whose end is not after start", () => {
+    const r = validateEventForm({ title: "x", start: "2026-07-19T14:00:00", end: "2026-07-19T13:00:00", allDay: false });
+    expect(r.valid).toBe(false);
+  });
+  it("accepts a timed event whose end is after start", () => {
+    const r = validateEventForm({ title: "x", start: "2026-07-19T14:00:00", end: "2026-07-19T15:00:00", allDay: false });
+    expect(r.valid).toBe(true);
+  });
+  it("timed event with empty end is valid", () => {
+    const r = validateEventForm({ title: "x", start: "2026-07-19T14:00:00", end: "", allDay: false });
+    expect(r.valid).toBe(true);
+  });
+});
+
+describe("shiftEndWithStart", () => {
+  it("timed: preserves duration when start moves", () => {
+    expect(shiftEndWithStart("2026-07-19T09:00:00", "2026-07-19T10:00:00", "2026-07-19T14:00:00")).toBe("2026-07-19T15:00:00");
+  });
+  it("timed: preserves a cross-midnight duration", () => {
+    expect(shiftEndWithStart("2026-07-19T23:00:00", "2026-07-20T01:00:00", "2026-07-25T23:00:00")).toBe("2026-07-26T01:00:00");
+  });
+  it("all-day (date-only): preserves day span and stays date-only", () => {
+    expect(shiftEndWithStart("2026-07-19", "2026-07-21", "2026-07-25")).toBe("2026-07-27");
+  });
+  it("empty end → unchanged empty", () => {
+    expect(shiftEndWithStart("2026-07-19T09:00:00", "", "2026-07-20T09:00:00")).toBe("");
+  });
+});
+
+describe("defaultEndFor", () => {
+  it("timed new event → start + 1h", () => {
+    expect(defaultEndFor("2026-07-19T09:00:00", false)).toBe("2026-07-19T10:00:00");
+  });
+  it("all-day → empty", () => {
+    expect(defaultEndFor("2026-07-19", true)).toBe("");
+  });
+  it("empty start → empty", () => {
+    expect(defaultEndFor("", false)).toBe("");
+  });
+});
+
+describe("RSVP_OPTIONS", () => {
+  it("lists the 4 PARTSTAT values in order", () => {
+    expect(RSVP_OPTIONS.map((o) => o.value)).toEqual(["NEEDS-ACTION", "ACCEPTED", "DECLINED", "TENTATIVE"]);
   });
 });

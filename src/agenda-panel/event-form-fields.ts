@@ -26,6 +26,23 @@ function normSep(s: string): string {
   return s.replace(/^(\d{4}-\d{2}-\d{2})[tT]/, "$1T");
 }
 
+/** Parse an ISO date or datetime string as LOCAL time (no timezone shift). */
+function parseLocal(s: string): Date | null {
+  const m = normSep(s.trim());
+  if (!m) return null;
+  const [datePart, timePart] = m.split("T");
+  const [y, mo, d] = datePart.split("-").map(Number);
+  if (!y || !mo || !d) return null;
+  const [hh = 0, mi = 0, ss = 0] = timePart ? timePart.split(":").map(Number) : [];
+  return new Date(y, mo - 1, d, hh, mi, ss);
+}
+
+function fmtLocal(d: Date, dateOnly: boolean): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  const date = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  return dateOnly ? date : `${date}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
 /** ISO (date or datetime) → <input type="datetime-local"> value "YYYY-MM-DDTHH:mm". */
 export function isoToDatetimeLocalValue(iso: string): string {
   const s = normSep(iso.trim());
@@ -61,6 +78,30 @@ export function initialStart(prefill: string, allDay: boolean): string {
   return `${isoToDateValue(p)}T09:00:00`;
 }
 
+/** Move end to preserve (end − start) when start changes. Empty/invalid end → returned unchanged. */
+export function shiftEndWithStart(oldStart: string, oldEnd: string, newStart: string): string {
+  if (!oldEnd.trim()) return oldEnd;
+  const os = parseLocal(oldStart), oe = parseLocal(oldEnd), ns = parseLocal(newStart);
+  if (!os || !oe || !ns) return oldEnd;
+  const ne = new Date(ns.getTime() + (oe.getTime() - os.getTime()));
+  return fmtLocal(ne, !normSep(oldEnd.trim()).includes("T"));
+}
+
+/** Default end for a NEW event: timed → start + 1h; all-day or empty → "". */
+export function defaultEndFor(start: string, allDay: boolean): string {
+  if (allDay || !start.trim()) return "";
+  const s = parseLocal(start);
+  if (!s) return "";
+  return fmtLocal(new Date(s.getTime() + 3600_000), false);
+}
+
+export const RSVP_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: "NEEDS-ACTION", labelKey: "rsvp.needsAction" },
+  { value: "ACCEPTED", labelKey: "rsvp.accepted" },
+  { value: "DECLINED", labelKey: "rsvp.declined" },
+  { value: "TENTATIVE", labelKey: "rsvp.tentative" },
+];
+
 export function validateEventForm(fields: {
   title: string;
   start: string;
@@ -74,6 +115,11 @@ export function validateEventForm(fields: {
     const s = isoToDateValue(fields.start);
     const e = isoToDateValue(fields.end);
     if (e <= s) errors.push(t("validate.allDayEnd"));
+  }
+  if (!fields.allDay && fields.end && fields.end.trim()) {
+    const s = normSep(fields.start.trim());
+    const e = normSep(fields.end.trim());
+    if (e <= s) errors.push(t("validate.timedEnd"));
   }
   return { valid: errors.length === 0, errors };
 }
