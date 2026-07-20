@@ -1,4 +1,4 @@
-import { AgendaEvent, hashEvent } from "../core/event";
+import { AgendaEvent, hashEvent, unescapeMultiline } from "../core/event";
 import { LocalEvent } from "../store/monthly-store";
 
 export interface SyncConflict {
@@ -18,6 +18,10 @@ export interface SyncPlan {
 
 /** Reconstructs the calendar-writable fields (+ sync metadata) of an AgendaEvent from a monthly-doc block. */
 export function fieldsToEvent(fields: Record<string, string>): AgendaEvent {
+  const attendees = (fields["attendees"] ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   return {
     uid: fields["uid"] ?? "",
     title: fields["title"] ?? "",
@@ -26,6 +30,11 @@ export function fieldsToEvent(fields: Record<string, string>): AgendaEvent {
     allDay: fields["all_day"] === undefined ? undefined : fields["all_day"] === "true",
     tz: fields["tz"],
     location: fields["location"],
+    description: fields["description"] ? unescapeMultiline(fields["description"]) : undefined,
+    organizer: fields["organizer"],
+    attendees: attendees.length ? attendees : undefined,
+    status: fields["status"],
+    category: fields["category"],
     origin: fields["origin"] === "synced" ? "synced" : "local",
     href: fields["href"],
     etag: fields["etag"],

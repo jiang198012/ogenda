@@ -47,3 +47,13 @@ describe("localToEvent", () => {
     expect(saved.title).toBe("周会(改)");
   });
 });
+
+it("unescapes a stored single-line description back to multi-line", () => {
+  const l = syncedLocal();
+  l.fields.description = "第一行\\n第二行";
+  expect(localToEvent(l).description).toBe("第一行\n第二行");
+});
+
+it("description is undefined when the field is absent", () => {
+  expect(localToEvent(syncedLocal()).description).toBeUndefined();
+});

@@ -1,4 +1,4 @@
-import { AgendaEvent } from "../core/event";
+import { AgendaEvent, unescapeMultiline } from "../core/event";
 import { LocalEvent } from "../store/monthly-store";
 
 // MonthlyStore.readEvents() 返回原始字段(LocalEvent, snake_case),不是 AgendaEvent。
@@ -21,6 +21,7 @@ export function localToEvent(local: LocalEvent): AgendaEvent {
     category: f.category,
     tags: f.tags ? f.tags.split(", ") : undefined,
     rrule: f.rrule,
+    description: f.description ? unescapeMultiline(f.description) : undefined,
     origin: f.origin === "local" ? "local" : "synced",
     href: f.href,
     etag: f.etag,

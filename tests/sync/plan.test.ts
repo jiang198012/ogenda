@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { AgendaEvent, eventToFields, hashEvent } from "../../src/core/event";
 import { LocalEvent } from "../../src/store/monthly-store";
-import { planSync } from "../../src/sync/plan";
+import { planSync, fieldsToEvent } from "../../src/sync/plan";
 
 const serverEvent = (o: Partial<AgendaEvent> = {}): AgendaEvent => ({
   uid: "a@x",
@@ -133,6 +133,43 @@ describe("planSync", () => {
     expect(plan.markServerDeleted).toEqual([]);
     expect(plan.pushUpdate).toEqual([]);
     expect(plan.pushCreate).toEqual([]);
+    expect(plan.applyServer).toEqual([]);
+    expect(plan.conflicts).toEqual([]);
+  });
+});
+
+describe("fieldsToEvent — extended synced fields", () => {
+  it("reconstructs description (unescaped)/organizer/attendees/status/category from md fields", () => {
+    const ev = fieldsToEvent({
+      uid: "u", title: "会", start: "2026-07-14T15:00:00",
+      description: "第一行\\n第二行", organizer: "a@x", attendees: "a@x, b@x",
+      status: "confirmed", category: "工作",
+    });
+    expect(ev.description).toBe("第一行\n第二行");
+    expect(ev.organizer).toBe("a@x");
+    expect(ev.attendees).toEqual(["a@x", "b@x"]);
+    expect(ev.status).toBe("confirmed");
+    expect(ev.category).toBe("工作");
+  });
+
+  it("a pushUpdate payload carries the extended fields (they reach eventToVCalendar intact)", () => {
+    const s = serverEvent({ description: "旧", organizer: "a@x", status: "confirmed", category: "工作" });
+    const l = mkLocal(s);
+    l.fields.description = "新备注\\n第二行";
+    const plan = planSync([s], [l]);
+    expect(plan.pushUpdate).toHaveLength(1);
+    expect(plan.pushUpdate[0].description).toBe("新备注\n第二行");
+    expect(plan.pushUpdate[0].organizer).toBe("a@x");
+    expect(plan.pushUpdate[0].status).toBe("confirmed");
+    expect(plan.pushUpdate[0].category).toBe("工作");
+  });
+
+  it("no-op for a fully-populated event whose base_hash matches (extended hash is consistent end-to-end)", () => {
+    const s = serverEvent({
+      description: "备注", organizer: "a@x", attendees: ["b@x"], status: "confirmed", category: "工作",
+    });
+    const plan = planSync([s], [mkLocal(s)]);
+    expect(plan.pushUpdate).toEqual([]);
     expect(plan.applyServer).toEqual([]);
     expect(plan.conflicts).toEqual([]);
   });
