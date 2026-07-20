@@ -136,12 +136,12 @@ export class EventFormModal extends Modal {
       d.setValue(this.fields.rsvp).onChange((v) => (this.fields.rsvp = v));
     });
 
-    const advHasValue = !!(this.fields.organizer || this.fields.attendees || this.fields.status || this.fields.rsvp);
     const setAdvanced = (open: boolean) => {
       advanced.style.display = open ? "" : "none";
       moreToggle.setText((open ? "▾ " : "▸ ") + t("form.moreOptions"));
     };
-    setAdvanced(advHasValue);
+    // Edit and New open identically: advanced section collapsed by default in both.
+    setAdvanced(false);
     moreToggle.addEventListener("click", () => setAdvanced(advanced.style.display === "none"));
 
     this.errorEl = contentEl.createDiv({ cls: "ogenda-form-error" });
