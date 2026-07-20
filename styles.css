@@ -62,6 +62,19 @@
 .ogenda-navtoday {
   cursor: pointer;
 }
+.ogenda-navtoday-btn {
+  cursor: pointer;
+  padding: 0.15em 0.6em;
+  border-radius: 6px;
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+  font-size: 0.85em;
+  font-weight: 600;
+}
+.ogenda-navtoday-btn:hover {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
 
 .ogenda-panel-newbtn {
   cursor: pointer;

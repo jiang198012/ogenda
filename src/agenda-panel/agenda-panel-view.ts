@@ -18,6 +18,7 @@ import { localToEvent } from "./local-to-event";
 import { createColorResolver } from "./colors";
 import { formatDate, formatWeek, formatMonth } from "./date-format";
 import { getLanguage, t } from "../i18n";
+import { isAtToday } from "./today-nav";
 
 export const AGENDA_PANEL_VIEW_TYPE = "ogenda-agenda-panel";
 
@@ -169,6 +170,13 @@ export class AgendaPanelView extends ItemView {
       this.anchor = this.shiftAnchor(1);
       void this.render();
     });
+    if (!isAtToday(this.tab, this.anchor, this.safeToday())) {
+      const todayJump = nav.createSpan({ cls: "ogenda-navtoday-btn", text: t("panel.today") });
+      todayJump.addEventListener("click", () => {
+        this.anchor = this.safeToday();
+        void this.render();
+      });
+    }
 
     const body = container.createDiv({ cls: "ogenda-panel-body" });
     try {
