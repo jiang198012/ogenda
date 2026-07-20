@@ -509,3 +509,18 @@
 .ogenda-form-datetime {
   width: 100%;
 }
+.ogenda-form-more-toggle {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.85em;
+  font-weight: 600;
+  padding: 0.5em 0 0.3em;
+  user-select: none;
+}
+.ogenda-form-more-toggle:hover {
+  color: var(--text-normal);
+}
+.ogenda-form-advanced {
+  border-top: 1px solid var(--background-modifier-border);
+  margin-top: 0.2em;
+}

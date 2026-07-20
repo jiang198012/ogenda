@@ -66,8 +66,6 @@ export const en: Record<string, string> = {
   "form.moreOptions": "More options",
   "form.category.name": "Category",
   "form.category.desc": "Pick an existing one or type a new one",
-  "form.newCategory.name": "New category",
-  "form.newCategory.desc": "Optional; if set, used instead of the dropdown above",
   "form.tags.name": "Tags",
   "form.viewInNote": "View in note",
   "form.delete": "Delete",

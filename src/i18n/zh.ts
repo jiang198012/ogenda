@@ -66,8 +66,6 @@ export const zh: Record<string, string> = {
   "form.moreOptions": "更多选项",
   "form.category.name": "分类",
   "form.category.desc": "选择已有或输入新分类",
-  "form.newCategory.name": "新分类",
-  "form.newCategory.desc": "可选,填了就优先用这个而不是上面的下拉选择",
   "form.tags.name": "标签",
   "form.viewInNote": "在笔记中查看",
   "form.delete": "删除",

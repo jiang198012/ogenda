@@ -11,8 +11,7 @@ export interface RawFormFields {
   attendees: string;
   status: string;
   rsvp: string;
-  categoryDropdown: string;
-  categoryText: string;
+  category: string;
   tags: string;
 }
 
@@ -134,7 +133,7 @@ export function buildEventFromFields(
   existing: AgendaEvent | null,
   generateUid: () => string,
 ): AgendaEvent {
-  const category = fields.categoryText.trim() || fields.categoryDropdown || undefined;
+  const category = fields.category.trim() || undefined;
   return {
     uid: existing?.uid ?? generateUid(),
     title: fields.title.trim(),

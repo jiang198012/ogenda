@@ -17,7 +17,7 @@ import {
 const blankFields = (): RawFormFields => ({
   title: "", start: "", end: "", allDay: false,
   location: "", organizer: "", attendees: "",
-  status: "", rsvp: "", categoryDropdown: "", categoryText: "", tags: "",
+  status: "", rsvp: "", category: "", tags: "",
 });
 
 describe("validateEventForm", () => {
@@ -101,21 +101,6 @@ describe("buildEventFromFields", () => {
     const empty = buildEventFromFields({ ...blankFields(), title: "t", start: "2026-07-20T10:00:00" }, null, () => "u@ogenda");
     expect(empty.attendees).toBeUndefined();
     expect(empty.tags).toBeUndefined();
-  });
-
-  it("prefers categoryText over categoryDropdown when both are set", () => {
-    const fields = { ...blankFields(), title: "t", start: "2026-07-20T10:00:00", categoryDropdown: "工作", categoryText: "新分类" };
-    const ev = buildEventFromFields(fields, null, () => "u@ogenda");
-    expect(ev.category).toBe("新分类");
-  });
-
-  it("falls back to categoryDropdown when categoryText is blank, and to undefined when both are blank", () => {
-    const withDropdown = buildEventFromFields(
-      { ...blankFields(), title: "t", start: "2026-07-20T10:00:00", categoryDropdown: "工作" }, null, () => "u@ogenda",
-    );
-    expect(withDropdown.category).toBe("工作");
-    const withNeither = buildEventFromFields({ ...blankFields(), title: "t", start: "2026-07-20T10:00:00" }, null, () => "u@ogenda");
-    expect(withNeither.category).toBeUndefined();
   });
 
   it("converts blank optional text fields to undefined, not empty string", () => {
@@ -211,5 +196,26 @@ describe("defaultEndFor", () => {
 describe("RSVP_OPTIONS", () => {
   it("lists the 4 PARTSTAT values in order", () => {
     expect(RSVP_OPTIONS.map((o) => o.value)).toEqual(["NEEDS-ACTION", "ACCEPTED", "DECLINED", "TENTATIVE"]);
+  });
+});
+
+const baseFields = (over: Partial<RawFormFields> = {}): RawFormFields => ({
+  title: "会", start: "2026-07-19T09:00:00", end: "", allDay: false,
+  location: "", organizer: "", attendees: "", status: "", rsvp: "",
+  category: "", tags: "", ...over,
+});
+
+describe("buildEventFromFields — merged category + rsvp", () => {
+  it("uses the single category field", () => {
+    const ev = buildEventFromFields(baseFields({ category: "工作" }), null, () => "uid1");
+    expect(ev.category).toBe("工作");
+  });
+  it("empty category → undefined", () => {
+    const ev = buildEventFromFields(baseFields({ category: "  " }), null, () => "uid1");
+    expect(ev.category).toBeUndefined();
+  });
+  it("stores the raw RSVP enum value", () => {
+    const ev = buildEventFromFields(baseFields({ rsvp: "ACCEPTED" }), null, () => "uid1");
+    expect(ev.rsvp).toBe("ACCEPTED");
   });
 });

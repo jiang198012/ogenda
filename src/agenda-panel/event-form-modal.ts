@@ -10,6 +10,9 @@ import {
   isoToDatetimeLocalValue,
   dateValueToIso,
   datetimeLocalValueToIso,
+  shiftEndWithStart,
+  defaultEndFor,
+  RSVP_OPTIONS,
 } from "./event-form-fields";
 import { t } from "../i18n";
 
@@ -18,6 +21,8 @@ export class EventFormModal extends Modal {
   private errorEl: HTMLElement | null = null;
   private startInput!: HTMLInputElement;
   private endInput!: HTMLInputElement;
+  private titleInput!: HTMLInputElement;
+  private saveBtn!: HTMLButtonElement;
 
   constructor(
     app: App,
@@ -30,20 +35,19 @@ export class EventFormModal extends Modal {
     private onDelete: (() => void) | undefined,
   ) {
     super(app);
-    const isKnownCategory = existing?.category !== undefined && existingCategories.includes(existing.category);
     const allDay = existing?.allDay ?? defaultAllDay;
+    const start = existing?.start ?? initialStart(prefillStart ?? "", allDay);
     this.fields = {
       title: existing?.title ?? "",
-      start: existing?.start ?? initialStart(prefillStart ?? "", allDay),
-      end: existing?.end ?? "",
+      start,
+      end: existing?.end ?? defaultEndFor(start, allDay),
       allDay,
       location: existing?.location ?? "",
       organizer: existing?.organizer ?? "",
       attendees: existing?.attendees?.join(", ") ?? "",
       status: existing?.status ?? "",
       rsvp: existing?.rsvp ?? "",
-      categoryDropdown: isKnownCategory ? existing!.category! : "",
-      categoryText: existing?.category && !isKnownCategory ? existing.category : "",
+      category: existing?.category ?? "",
       tags: existing?.tags?.join(", ") ?? "",
     };
   }
@@ -52,66 +56,93 @@ export class EventFormModal extends Modal {
     this.setTitle(t(this.existing ? "form.titleEdit" : "form.titleNew"));
     const { contentEl } = this;
 
-    new Setting(contentEl).setName(t("form.title.name")).addText((t) =>
-      t.setValue(this.fields.title).onChange((v) => (this.fields.title = v)),
-    );
+    new Setting(contentEl).setName(t("form.title.name") + " *").addText((tx) => {
+      this.titleInput = tx.inputEl;
+      tx.setValue(this.fields.title).onChange((v) => {
+        this.fields.title = v;
+        this.updateValidity();
+      });
+    });
+
     new Setting(contentEl).setName(t("form.allDay.name")).addToggle((tg) =>
       tg.setValue(this.fields.allDay).onChange((v) => {
-        // Preserve entered values across the input-type switch (read with the OLD allDay first).
         this.fields.start = this.readDateInput(this.startInput);
         this.fields.end = this.readDateInput(this.endInput);
         this.fields.allDay = v;
         this.applyDateInputs();
+        this.updateValidity();
       }),
     );
 
-    const startRow = new Setting(contentEl).setName(t("form.start.name"));
+    const startRow = new Setting(contentEl).setName(t("form.start.name") + " *");
     this.startInput = startRow.controlEl.createEl("input", { cls: "ogenda-form-datetime" });
     const endRow = new Setting(contentEl).setName(t("form.end.name")).setDesc(t("form.end.desc"));
     this.endInput = endRow.controlEl.createEl("input", { cls: "ogenda-form-datetime" });
     this.applyDateInputs();
-    this.startInput.addEventListener("change", () => (this.fields.start = this.readDateInput(this.startInput)));
-    this.endInput.addEventListener("change", () => (this.fields.end = this.readDateInput(this.endInput)));
+    this.startInput.addEventListener("change", () => {
+      const newStart = this.readDateInput(this.startInput);
+      this.fields.end = shiftEndWithStart(this.fields.start, this.readDateInput(this.endInput), newStart);
+      this.fields.start = newStart;
+      this.applyDateInputs();
+      this.updateValidity();
+    });
+    this.endInput.addEventListener("change", () => {
+      this.fields.end = this.readDateInput(this.endInput);
+      this.updateValidity();
+    });
 
-    new Setting(contentEl).setName(t("form.location.name")).addText((t) =>
-      t.setValue(this.fields.location).onChange((v) => (this.fields.location = v)),
+    new Setting(contentEl).setName(t("form.location.name")).addText((tx) =>
+      tx.setValue(this.fields.location).onChange((v) => (this.fields.location = v)),
     );
-    new Setting(contentEl).setName(t("form.organizer.name")).addText((t) =>
-      t.setValue(this.fields.organizer).onChange((v) => (this.fields.organizer = v)),
-    );
-    new Setting(contentEl)
-      .setName(t("form.attendees.name"))
-      .setDesc(t("form.commaSeparated"))
-      .addText((t) => t.setValue(this.fields.attendees).onChange((v) => (this.fields.attendees = v)));
-    new Setting(contentEl).setName(t("form.status.name")).addDropdown((d) =>
-      d
-        .addOption("", t("form.status.unset"))
-        .addOption("confirmed", "confirmed")
-        .addOption("tentative", "tentative")
-        .addOption("cancelled", "cancelled")
-        .setValue(this.fields.status)
-        .onChange((v) => (this.fields.status = v)),
-    );
-    new Setting(contentEl).setName("RSVP").addText((t) =>
-      t.setValue(this.fields.rsvp).onChange((v) => (this.fields.rsvp = v)),
-    );
-    new Setting(contentEl)
-      .setName(t("form.category.name"))
-      .setDesc(t("form.category.desc"))
-      .addDropdown((d) => {
-        d.addOption("", t("form.status.unset"));
-        for (const c of this.existingCategories) d.addOption(c, c);
-        d.setValue(this.fields.categoryDropdown);
-        d.onChange((v) => (this.fields.categoryDropdown = v));
-      });
-    new Setting(contentEl)
-      .setName(t("form.newCategory.name"))
-      .setDesc(t("form.newCategory.desc"))
-      .addText((t) => t.setValue(this.fields.categoryText).onChange((v) => (this.fields.categoryText = v)));
+
+    const catRow = new Setting(contentEl).setName(t("form.category.name")).setDesc(t("form.category.desc"));
+    const catInput = catRow.controlEl.createEl("input", { type: "text" });
+    catInput.value = this.fields.category;
+    const dl = catRow.controlEl.createEl("datalist");
+    dl.id = "ogenda-cat-list";
+    for (const c of this.existingCategories) dl.createEl("option", { value: c });
+    catInput.setAttr("list", "ogenda-cat-list");
+    catInput.addEventListener("input", () => (this.fields.category = catInput.value));
+
     new Setting(contentEl)
       .setName(t("form.tags.name"))
       .setDesc(t("form.commaSeparated"))
-      .addText((t) => t.setValue(this.fields.tags).onChange((v) => (this.fields.tags = v)));
+      .addText((tx) => tx.setValue(this.fields.tags).onChange((v) => (this.fields.tags = v)));
+
+    const moreToggle = contentEl.createDiv({ cls: "ogenda-form-more-toggle" });
+    const advanced = contentEl.createDiv({ cls: "ogenda-form-advanced" });
+
+    new Setting(advanced).setName(t("form.organizer.name")).addText((tx) =>
+      tx.setValue(this.fields.organizer).onChange((v) => (this.fields.organizer = v)),
+    );
+    new Setting(advanced)
+      .setName(t("form.attendees.name"))
+      .setDesc(t("form.commaSeparated"))
+      .addText((tx) => tx.setValue(this.fields.attendees).onChange((v) => (this.fields.attendees = v)));
+    new Setting(advanced).setName(t("form.status.name")).addDropdown((d) =>
+      d
+        .addOption("", t("form.status.unset"))
+        .addOption("confirmed", t("status.confirmed"))
+        .addOption("tentative", t("status.tentative"))
+        .addOption("cancelled", t("status.cancelled"))
+        .setValue(this.fields.status)
+        .onChange((v) => (this.fields.status = v)),
+    );
+    new Setting(advanced).setName(t("rsvp.name")).addDropdown((d) => {
+      d.addOption("", t("form.status.unset"));
+      for (const opt of RSVP_OPTIONS) d.addOption(opt.value, t(opt.labelKey));
+      const cur = this.fields.rsvp.trim();
+      if (cur && !RSVP_OPTIONS.some((o) => o.value === cur)) d.addOption(cur, t("rsvp.currentValue", { value: cur }));
+      d.setValue(this.fields.rsvp).onChange((v) => (this.fields.rsvp = v));
+    });
+
+    const advHasValue = !!(this.fields.organizer || this.fields.attendees || this.fields.status || this.fields.rsvp);
+    const setAdvanced = (open: boolean) => {
+      advanced.style.display = open ? "" : "none";
+      moreToggle.setText((open ? "▾ " : "▸ ") + t("form.moreOptions"));
+    };
+    setAdvanced(advHasValue);
+    moreToggle.addEventListener("click", () => setAdvanced(advanced.style.display === "none"));
 
     this.errorEl = contentEl.createDiv({ cls: "ogenda-form-error" });
 
@@ -130,8 +161,28 @@ export class EventFormModal extends Modal {
         this.onDelete!();
       });
     }
-    const saveBtn = buttonRow.createEl("button", { text: t("form.save"), cls: "mod-cta" });
-    saveBtn.addEventListener("click", () => this.handleSave());
+    this.saveBtn = buttonRow.createEl("button", { text: t("form.save"), cls: "mod-cta" });
+    this.saveBtn.addEventListener("click", () => this.handleSave());
+
+    this.updateValidity();
+    this.titleInput.focus();
+    contentEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.isComposing && !this.saveBtn.disabled) {
+        e.preventDefault();
+        this.handleSave();
+      }
+    });
+  }
+
+  private updateValidity(): void {
+    const result = validateEventForm({
+      title: this.fields.title,
+      start: this.readDateInput(this.startInput),
+      end: this.readDateInput(this.endInput),
+      allDay: this.fields.allDay,
+    });
+    if (this.errorEl) this.errorEl.setText(result.valid ? "" : result.errors.join("; "));
+    if (this.saveBtn) this.saveBtn.disabled = !result.valid;
   }
 
   private applyDateInputs(): void {
