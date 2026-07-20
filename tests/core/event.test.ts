@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { AgendaEvent, eventToFields, hashEvent } from "../../src/core/event";
+import { AgendaEvent, eventToFields, hashEvent, escapeMultiline, unescapeMultiline } from "../../src/core/event";
 
 const ev: AgendaEvent = {
   uid: "abc@x",
@@ -78,5 +78,72 @@ describe("hashEvent", () => {
   });
   it("is stable when serverDeleted changes (sync metadata)", () => {
     expect(hashEvent({ ...a, serverDeleted: true })).toBe(hashEvent(a));
+  });
+});
+
+describe("escapeMultiline / unescapeMultiline", () => {
+  it("escapes newlines and backslashes for single-line md storage, and reverses exactly", () => {
+    const raw = "第一行\n第二行;含,标点\\反斜杠";
+    const esc = escapeMultiline(raw);
+    expect(esc).not.toContain("\n");
+    expect(esc).toBe("第一行\\n第二行;含,标点\\\\反斜杠");
+    expect(unescapeMultiline(esc)).toBe(raw);
+  });
+  it("preserves a user-typed literal backslash-n through the round-trip", () => {
+    const raw = "字面\\n不是换行";
+    expect(unescapeMultiline(escapeMultiline(raw))).toBe(raw);
+  });
+  it("normalizes CRLF to \\n", () => {
+    expect(escapeMultiline("a\r\nb")).toBe("a\\nb");
+  });
+});
+
+describe("eventToFields — description", () => {
+  it("writes description escaped as a single line", () => {
+    const f = eventToFields({ uid: "u", title: "t", start: "2026-07-14T09:00:00", origin: "local", description: "一\n二" });
+    expect(f.description).toBe("一\\n二");
+  });
+  it("omits description when empty/undefined", () => {
+    expect("description" in eventToFields({ uid: "u", title: "t", start: "s", origin: "local" })).toBe(false);
+  });
+});
+
+describe("hashEvent — extended field set", () => {
+  /** Pre-extension canonical hash (5 base fields only), kept as an upgrade-stability oracle. */
+  function legacyHash(ev: AgendaEvent): string {
+    const canon = [
+      ev.title ?? "", ev.start ?? "", ev.end ?? "",
+      ev.allDay === undefined ? "" : String(ev.allDay), ev.location ?? "",
+    ].join("\0");
+    let h = 0x811c9dc5;
+    for (let i = 0; i < canon.length; i++) { h ^= canon.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+    return (h >>> 0).toString(16);
+  }
+  const b: AgendaEvent = { uid: "u", title: "会", start: "2026-07-14T15:00:00", origin: "synced" };
+
+  it("keeps the pre-extension hash when none of the new fields are set (no mass re-push on upgrade)", () => {
+    expect(hashEvent(b)).toBe(legacyHash(b));
+    expect(hashEvent({ ...b, end: "2026-07-14T16:00:00", allDay: false, location: "A" })).toBe(
+      legacyHash({ ...b, end: "2026-07-14T16:00:00", allDay: false, location: "A" }),
+    );
+  });
+  it("changes when any synced field changes", () => {
+    expect(hashEvent({ ...b, description: "备注" })).not.toBe(hashEvent(b));
+    expect(hashEvent({ ...b, organizer: "a@x" })).not.toBe(hashEvent(b));
+    expect(hashEvent({ ...b, attendees: ["a@x"] })).not.toBe(hashEvent(b));
+    expect(hashEvent({ ...b, status: "confirmed" })).not.toBe(hashEvent(b));
+    expect(hashEvent({ ...b, category: "工作" })).not.toBe(hashEvent(b));
+  });
+  it("does NOT change for local-only or non-hashed fields (rsvp/tags/rrule/tz/url)", () => {
+    expect(hashEvent({ ...b, rsvp: "ACCEPTED" })).toBe(hashEvent(b));
+    expect(hashEvent({ ...b, tags: ["x"] })).toBe(hashEvent(b));
+    expect(hashEvent({ ...b, rrule: "FREQ=DAILY" })).toBe(hashEvent(b));
+  });
+  it("distinguishes which field a value lives in (no aliasing between single appended fields)", () => {
+    expect(hashEvent({ ...b, description: "X" })).not.toBe(hashEvent({ ...b, organizer: "X" }));
+    expect(hashEvent({ ...b, status: "X" })).not.toBe(hashEvent({ ...b, category: "X" }));
+  });
+  it("attendees order matters (join is positional)", () => {
+    expect(hashEvent({ ...b, attendees: ["a@x", "b@x"] })).not.toBe(hashEvent({ ...b, attendees: ["b@x", "a@x"] }));
   });
 });

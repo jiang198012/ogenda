@@ -8,6 +8,7 @@ export interface AgendaEvent {
   allDay?: boolean;
   tz?: string;
   location?: string;
+  description?: string;
   url?: string;
   organizer?: string;
   attendees?: string[];
@@ -40,6 +41,7 @@ export function eventToFields(ev: AgendaEvent): Record<string, string> {
   if (ev.allDay !== undefined) set("all_day", String(ev.allDay));
   set("tz", ev.tz);
   set("location", ev.location);
+  if (ev.description !== undefined && ev.description !== "") f.description = escapeMultiline(ev.description);
   set("url", ev.url);
   set("organizer", ev.organizer);
   if (ev.attendees && ev.attendees.length) set("attendees", ev.attendees.join(", "));
@@ -65,6 +67,14 @@ export function eventToFields(ev: AgendaEvent): Record<string, string> {
  * Hash of the calendar-meaningful fields (what gets written back to the server).
  * Metadata (etag/href/base_hash/source/protocol/origin) is intentionally excluded,
  * so a re-sync that only refreshes metadata does not look like a local edit.
+ *
+ * The five base fields always take fixed positions. The extended fields
+ * (description/organizer/attendees/status/category) are appended ONLY when
+ * non-empty, each tagged with its field name, so:
+ *   - an event with none of them hashes byte-identically to the pre-extension
+ *     algorithm (no mass re-push of the whole calendar on upgrade), and
+ *   - "description=X only" never collides with "organizer=X only".
+ * Local-only fields (rsvp/tags) and parse-only fields (rrule) are not hashed.
  */
 export function hashEvent(ev: AgendaEvent): string {
   const canon = [
@@ -73,11 +83,27 @@ export function hashEvent(ev: AgendaEvent): string {
     ev.end ?? "",
     ev.allDay === undefined ? "" : String(ev.allDay),
     ev.location ?? "",
-  ].join("\0");
+  ];
+  if (ev.description) canon.push(`description\0${ev.description}`);
+  if (ev.organizer) canon.push(`organizer\0${ev.organizer}`);
+  if (ev.attendees && ev.attendees.length) canon.push(`attendees\0${ev.attendees.join(", ")}`);
+  if (ev.status) canon.push(`status\0${ev.status}`);
+  if (ev.category) canon.push(`category\0${ev.category}`);
+  const joined = canon.join("\0");
   let h = 0x811c9dc5; // FNV-1a 32-bit
-  for (let i = 0; i < canon.length; i++) {
-    h ^= canon.charCodeAt(i);
+  for (let i = 0; i < joined.length; i++) {
+    h ^= joined.charCodeAt(i);
     h = Math.imul(h, 0x01000193);
   }
   return (h >>> 0).toString(16);
+}
+
+/** Escapes a multi-line string for single-line md field storage: `\` → `\\`, newline → `\n`. */
+export function escapeMultiline(s: string): string {
+  return s.replace(/\\/g, "\\\\").replace(/\r?\n/g, "\\n");
+}
+
+/** Exact inverse of escapeMultiline: `\\` → `\`, `\n` → newline. */
+export function unescapeMultiline(s: string): string {
+  return s.replace(/\\(\\|n)/g, (_m, c) => (c === "n" ? "\n" : "\\"));
 }
