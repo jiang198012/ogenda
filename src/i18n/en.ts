@@ -67,6 +67,7 @@ export const en: Record<string, string> = {
   "form.category.name": "Category",
   "form.category.desc": "Pick an existing one or type a new one",
   "form.tags.name": "Tags",
+  "form.description.name": "Notes",
   "form.viewInNote": "View in note",
   "form.delete": "Delete",
   "form.save": "Save",

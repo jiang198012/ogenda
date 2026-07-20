@@ -6,7 +6,7 @@ import { LocalEvent } from "../../src/store/monthly-store";
 const blankFields = (): RawFormFields => ({
   title: "", start: "", end: "", allDay: false,
   location: "", organizer: "", attendees: "",
-  status: "", rsvp: "", category: "", tags: "",
+  status: "", rsvp: "", category: "", tags: "", description: "",
 });
 
 const syncedLocal = (): LocalEvent => ({

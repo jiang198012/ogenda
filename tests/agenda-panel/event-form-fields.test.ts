@@ -12,12 +12,13 @@ import {
   shiftEndWithStart,
   defaultEndFor,
   RSVP_OPTIONS,
+  shouldSaveOnEnter,
 } from "../../src/agenda-panel/event-form-fields";
 
 const blankFields = (): RawFormFields => ({
   title: "", start: "", end: "", allDay: false,
   location: "", organizer: "", attendees: "",
-  status: "", rsvp: "", category: "", tags: "",
+  status: "", rsvp: "", category: "", tags: "", description: "",
 });
 
 describe("validateEventForm", () => {
@@ -202,7 +203,7 @@ describe("RSVP_OPTIONS", () => {
 const baseFields = (over: Partial<RawFormFields> = {}): RawFormFields => ({
   title: "会", start: "2026-07-19T09:00:00", end: "", allDay: false,
   location: "", organizer: "", attendees: "", status: "", rsvp: "",
-  category: "", tags: "", ...over,
+  category: "", tags: "", description: "", ...over,
 });
 
 describe("buildEventFromFields — merged category + rsvp", () => {
@@ -217,5 +218,39 @@ describe("buildEventFromFields — merged category + rsvp", () => {
   it("stores the raw RSVP enum value", () => {
     const ev = buildEventFromFields(baseFields({ rsvp: "ACCEPTED" }), null, () => "uid1");
     expect(ev.rsvp).toBe("ACCEPTED");
+  });
+});
+
+describe("buildEventFromFields — description", () => {
+  it("carries description, trimmed", () => {
+    const ev = buildEventFromFields(baseFields({ description: "  备注内容\n第二行  " }), null, () => "uid1");
+    expect(ev.description).toBe("备注内容\n第二行");
+  });
+  it("empty/blank description → undefined", () => {
+    expect(buildEventFromFields(baseFields({ description: "   " }), null, () => "uid1").description).toBeUndefined();
+    expect(buildEventFromFields(baseFields({}), null, () => "uid1").description).toBeUndefined();
+  });
+  it("editing an event whose fields keep a description does not lose it", () => {
+    const existing = buildEventFromFields(baseFields({ description: "旧备注" }), null, () => "uid1");
+    const saved = buildEventFromFields(baseFields({ description: existing.description! }), existing, () => "uid2");
+    expect(saved.description).toBe("旧备注");
+  });
+});
+
+describe("shouldSaveOnEnter", () => {
+  it("saves on Enter when not composing, not in a textarea, and save is enabled", () => {
+    expect(shouldSaveOnEnter("Enter", false, false, false)).toBe(true);
+  });
+  it("does not save on a non-Enter key", () => {
+    expect(shouldSaveOnEnter("a", false, false, false)).toBe(false);
+  });
+  it("does not save while IME-composing", () => {
+    expect(shouldSaveOnEnter("Enter", true, false, false)).toBe(false);
+  });
+  it("does not save inside the description textarea (Enter = newline there)", () => {
+    expect(shouldSaveOnEnter("Enter", false, true, false)).toBe(false);
+  });
+  it("does not save while the save button is disabled", () => {
+    expect(shouldSaveOnEnter("Enter", false, false, true)).toBe(false);
   });
 });

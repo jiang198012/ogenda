@@ -509,6 +509,18 @@
 .ogenda-form-datetime {
   width: 100%;
 }
+.ogenda-form-title .setting-item-control,
+.ogenda-form-desc-row .setting-item-control {
+  flex-grow: 1;
+}
+.ogenda-form-title input[type="text"] {
+  width: 100%;
+}
+textarea.ogenda-form-desc {
+  width: 100%;
+  min-height: 5em;
+  resize: vertical;
+}
 .ogenda-form-more-toggle {
   cursor: pointer;
   color: var(--text-muted);

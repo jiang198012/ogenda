@@ -13,6 +13,7 @@ export interface RawFormFields {
   rsvp: string;
   category: string;
   tags: string;
+  description: string;
 }
 
 export interface ValidationResult {
@@ -146,6 +147,7 @@ export function buildEventFromFields(
     status: fields.status || undefined,
     rsvp: fields.rsvp.trim() || undefined,
     category,
+    description: fields.description.trim() || undefined,
     tags: splitList(fields.tags),
     origin: existing?.origin ?? "local",
     href: existing?.href,
@@ -161,4 +163,14 @@ export function buildEventFromFields(
     seq: existing?.seq,
     lastSynced: existing?.lastSynced,
   };
+}
+
+/** Enter saves the form — except during IME composition, inside the multi-line textarea, or when save is disabled. */
+export function shouldSaveOnEnter(
+  key: string,
+  isComposing: boolean,
+  targetIsTextarea: boolean,
+  saveDisabled: boolean,
+): boolean {
+  return key === "Enter" && !isComposing && !targetIsTextarea && !saveDisabled;
 }

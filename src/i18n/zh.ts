@@ -67,6 +67,7 @@ export const zh: Record<string, string> = {
   "form.category.name": "分类",
   "form.category.desc": "选择已有或输入新分类",
   "form.tags.name": "标签",
+  "form.description.name": "备注",
   "form.viewInNote": "在笔记中查看",
   "form.delete": "删除",
   "form.save": "保存",

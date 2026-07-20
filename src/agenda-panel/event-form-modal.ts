@@ -13,6 +13,7 @@ import {
   shiftEndWithStart,
   defaultEndFor,
   RSVP_OPTIONS,
+  shouldSaveOnEnter,
 } from "./event-form-fields";
 import { t } from "../i18n";
 
@@ -49,6 +50,7 @@ export class EventFormModal extends Modal {
       rsvp: existing?.rsvp ?? "",
       category: existing?.category ?? "",
       tags: existing?.tags?.join(", ") ?? "",
+      description: existing?.description ?? "",
     };
   }
 
@@ -56,13 +58,14 @@ export class EventFormModal extends Modal {
     this.setTitle(t(this.existing ? "form.titleEdit" : "form.titleNew"));
     const { contentEl } = this;
 
-    new Setting(contentEl).setName(t("form.title.name") + " *").addText((tx) => {
+    const titleSetting = new Setting(contentEl).setName(t("form.title.name") + " *").addText((tx) => {
       this.titleInput = tx.inputEl;
       tx.setValue(this.fields.title).onChange((v) => {
         this.fields.title = v;
         this.updateValidity();
       });
     });
+    titleSetting.settingEl.addClass("ogenda-form-title");
 
     new Setting(contentEl).setName(t("form.allDay.name")).addToggle((tg) =>
       tg.setValue(this.fields.allDay).onChange((v) => {
@@ -108,6 +111,12 @@ export class EventFormModal extends Modal {
       .setName(t("form.tags.name"))
       .setDesc(t("form.commaSeparated"))
       .addText((tx) => tx.setValue(this.fields.tags).onChange((v) => (this.fields.tags = v)));
+
+    const descSetting = new Setting(contentEl).setName(t("form.description.name")).addTextArea((tx) => {
+      tx.setValue(this.fields.description).onChange((v) => (this.fields.description = v));
+      tx.inputEl.addClass("ogenda-form-desc");
+    });
+    descSetting.settingEl.addClass("ogenda-form-desc-row");
 
     const moreToggle = contentEl.createDiv({ cls: "ogenda-form-more-toggle" });
     const advanced = contentEl.createDiv({ cls: "ogenda-form-advanced" });
@@ -167,7 +176,7 @@ export class EventFormModal extends Modal {
     this.updateValidity();
     this.titleInput.focus();
     contentEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.isComposing && !this.saveBtn.disabled) {
+      if (shouldSaveOnEnter(e.key, e.isComposing, e.target instanceof HTMLTextAreaElement, this.saveBtn.disabled)) {
         e.preventDefault();
         this.handleSave();
       }
