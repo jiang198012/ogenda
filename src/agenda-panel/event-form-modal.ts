@@ -40,7 +40,7 @@ export class EventFormModal extends Modal {
     this.fields = {
       title: existing?.title ?? "",
       start,
-      end: existing?.end ?? defaultEndFor(start, allDay),
+      end: existing ? (existing.end ?? "") : defaultEndFor(start, allDay),
       allDay,
       location: existing?.location ?? "",
       organizer: existing?.organizer ?? "",
