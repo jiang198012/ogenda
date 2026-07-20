@@ -53,7 +53,7 @@ spec 写「canon 列表在现有 5 项后追加 `ev.description ?? ""` 等 5 项
   - `eventToFields` 写出 `description`(转义后,空/undefined 不写)
   - `hashEvent` 条件标记追加 5 个新字段
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `tests/core/event.test.ts` 末尾追加:
 
@@ -136,12 +136,12 @@ import { AgendaEvent, eventToFields, hashEvent, escapeMultiline, unescapeMultili
 
 (若上面追加段里已单独 import,则合并为一行,去掉重复。)
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `npx vitest run tests/core/event.test.ts`
 Expected: FAIL(`escapeMultiline is not a function` / `description` 相关断言失败)
 
-- [ ] **Step 3: 实现 `src/core/event.ts`**
+- [x] **Step 3: 实现 `src/core/event.ts`**
 
 3a. `AgendaEvent` 接口中,`location?: string;` 之后插入:
 
@@ -210,12 +210,12 @@ export function unescapeMultiline(s: string): string {
 
 注意 `eventToFields` 在 `hashEvent` 之前定义,`escapeMultiline` 的函数声明提升使其可用;若 tsc 报顺序问题,把转义对移到 `eventToFields` 之前。
 
-- [ ] **Step 4: 跑测试确认通过 + 全量绿**
+- [x] **Step 4: 跑测试确认通过 + 全量绿**
 
 Run: `npx vitest run tests/core/event.test.ts && npm test`
 Expected: PASS;全量通过(既有测试不受影响)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/event.ts tests/core/event.test.ts
@@ -236,7 +236,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - Consumes: `AgendaEvent.description` / `AgendaEvent.category`(Task 1)
 - Produces: `icalToEvents` 输出事件带 `description`(反转义后原文)与 `category`(CATEGORIES 第一值)
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `tests/core/ical-map.test.ts` 末尾追加:
 
@@ -270,12 +270,12 @@ describe("icalToEvents — description & categories", () => {
 });
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `npx vitest run tests/core/ical-map.test.ts`
 Expected: FAIL(`description`/`category` 为 undefined 的断言失败)
 
-- [ ] **Step 3: 实现 `src/core/ical-map.ts`**
+- [x] **Step 3: 实现 `src/core/ical-map.ts`**
 
 在 `const rrule = ve.getFirstPropertyValue("rrule");`(第 19 行)之后插入:
 
@@ -292,12 +292,12 @@ Expected: FAIL(`description`/`category` 为 undefined 的断言失败)
       category: categories ? String(categories) : undefined,
 ```
 
-- [ ] **Step 4: 跑测试确认通过 + 全量绿**
+- [x] **Step 4: 跑测试确认通过 + 全量绿**
 
 Run: `npx vitest run tests/core/ical-map.test.ts && npm test`
 Expected: PASS;全量通过
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/ical-map.ts tests/core/ical-map.test.ts
@@ -318,7 +318,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - Consumes: `AgendaEvent` 全字段(Task 1);`icalToEvents` 新解析(Task 2,往返测试用)
 - Produces: `eventToVCalendar` 输出完整同步字段集;新增内部 `stripMailto(s: string): string`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `tests/core/ical-gen.test.ts` 末尾追加:
 
@@ -391,12 +391,12 @@ describe("eventToVCalendar — extended push fields", () => {
 });
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `npx vitest run tests/core/ical-gen.test.ts`
 Expected: FAIL(DESCRIPTION/ORGANIZER/… 未输出)
 
-- [ ] **Step 3: 实现 `src/core/ical-gen.ts`**
+- [x] **Step 3: 实现 `src/core/ical-gen.ts`**
 
 3a. `normalizeSeparator` 之前插入:
 
@@ -424,12 +424,12 @@ function stripMailto(s: string): string {
   if (ev.rrule) lines.push(`RRULE:${ev.rrule}`);
 ```
 
-- [ ] **Step 4: 跑测试确认通过 + 全量绿**
+- [x] **Step 4: 跑测试确认通过 + 全量绿**
 
 Run: `npx vitest run tests/core/ical-gen.test.ts && npm test`
 Expected: PASS;全量通过
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/ical-gen.ts tests/core/ical-gen.test.ts
@@ -452,7 +452,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - Consumes: `unescapeMultiline`(Task 1)、扩展后的 `hashEvent`(Task 1)
 - Produces: `fieldsToEvent` 重建完整同步字段集(推送载荷 + 哈希输入同源);`localToEvent` 带 `description`(面板编辑往返)
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 1a. `tests/sync/plan.test.ts` 末尾追加:
 
@@ -511,12 +511,12 @@ it("description is undefined when the field is absent", () => {
 });
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `npx vitest run tests/sync/plan.test.ts tests/agenda-panel/local-to-event.test.ts`
 Expected: FAIL(fieldsToEvent/localToEvent 尚无 description 等字段)
 
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 3a. `src/sync/plan.ts`:`import { AgendaEvent, hashEvent } from "../core/event";` 改为:
 
@@ -560,12 +560,12 @@ export function fieldsToEvent(fields: Record<string, string>): AgendaEvent {
     description: f.description ? unescapeMultiline(f.description) : undefined,
 ```
 
-- [ ] **Step 4: 跑测试确认通过 + 全量绿**
+- [x] **Step 4: 跑测试确认通过 + 全量绿**
 
 Run: `npx vitest run tests/sync/plan.test.ts tests/agenda-panel/local-to-event.test.ts && npm test`
 Expected: PASS;全量通过
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/sync/plan.ts src/agenda-panel/local-to-event.ts tests/sync/plan.test.ts tests/agenda-panel/local-to-event.test.ts
@@ -589,7 +589,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
   - `store.sync` 始终传 `clearFields: SYNC_CLEARABLE_FIELDS`
   - `PANEL_CLEARABLE_FIELDS` 增加 `"description"`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `tests/store/monthly-store.test.ts` 末尾追加:
 
@@ -660,12 +660,12 @@ describe("MonthlyStore.savePanelEvent — description is panel-clearable", () =>
 });
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `npx vitest run tests/store/monthly-store.test.ts`
 Expected: FAIL(sync 不清字段 → `location::` 等仍存在的断言失败)
 
-- [ ] **Step 3: 实现 `src/store/monthly-store.ts`**
+- [x] **Step 3: 实现 `src/store/monthly-store.ts`**
 
 3a. `PANEL_CLEARABLE_FIELDS` 一行替换为:
 
@@ -692,12 +692,12 @@ const SYNC_CLEARABLE_FIELDS = ["end", "location", "organizer", "attendees", "sta
       const r = upsertEvents(seed, monthEvents, { clearFields: SYNC_CLEARABLE_FIELDS });
 ```
 
-- [ ] **Step 4: 跑测试确认通过 + 全量绿**
+- [x] **Step 4: 跑测试确认通过 + 全量绿**
 
 Run: `npx vitest run tests/store/monthly-store.test.ts && npm test`
 Expected: PASS;全量通过(注意既有用例 `tests/core/upsert-clear.test.ts` 直接测 `upsertEvents` 不传 clearFields 的行为,不受影响)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/store/monthly-store.ts tests/store/monthly-store.test.ts
@@ -727,7 +727,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
   - 表单:标题行 class `ogenda-form-title`;备注 textarea(行 class `ogenda-form-desc-row`,textarea class `ogenda-form-desc`),位于「标签」之后、「更多选项」之前
   - i18n 键 `form.description.name`(zh 备注 / en Notes)
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 1a. `tests/agenda-panel/event-form-fields.test.ts` 与 `tests/agenda-panel/local-to-event.test.ts` 两个文件中的 `blankFields` 都补上 `description: ""`(RawFormFields 新增必填键,先对齐测试助手):
 
@@ -779,12 +779,12 @@ describe("shouldSaveOnEnter", () => {
 
 (`baseFields` 是该文件已有的测试助手,签名 `baseFields(over?: Partial<RawFormFields>)`;若其对象字面量未含 `description`,同样补 `description: ""`。)
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `npx vitest run tests/agenda-panel/event-form-fields.test.ts tests/agenda-panel/local-to-event.test.ts`
 Expected: FAIL(`shouldSaveOnEnter is not a function`)
 
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 3a. `src/agenda-panel/event-form-fields.ts`:
 - `RawFormFields` 接口 `tags: string;` 之后加 `description: string;`
@@ -869,12 +869,12 @@ textarea.ogenda-form-desc {
 }
 ```
 
-- [ ] **Step 4: 验证 — 单测全绿 + build 干净 + 产物含新 class**
+- [x] **Step 4: 验证 — 单测全绿 + build 干净 + 产物含新 class**
 
 Run: `npm test && npm run build && grep -c "ogenda-form-desc" main.js styles.css`
 Expected: 测试全过;build 无错;grep 两个文件各 ≥1(main.js 中 class 名是 ASCII,esbuild 不会转义)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/agenda-panel/event-form-fields.ts src/agenda-panel/event-form-modal.ts src/i18n/zh.ts src/i18n/en.ts styles.css tests/agenda-panel/event-form-fields.test.ts tests/agenda-panel/local-to-event.test.ts main.js
