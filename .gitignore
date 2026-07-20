@@ -4,3 +4,5 @@ main.js.map
 *.log
 .spike-*
 .superpowers/
+.DS_Store
+.serena/
