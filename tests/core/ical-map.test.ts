@@ -70,3 +70,31 @@ describe("icalToEvents", () => {
     expect(evs.map((e) => e.uid)).toEqual(["good@x"]);
   });
 });
+
+describe("icalToEvents — description & categories", () => {
+  const mk = (extra: string) =>
+    `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//t//EN\nBEGIN:VEVENT\nUID:u@x\nSUMMARY:会\nDTSTART:20260714T070000Z\n${extra}\nEND:VEVENT\nEND:VCALENDAR`;
+
+  it("parses DESCRIPTION with full unescaping (\\n → real newline)", () => {
+    const e = icalToEvents(mk("DESCRIPTION:第一行\\n第二行\\;含\\,标点"), "s")[0];
+    expect(e.description).toBe("第一行\n第二行;含,标点");
+  });
+  it("description is undefined when absent", () => {
+    expect(icalToEvents(mk("LOCATION:A"), "s")[0].description).toBeUndefined();
+  });
+  it("parses CATEGORIES single value into category", () => {
+    expect(icalToEvents(mk("CATEGORIES:工作"), "s")[0].category).toBe("工作");
+  });
+  it("takes only the FIRST value of a multi-value CATEGORIES (documented limitation)", () => {
+    expect(icalToEvents(mk("CATEGORIES:a,b"), "s")[0].category).toBe("a");
+  });
+  it("an escaped comma keeps CATEGORIES a single value (round-trips our own push)", () => {
+    expect(icalToEvents(mk("CATEGORIES:a\\,b"), "s")[0].category).toBe("a,b");
+  });
+  it("takes the first line of repeated CATEGORIES properties", () => {
+    expect(icalToEvents(mk("CATEGORIES:a\nCATEGORIES:b"), "s")[0].category).toBe("a");
+  });
+  it("category is undefined when absent", () => {
+    expect(icalToEvents(mk("LOCATION:A"), "s")[0].category).toBeUndefined();
+  });
+});

@@ -17,6 +17,9 @@ export function icalToEvents(ics: string, source: string, protocol = "imap"): Ag
       .filter((s) => s.length > 0);
     const status = ve.getFirstPropertyValue("status");
     const rrule = ve.getFirstPropertyValue("rrule");
+    const description = ve.getFirstPropertyValue("description");
+    // Multi-value CATEGORIES: only the first value is kept (documented limitation).
+    const categories = ve.getFirstPropertyValue("categories");
     out.push({
       uid: ev.uid,
       title: ev.summary || "(no title)",
@@ -29,6 +32,8 @@ export function icalToEvents(ics: string, source: string, protocol = "imap"): Ag
       attendees: attendees.length ? attendees.map((a) => a.replace(/^mailto:/i, "")) : undefined,
       status: status ? String(status).toLowerCase() : undefined,
       rrule: rrule ? String(rrule.toString()) : undefined,
+      description: description ? String(description) : undefined,
+      category: categories ? String(categories) : undefined,
       origin: "synced",
       source,
       protocol,
