@@ -566,3 +566,178 @@ textarea.ogenda-form-desc {
 .ogenda-form-cat-input {
   width: 100%;
 }
+
+/* ---------- Mobile responsive adaptation ---------- */
+@media (max-width: 480px) {
+  .ogenda-panel {
+    padding: 0.4em 0.6em 0.8em;
+  }
+
+  /* Header chrome */
+  .ogenda-panel-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6em;
+  }
+  .ogenda-panel-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 3px;
+  }
+  .ogenda-panel-tab {
+    flex: 1 1 auto;
+    text-align: center;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5em 0.6em;
+  }
+  .ogenda-panel-nav {
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .ogenda-navbtn,
+  .ogenda-navtoday,
+  .ogenda-navtoday-btn,
+  .ogenda-panel-newbtn,
+  .ogenda-panel-syncbtn {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* List view */
+  .ogenda-list-statusheader {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+  .ogenda-event-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.5em 0.75em;
+    min-height: 44px;
+    padding: 0.75em 0.8em;
+  }
+  .ogenda-event-when {
+    flex-direction: row;
+    gap: 0.4em;
+  }
+  .ogenda-status-pill,
+  .ogenda-cat-pill {
+    padding: 0.25em 0.7em;
+  }
+
+  /* Day view */
+  .ogenda-day-layout {
+    flex-direction: column;
+    gap: 0.75em;
+  }
+  .ogenda-day-side {
+    width: 100%;
+    flex-shrink: 1;
+  }
+  .ogenda-day-card {
+    padding: 0.85em 0.9em;
+  }
+  .ogenda-mini-cal-cell {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85em;
+  }
+  .ogenda-mini-cal-dow {
+    padding: 0.2em 0;
+  }
+
+  /* Week view */
+  .ogenda-week-grid {
+    min-width: 700px;
+    overflow-x: auto;
+    gap: 0.4em;
+    grid-template-columns: repeat(7, minmax(90px, 1fr));
+  }
+  .ogenda-week-col {
+    min-height: 10em;
+    padding: 0.35em;
+  }
+  .ogenda-week-col-head {
+    padding: 0.5em 0;
+  }
+  .ogenda-week-card {
+    padding: 0.5em 0.6em;
+    min-height: 44px;
+  }
+  .ogenda-week-card-title {
+    font-size: 0.85em;
+  }
+
+  /* Month view */
+  .ogenda-month-grid {
+    min-width: 560px;
+    overflow-x: auto;
+    grid-template-columns: repeat(7, minmax(70px, 1fr));
+  }
+  .ogenda-month-cell {
+    min-height: 4.5em;
+    padding: 0.3em;
+  }
+  .ogenda-month-daynum {
+    font-size: 0.8em;
+  }
+  .ogenda-month-mini {
+    padding: 0.15em 0.35em;
+    min-height: 28px;
+    font-size: 0.72em;
+  }
+
+  /* Stats view */
+  .ogenda-stat-kpis {
+    flex-wrap: wrap;
+  }
+  .ogenda-kpi {
+    flex: 1 1 calc(50% - 0.6em);
+    min-width: 140px;
+  }
+  .ogenda-stat-minis {
+    flex-wrap: wrap;
+  }
+  .ogenda-stat-mini {
+    flex: 1 1 100%;
+  }
+  .ogenda-stat-bar-row {
+    flex-wrap: wrap;
+    gap: 0.3em 0.6em;
+  }
+  .ogenda-stat-bar-label {
+    flex: 0 0 100%;
+  }
+  .ogenda-cat-chip {
+    min-height: 36px;
+  }
+
+  /* Event form modal */
+  .ogenda-form-buttons {
+    flex-direction: column;
+    gap: 0.5em;
+  }
+  .ogenda-form-buttons button {
+    width: 100%;
+    min-height: 44px;
+  }
+  .ogenda-form-cat-chip {
+    min-height: 44px;
+    padding: 0.4em 0.8em;
+  }
+  .ogenda-form-more-toggle {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+}
