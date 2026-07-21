@@ -16,7 +16,6 @@ export interface AgendaEvent {
   rsvp?: string;
   busy?: string;
   category?: string;
-  tags?: string[];
   origin: EventOrigin;
   source?: string;
   protocol?: string;
@@ -49,7 +48,6 @@ export function eventToFields(ev: AgendaEvent): Record<string, string> {
   set("rsvp", ev.rsvp);
   set("busy", ev.busy);
   set("category", ev.category);
-  if (ev.tags && ev.tags.length) set("tags", ev.tags.join(", "));
   set("origin", ev.origin);
   set("source", ev.source);
   set("protocol", ev.protocol);
@@ -74,7 +72,7 @@ export function eventToFields(ev: AgendaEvent): Record<string, string> {
  *   - an event with none of them hashes byte-identically to the pre-extension
  *     algorithm (no mass re-push of the whole calendar on upgrade), and
  *   - "description=X only" never collides with "organizer=X only".
- * Local-only fields (rsvp/tags) and parse-only fields (rrule) are not hashed.
+ * Local-only fields (rsvp) and parse-only fields (rrule) are not hashed.
  */
 export function hashEvent(ev: AgendaEvent): string {
   const canon = [

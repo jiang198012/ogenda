@@ -1,7 +1,8 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, PluginSettingTab, Setting, TextComponent } from "obsidian";
 import type OgendaPlugin from "../main";
 import { buildTimezoneOptions } from "./timezone-options";
 import { t, setLanguage, resolveLanguage } from "../i18n";
+import { getDefaultCategory, getPredefinedCategories } from "../agenda-panel/event-form-fields";
 
 export function getObsidianLocale(): string {
   return window.localStorage.getItem("language") ?? "en";
@@ -35,6 +36,33 @@ export class OgendaSettingTab extends PluginSettingTab {
           this.plugin.refreshOpenPanels();
         });
       });
+
+    // Category
+    containerEl.createEl("h3", { text: t("settings.category.section") });
+    const currentDefault = s.defaultCategory || getDefaultCategory();
+    const catOptions = getPredefinedCategories();
+    const isPredefined = catOptions.some((o) => o.value === currentDefault);
+    let catText: TextComponent | undefined;
+    const catSetting = new Setting(containerEl)
+      .setName(t("settings.category.default.name"))
+      .setDesc(t("settings.category.default.desc"));
+    catSetting.addDropdown((d) => {
+      d.addOption("", t("form.category.custom"));
+      for (const opt of catOptions) d.addOption(opt.value, opt.label);
+      d.setValue(isPredefined ? currentDefault : "");
+      d.onChange(async (v) => {
+        if (v && catText) catText.setValue(v);
+        s.defaultCategory = (v || catText?.getValue() || "").trim();
+        await this.plugin.saveSettings();
+      });
+    });
+    catSetting.addText((x) => {
+      catText = x;
+      x.setValue(currentDefault).onChange(async (v) => {
+        s.defaultCategory = v.trim();
+        await this.plugin.saveSettings();
+      });
+    });
 
     // Calendar sync
     containerEl.createEl("h3", { text: t("settings.sync.section") });

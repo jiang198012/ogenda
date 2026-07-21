@@ -1,5 +1,5 @@
 import { AgendaEvent } from "../core/event";
-import { t } from "../i18n";
+import { getLanguage, t } from "../i18n";
 
 export interface RawFormFields {
   title: string;
@@ -12,7 +12,6 @@ export interface RawFormFields {
   status: string;
   rsvp: string;
   category: string;
-  tags: string;
   description: string;
 }
 
@@ -102,6 +101,18 @@ export const RSVP_OPTIONS: { value: string; labelKey: string }[] = [
   { value: "TENTATIVE", labelKey: "rsvp.tentative" },
 ];
 
+const CATEGORY_KEYS = ["work", "personal", "study", "meeting", "travel", "health"] as const;
+
+/** Predefined category values, resolved to the current UI language. */
+export function getPredefinedCategories(): { value: string; label: string }[] {
+  return CATEGORY_KEYS.map((k) => ({ value: t(`category.${k}`), label: t(`category.${k}`) }));
+}
+
+/** Default category for new events, in the current UI language. */
+export function getDefaultCategory(): string {
+  return getLanguage() === "zh" ? "工作" : "Work";
+}
+
 export function validateEventForm(fields: {
   title: string;
   start: string;
@@ -148,7 +159,6 @@ export function buildEventFromFields(
     rsvp: fields.rsvp.trim() || undefined,
     category,
     description: fields.description.trim() || undefined,
-    tags: splitList(fields.tags),
     origin: existing?.origin ?? "local",
     href: existing?.href,
     etag: existing?.etag,

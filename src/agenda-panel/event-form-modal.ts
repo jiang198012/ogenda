@@ -16,6 +16,8 @@ import {
   shouldSaveOnEnter,
 } from "./event-form-fields";
 import { t } from "../i18n";
+import { categoryColorFor } from "./colors";
+import { getPredefinedCategories } from "./event-form-fields";
 
 export class EventFormModal extends Modal {
   private fields: RawFormFields;
@@ -30,7 +32,7 @@ export class EventFormModal extends Modal {
     private existing: AgendaEvent | null,
     prefillStart: string | undefined,
     defaultAllDay: boolean,
-    private existingCategories: string[],
+    private defaultCategory: string,
     private onSubmit: (event: AgendaEvent) => void,
     private onViewInNote: (() => void) | undefined,
     private onDelete: (() => void) | undefined,
@@ -48,8 +50,7 @@ export class EventFormModal extends Modal {
       attendees: existing?.attendees?.join(", ") ?? "",
       status: existing?.status ?? "",
       rsvp: existing?.rsvp ?? "",
-      category: existing?.category ?? "",
-      tags: existing?.tags?.join(", ") ?? "",
+      category: existing?.category ?? defaultCategory,
       description: existing?.description ?? "",
     };
   }
@@ -99,18 +100,29 @@ export class EventFormModal extends Modal {
     );
 
     const catRow = new Setting(contentEl).setName(t("form.category.name")).setDesc(t("form.category.desc"));
-    const catInput = catRow.controlEl.createEl("input", { type: "text" });
-    catInput.value = this.fields.category;
-    const dl = catRow.controlEl.createEl("datalist");
-    dl.id = "ogenda-cat-list";
-    for (const c of this.existingCategories) dl.createEl("option", { value: c });
-    catInput.setAttr("list", "ogenda-cat-list");
-    catInput.addEventListener("input", () => (this.fields.category = catInput.value));
+    const catChips = catRow.controlEl.createDiv({ cls: "ogenda-form-cat-chips" });
+    const catInput = catRow.controlEl.createEl("input", { type: "text", cls: "ogenda-form-cat-input" });
 
-    new Setting(contentEl)
-      .setName(t("form.tags.name"))
-      .setDesc(t("form.commaSeparated"))
-      .addText((tx) => tx.setValue(this.fields.tags).onChange((v) => (this.fields.tags = v)));
+    const predefined = getPredefinedCategories();
+    const renderChips = () => {
+      catChips.empty();
+      for (const { value: c } of predefined) {
+        const chip = catChips.createDiv({ cls: "ogenda-form-cat-chip", text: c });
+        chip.style.borderLeftColor = categoryColorFor(c);
+        if (this.fields.category === c) chip.addClass("active");
+        chip.addEventListener("click", () => {
+          this.fields.category = c;
+          catInput.value = c;
+          renderChips();
+        });
+      }
+    };
+    catInput.value = this.fields.category;
+    catInput.addEventListener("input", () => {
+      this.fields.category = catInput.value;
+      renderChips();
+    });
+    renderChips();
 
     const descSetting = new Setting(contentEl).setName(t("form.description.name")).addTextArea((tx) => {
       tx.setValue(this.fields.description).onChange((v) => (this.fields.description = v));

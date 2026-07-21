@@ -36,6 +36,7 @@ export class AgendaPanelView extends ItemView {
     private timezone: string | undefined,
     private triggerSync: () => void,
     private getSyncProvider: () => string,
+    private getDefaultCategory: () => string,
   ) {
     super(leaf);
     this.anchor = this.safeToday();
@@ -81,10 +82,6 @@ export class AgendaPanelView extends ItemView {
     // list: from the anchor date onward, 60-day rolling window
     const start = new Date(this.anchor.getFullYear(), this.anchor.getMonth(), this.anchor.getDate());
     return { start, end: addDays(start, 60) };
-  }
-
-  private existingCategories(events: AgendaEvent[]): string[] {
-    return [...new Set(events.map((e) => e.category).filter((c): c is string => Boolean(c)))].sort();
   }
 
   /** Under an ICS (read-only) subscription, warn once that local edits won't sync back. */
@@ -183,8 +180,6 @@ export class AgendaPanelView extends ItemView {
       const local: LocalEvent[] = await this.store.readEvents();
       const events: AgendaEvent[] = local.map(localToEvent);
       const colors = createColorResolver();
-      const categories = this.existingCategories(events);
-
       const newBtn = head.createDiv({ cls: "ogenda-panel-newbtn", text: t("panel.newEvent") });
       newBtn.addEventListener("click", () => {
         new EventFormModal(
@@ -192,7 +187,7 @@ export class AgendaPanelView extends ItemView {
           null,
           toDateKey(this.anchor),
           false,
-          categories,
+          this.getDefaultCategory(),
           (created) => void this.saveEvent(created),
           undefined,
           undefined,
@@ -214,7 +209,7 @@ export class AgendaPanelView extends ItemView {
           event,
           undefined,
           false,
-          categories,
+          this.getDefaultCategory(),
           (updated) => void this.saveEvent(updated),
           () => void openEventSource(this.app, this.folder, event),
           () => this.confirmDelete(event),
@@ -226,7 +221,7 @@ export class AgendaPanelView extends ItemView {
           null,
           toDateKey(day),
           false,
-          categories,
+          this.getDefaultCategory(),
           (created) => void this.saveEvent(created),
           undefined,
           undefined,

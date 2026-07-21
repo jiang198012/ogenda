@@ -19,7 +19,6 @@ export function localToEvent(local: LocalEvent): AgendaEvent {
     status: f.status,
     rsvp: f.rsvp,
     category: f.category,
-    tags: f.tags ? f.tags.split(", ") : undefined,
     rrule: f.rrule,
     description: f.description ? unescapeMultiline(f.description) : undefined,
     origin: f.origin === "local" ? "local" : "synced",

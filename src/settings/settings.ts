@@ -13,6 +13,8 @@ export interface OgendaSettings {
   /** IANA timezone name (e.g. "America/Los_Angeles"); empty = use the system timezone. */
   timezone: string;
   language: "auto" | "zh" | "en";
+  /** Default category for new events; empty means fall back to the language-aware default. */
+  defaultCategory: string;
 }
 
 export const DEFAULT_SETTINGS: OgendaSettings = {
@@ -28,6 +30,7 @@ export const DEFAULT_SETTINGS: OgendaSettings = {
   icsUrl: "",
   timezone: "",
   language: "auto",
+  defaultCategory: "",
 };
 
 export function sanitizeSettings(raw: unknown): OgendaSettings {
@@ -50,5 +53,6 @@ export function sanitizeSettings(raw: unknown): OgendaSettings {
     icsUrl: str(r.icsUrl, ""),
     timezone: str(r.timezone, DEFAULT_SETTINGS.timezone),
     language: lang(r.language),
+    defaultCategory: str(r.defaultCategory, DEFAULT_SETTINGS.defaultCategory),
   };
 }

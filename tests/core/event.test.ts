@@ -13,7 +13,6 @@ const ev: AgendaEvent = {
   attendees: ["a@x", "b@x"],
   status: "confirmed",
   category: "工作",
-  tags: ["a", "b"],
   origin: "synced",
   source: "imap/gmail",
   protocol: "imap",
@@ -29,7 +28,6 @@ describe("eventToFields", () => {
     expect(f.attendees).toBe("a@x, b@x");
     expect(f.source).toBe("imap/gmail");
     expect(f.category).toBe("工作");
-    expect(f.tags).toBe("a, b");
   });
   it("omits empty/undefined fields", () => {
     const f = eventToFields({ uid: "u", title: "t", start: "2026-07-14T09:00:00", origin: "local" });
@@ -134,9 +132,8 @@ describe("hashEvent — extended field set", () => {
     expect(hashEvent({ ...b, status: "confirmed" })).not.toBe(hashEvent(b));
     expect(hashEvent({ ...b, category: "工作" })).not.toBe(hashEvent(b));
   });
-  it("does NOT change for local-only or non-hashed fields (rsvp/tags/rrule/tz/url)", () => {
+  it("does NOT change for local-only or non-hashed fields (rsvp/rrule/tz/url)", () => {
     expect(hashEvent({ ...b, rsvp: "ACCEPTED" })).toBe(hashEvent(b));
-    expect(hashEvent({ ...b, tags: ["x"] })).toBe(hashEvent(b));
     expect(hashEvent({ ...b, rrule: "FREQ=DAILY" })).toBe(hashEvent(b));
   });
   it("distinguishes which field a value lives in (no aliasing between single appended fields)", () => {

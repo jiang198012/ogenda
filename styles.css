@@ -536,3 +536,33 @@ textarea.ogenda-form-desc {
   border-top: 1px solid var(--background-modifier-border);
   margin-top: 0.2em;
 }
+.ogenda-form-cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45em;
+  margin-bottom: 0.5em;
+}
+.ogenda-form-cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.35em 0.65em;
+  font-size: 0.82em;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  border-left-width: 4px;
+  background: var(--background-primary);
+  cursor: pointer;
+  user-select: none;
+}
+.ogenda-form-cat-chip.active {
+  background: var(--background-modifier-hover);
+  border-color: var(--interactive-accent);
+  font-weight: 600;
+}
+.ogenda-form-cat-chip:hover {
+  background: var(--background-modifier-hover);
+}
+.ogenda-form-cat-input {
+  width: 100%;
+}

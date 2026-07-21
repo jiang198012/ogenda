@@ -13,12 +13,15 @@ import {
   defaultEndFor,
   RSVP_OPTIONS,
   shouldSaveOnEnter,
+  getPredefinedCategories,
+  getDefaultCategory,
 } from "../../src/agenda-panel/event-form-fields";
+import { setLanguage } from "../../src/i18n";
 
 const blankFields = (): RawFormFields => ({
   title: "", start: "", end: "", allDay: false,
   location: "", organizer: "", attendees: "",
-  status: "", rsvp: "", category: "", tags: "", description: "",
+  status: "", rsvp: "", category: "", description: "",
 });
 
 describe("validateEventForm", () => {
@@ -94,14 +97,12 @@ describe("buildEventFromFields", () => {
     expect(ev.lastSynced).toBeUndefined();
   });
 
-  it("splits attendees and tags on comma, trimming whitespace, undefined when empty", () => {
-    const fields = { ...blankFields(), title: "t", start: "2026-07-20T10:00:00", attendees: "a@x, b@x ,c@x", tags: " x, y " };
+  it("splits attendees on comma, trimming whitespace, undefined when empty", () => {
+    const fields = { ...blankFields(), title: "t", start: "2026-07-20T10:00:00", attendees: "a@x, b@x ,c@x" };
     const ev = buildEventFromFields(fields, null, () => "u@ogenda");
     expect(ev.attendees).toEqual(["a@x", "b@x", "c@x"]);
-    expect(ev.tags).toEqual(["x", "y"]);
     const empty = buildEventFromFields({ ...blankFields(), title: "t", start: "2026-07-20T10:00:00" }, null, () => "u@ogenda");
     expect(empty.attendees).toBeUndefined();
-    expect(empty.tags).toBeUndefined();
   });
 
   it("converts blank optional text fields to undefined, not empty string", () => {
@@ -200,10 +201,30 @@ describe("RSVP_OPTIONS", () => {
   });
 });
 
+describe("category helpers", () => {
+  it("getPredefinedCategories returns language-aware values and labels", () => {
+    setLanguage("zh");
+    const zhCats = getPredefinedCategories();
+    expect(zhCats.map((c) => c.value)).toEqual(["工作", "个人", "学习", "会议", "旅行", "健康"]);
+    expect(zhCats[0].label).toBe("工作");
+    setLanguage("en");
+    const enCats = getPredefinedCategories();
+    expect(enCats.map((c) => c.value)).toEqual(["Work", "Personal", "Study", "Meeting", "Travel", "Health"]);
+    expect(enCats[0].label).toBe("Work");
+  });
+
+  it("getDefaultCategory follows the current language", () => {
+    setLanguage("zh");
+    expect(getDefaultCategory()).toBe("工作");
+    setLanguage("en");
+    expect(getDefaultCategory()).toBe("Work");
+  });
+});
+
 const baseFields = (over: Partial<RawFormFields> = {}): RawFormFields => ({
   title: "会", start: "2026-07-19T09:00:00", end: "", allDay: false,
   location: "", organizer: "", attendees: "", status: "", rsvp: "",
-  category: "", tags: "", description: "", ...over,
+  category: "", description: "", ...over,
 });
 
 describe("buildEventFromFields — merged category + rsvp", () => {

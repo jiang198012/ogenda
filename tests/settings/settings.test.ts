@@ -24,6 +24,7 @@ describe("sanitizeSettings", () => {
       icsUrl: "",
       timezone: "",
       language: "auto",
+      defaultCategory: "",
     });
     expect("bogus" in s).toBe(false);
   });
@@ -48,5 +49,11 @@ describe("sanitizeSettings", () => {
     expect(sanitizeSettings({ syncProvider: "ics" }).syncProvider).toBe("ics");
     expect(sanitizeSettings({ syncProvider: "bogus" }).syncProvider).toBe("none");
     expect(sanitizeSettings({}).syncProvider).toBe("none");
+  });
+  it("keeps a configured defaultCategory and defaults to empty string when absent", () => {
+    expect(sanitizeSettings({ defaultCategory: "工作" }).defaultCategory).toBe("工作");
+    expect(sanitizeSettings({ defaultCategory: 123 }).defaultCategory).toBe("");
+    expect(sanitizeSettings({}).defaultCategory).toBe("");
+    expect(DEFAULT_SETTINGS.defaultCategory).toBe("");
   });
 });

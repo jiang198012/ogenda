@@ -111,11 +111,11 @@ describe("MonthlyStore.sync — server-authoritative field clearing", () => {
     uid, title: "会", start: "2026-07-14T10:00:00", origin: "synced",
     location: "会议室", description: "备注", organizer: "a@x", attendees: ["b@x"],
     status: "confirmed", category: "工作", rrule: "FREQ=DAILY",
-    rsvp: "ACCEPTED", tags: ["本地标签"],
+    rsvp: "ACCEPTED",
     href: "https://x/a.ics", etag: '"e1"',
   });
 
-  it("deletes synced fields the server no longer has, but never local-only rsvp/tags nor sync metadata", async () => {
+  it("deletes synced fields the server no longer has, but never local-only rsvp nor sync metadata", async () => {
     const fs = new InMemoryFileStore();
     const store = new MonthlyStore(fs, "Agenda");
     await store.sync([full("a@x")]);
@@ -123,7 +123,6 @@ describe("MonthlyStore.sync — server-authoritative field clearing", () => {
     let text = (await fs.read(p))!;
     expect(text).toContain("description:: 备注");
     expect(text).toContain("rsvp:: ACCEPTED");
-    expect(text).toContain("tags:: 本地标签");
 
     // server drops location/description/organizer/attendees/status/category/rrule
     const stripped = full("a@x");
@@ -137,7 +136,6 @@ describe("MonthlyStore.sync — server-authoritative field clearing", () => {
     }
     // local-only fields and sync metadata survive
     expect(text).toContain("rsvp:: ACCEPTED");
-    expect(text).toContain("tags:: 本地标签");
     expect(text).toContain("href:: https://x/a.ics");
     expect(text).toContain("etag::");
   });

@@ -68,7 +68,6 @@ export function renderDayView(
     addField(grid, t("field.attendees"), ev.attendees?.length ? ev.attendees.join("、") : undefined);
     addField(grid, "RSVP", ev.rsvp);
     addField(grid, t("field.category"), ev.category);
-    addField(grid, t("field.tags"), ev.tags?.length ? ev.tags.join("、") : undefined);
     addField(grid, t("field.rrule"), ev.rrule);
     card.appendChild(grid);
 

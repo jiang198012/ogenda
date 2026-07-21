@@ -12,6 +12,7 @@ import { resolveSyncProvider } from "./sync/resolve-provider";
 import { davRequest, hrefInside } from "./net/dav-request";
 import { AgendaPanelView, AGENDA_PANEL_VIEW_TYPE } from "./agenda-panel/agenda-panel-view";
 import { setLanguage, resolveLanguage, t } from "./i18n";
+import { getDefaultCategory } from "./agenda-panel/event-form-fields";
 
 const XML_CT = "application/xml; charset=utf-8";
 
@@ -21,6 +22,10 @@ export default class OgendaPlugin extends Plugin {
   async onload() {
     await this.loadSettings();
     setLanguage(resolveLanguage(this.settings.language, getObsidianLocale()));
+    if (!this.settings.defaultCategory) {
+      this.settings.defaultCategory = getDefaultCategory();
+      await this.saveSettings();
+    }
     this.addSettingTab(new OgendaSettingTab(this.app, this));
 
     this.addCommand({
@@ -44,6 +49,7 @@ export default class OgendaPlugin extends Plugin {
           this.settings.timezone,
           () => void this.syncCalendarNow(),
           () => this.settings.syncProvider,
+          () => this.settings.defaultCategory,
         ),
     );
     this.addCommand({
