@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ogenda settings</title>
+<style>
+
+:root {
+  --background-primary: #ffffff;
+  --background-secondary: #f5f5f5;
+  --background-modifier-hover: #e8e8e8;
+  --background-modifier-active-hover: #dcdcdc;
+  --background-modifier-border: #d4d4d4;
+  --interactive-accent: #7c3aed;
+  --interactive-accent-hover: #6d28d9;
+  --text-normal: #1f2937;
+  --text-muted: #6b7280;
+  --text-faint: #9ca3af;
+  --text-on-accent: #ffffff;
+  --text-error: #dc2626;
+  --font-text-size: 16px;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--background-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--text-normal);
+}
+.viewport {
+  width: 600px;
+  min-height: 800px;
+  border: 1px solid var(--background-modifier-border);
+  overflow: hidden;
+}
+</style>
+<link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+<div class="viewport">
+
+<div style="padding:1em 1.5em;max-width:600px;">
+  <div style="font-size:1.2em;font-weight:700;margin-bottom:1em;">Ogenda settings</div>
+  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">Language</div></div><div class="setting-item-control"><select><option>Auto</option><option>简体中文</option><option selected>English</option></select></div></div>
+  <h3 style="margin-top:1.5em;">Category</h3>
+  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">Default category</div><div class="setting-item-description">Used when creating new events.</div></div><div class="setting-item-control"><select><option>Custom</option><option selected>Work</option><option>Personal</option></select><input type="text" value="Work" style="margin-left:0.5em;"></div></div>
+  <h3 style="margin-top:1.5em;">Calendar sync</h3>
+  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">Sync provider</div></div><div class="setting-item-control"><select><option>None</option><option>iCloud</option><option selected>CalDAV</option><option>ICS</option></select></div></div>
+  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">CalDAV URL</div></div><div class="setting-item-control"><input type="text" value="https://caldav.example.com/calendars/home" style="width:100%"></div></div>
+  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">CalDAV user</div></div><div class="setting-item-control"><input type="text" value="user@example.com" style="width:100%"></div></div>
+  <h3 style="margin-top:1.5em;">Storage</h3>
+  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">Storage folder</div></div><div class="setting-item-control"><input type="text" value="Agenda" style="width:100%"></div></div>
+  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">Timezone</div></div><div class="setting-item-control"><select><option>Follow system</option><option>Asia/Shanghai</option><option>America/Los_Angeles</option></select></div></div>
+</div>
+
+</div>
+</body>
+</html>

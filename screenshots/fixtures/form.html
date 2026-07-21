@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ogenda form</title>
+<style>
+
+:root {
+  --background-primary: #ffffff;
+  --background-secondary: #f5f5f5;
+  --background-modifier-hover: #e8e8e8;
+  --background-modifier-active-hover: #dcdcdc;
+  --background-modifier-border: #d4d4d4;
+  --interactive-accent: #7c3aed;
+  --interactive-accent-hover: #6d28d9;
+  --text-normal: #1f2937;
+  --text-muted: #6b7280;
+  --text-faint: #9ca3af;
+  --text-on-accent: #ffffff;
+  --text-error: #dc2626;
+  --font-text-size: 16px;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--background-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--text-normal);
+}
+.viewport {
+  width: 520px;
+  min-height: 800px;
+  border: 1px solid var(--background-modifier-border);
+  overflow: hidden;
+}
+</style>
+<link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+<div class="viewport">
+
+<div class="ogenda-form-title" style="padding:1em 1.5em 0;font-size:1.2em;font-weight:700;">New event</div>
+<div style="padding:1em 1.5em;">
+  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">Title *</div></div><div class="setting-item-control"><input type="text" value="Team weekly standup" style="width:100%"></div></div>
+  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">All day</div></div><div class="setting-item-control"><input type="checkbox"></div></div>
+  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">Start *</div></div><div class="setting-item-control"><input type="datetime-local" value="2026-07-21T09:00" class="ogenda-form-datetime"></div></div>
+  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">End</div></div><div class="setting-item-control"><input type="datetime-local" value="2026-07-21T10:00" class="ogenda-form-datetime"></div></div>
+  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">Location</div></div><div class="setting-item-control"><input type="text" value="Room A" style="width:100%"></div></div>
+  <div class="setting-item">
+    <div class="setting-item-info"><div class="setting-item-name">Category</div><div class="setting-item-description">Select a preset or type a custom category.</div></div>
+    <div class="setting-item-control" style="flex-direction:column;align-items:stretch;">
+      <div class="ogenda-form-cat-chips">
+        <div class="ogenda-form-cat-chip active" style="border-left-color:#7c3aed">Work</div>
+        <div class="ogenda-form-cat-chip" style="border-left-color:#06b6d4">Personal</div>
+        <div class="ogenda-form-cat-chip" style="border-left-color:#22c55e">Study</div>
+        <div class="ogenda-form-cat-chip" style="border-left-color:#f59e0b">Meeting</div>
+        <div class="ogenda-form-cat-chip" style="border-left-color:#ef4444">Travel</div>
+        <div class="ogenda-form-cat-chip" style="border-left-color:#a855f7">Health</div>
+      </div>
+      <input type="text" value="Work" class="ogenda-form-cat-input">
+    </div>
+  </div>
+  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">Description</div></div><div class="setting-item-control"><textarea class="ogenda-form-desc">Weekly sync with the product team.</textarea></div></div>
+  <div class="ogenda-form-more-toggle">▸ More options</div>
+  <div class="ogenda-form-error"></div>
+  <div class="ogenda-form-buttons"><button class="mod-cta">Save</button></div>
+</div>
+
+</div>
+</body>
+</html>

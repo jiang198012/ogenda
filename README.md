@@ -1,0 +1,237 @@
+# Ogenda
+
+> Two-way calendar sync (CalDAV / iCloud) with an agenda panel inside Obsidian.
+
+[![GitHub stars](https://img.shields.io/github/stars/jiang198012/ogenda?style=flat-square)](https://github.com/jiang198012/ogenda/stargazers)
+[![Version](https://img.shields.io/github/package-json/v/jiang198012/ogenda?style=flat-square)](https://github.com/jiang198012/ogenda/releases)
+[![License](https://img.shields.io/github/license/jiang198012/ogenda?style=flat-square)](https://github.com/jiang198012/ogenda#license)
+
+Ogenda adds a dedicated calendar/agenda panel to Obsidian. It keeps your events in local Markdown notes while syncing back and forth with CalDAV or iCloud, so your calendar stays portable and your notes stay in the vault.
+
+> **⚠️ Desktop and mobile are supported.** Obsidian **1.5.0+** is required. CalDAV sync needs a reachable server endpoint.
+
+---
+
+## 📸 Screenshots
+
+| List view | Day view |
+| --- | --- |
+| ![List view](screenshots/list-view.png) | ![Day view](screenshots/day-view.png) |
+
+| Week view | Month view |
+| --- | --- |
+| ![Week view](screenshots/week-view.png) | ![Month view](screenshots/month-view.png) |
+
+| Stats view | New event |
+| --- | --- |
+| ![Stats view](screenshots/stats-view.png) | ![New event modal](screenshots/new-event-modal.png) |
+
+| Settings | Mobile (375 px) |
+| --- | --- |
+| ![Settings](screenshots/settings-view.png) | ![Mobile view](screenshots/mobile-view.png) |
+
+> If you find Ogenda useful, consider giving the repo a ⭐ — it helps others discover it.
+
+---
+
+## ✨ What’s New
+
+- **v0.0.5** — **Mobile responsive layout**: the agenda panel now adapts to narrow Obsidian side panes and Android/iPhone screens.
+- **v0.0.5** — **Category chips**: preset categories with color-coded chips in the event form and event rows.
+- **v0.0.5** — **Bilingual UI**: English / 简体中文 labels follow Obsidian locale or the chosen plugin language.
+
+---
+
+## 🚀 Features
+
+- **Two-way sync** — pull from and push to CalDAV / iCloud calendars.
+- **Local Markdown storage** — every event lives in a monthly note inside your vault, alongside your own prose.
+- **Five views** — List, Day, Week, Month, and Stats dashboards.
+- **Event editor** — create and edit events with category chips, status, location, organizer, attendees, and recurrence.
+- **Mobile friendly** — works in Obsidian on desktop, tablet, and phone.
+- **i18n** — English and Chinese out of the box.
+- **Conflict-safe sync** — server changes are merged without overwriting your manual notes.
+
+---
+
+## 📋 Requirements
+
+- Obsidian **1.5.0** or newer.
+- For sync: a CalDAV server (iCloud, Nextcloud, Fastmail, etc.) or an iCloud account with app-specific password.
+
+---
+
+## 📦 Installation
+
+### Community plugins (when available)
+
+1. Open **Settings → Community plugins → Browse**.
+2. Search for **Ogenda**.
+3. Click **Install**, then **Enable**.
+
+### BRAT (beta)
+
+1. Install the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin.
+2. Open the BRAT settings and add `jiang198012/ogenda`.
+3. Enable Ogenda in **Community plugins**.
+
+### Manual
+
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/jiang198012/ogenda/releases).
+2. Copy them into `.obsidian/plugins/ogenda/` inside your vault.
+3. Open **Settings → Community plugins**, find **Ogenda**, and enable it.
+
+---
+
+## ⚙️ First-time setup
+
+1. Open **Settings → Ogenda**.
+2. Choose your **sync provider**: `CalDAV` or `iCloud`.
+3. Fill in the provider details (URL, user, password / app-specific password).
+4. Pick a **storage folder** for the monthly event notes (default: `Agenda`).
+5. Click **Sync** in the panel toolbar.
+
+The first sync creates one Markdown file per month, e.g. `Agenda/2026-07.md`. You can add your own notes under any event block; Ogenda preserves them on later syncs.
+
+---
+
+## 🖱️ Usage
+
+- Open the command palette and run **Ogenda: Open agenda panel**.
+- Switch between **List / Day / Week / Month / Stats** tabs.
+- Click **New event** or an existing event card to edit.
+- Use the **Today** button or the arrow buttons to move through time.
+- Press **Sync** to refresh from the server and push local changes.
+
+---
+
+## 🛠️ Troubleshooting
+
+| Symptom | Likely cause | Fix |
+| --- | --- | --- |
+| Sync fails with 401/403 | Bad credentials or app-specific password | Re-enter user/password in settings; use an app-specific password for iCloud. |
+| Events not appearing after sync | Wrong CalDAV URL or no calendars found | Check the CalDAV URL and verify the account has at least one writable calendar. |
+| Duplicate events appear | UID collision after import/export | Delete the duplicate blocks manually and re-sync. |
+| Mobile layout looks cramped | Obsidian pane too narrow | Drag the pane wider or rotate the device; Ogenda adapts below 480 px. |
+
+---
+
+## 🙏 Credits
+
+Ogenda is an independent project and is not affiliated with Obsidian or Apple.
+
+---
+
+## License
+
+MIT © jiang
+
+---
+
+# 中文说明
+
+> 在 Obsidian 内部实现双向日历同步（CalDAV / iCloud）的议程面板插件。
+
+[![GitHub stars](https://img.shields.io/github/stars/jiang198012/ogenda?style=flat-square)](https://github.com/jiang198012/ogenda/stargazers)
+[![Version](https://img.shields.io/github/package-json/v/jiang198012/ogenda?style=flat-square)](https://github.com/jiang198012/ogenda/releases)
+[![License](https://img.shields.io/github/license/jiang198012/ogenda?style=flat-square)](https://github.com/jiang198012/ogenda#license)
+
+Ogenda 为 Obsidian 增加了一个专门的日历/议程面板。它把事件保存在本地的 Markdown 笔记中，同时与 CalDAV 或 iCloud 双向同步，让你的日历可随身携带，笔记始终留在仓库里。
+
+> **⚠️ 支持桌面端与移动端。** 需要 Obsidian **1.5.0+**。CalDAV 同步需要可访问的服务器地址。
+
+## 📸 截图
+
+| 列表视图 | 日视图 |
+| --- | --- |
+| ![列表视图](screenshots/list-view.png) | ![日视图](screenshots/day-view.png) |
+
+| 周视图 | 月视图 |
+| --- | --- |
+| ![周视图](screenshots/week-view.png) | ![月视图](screenshots/month-view.png) |
+
+| 统计视图 | 新建事件 |
+| --- | --- |
+| ![统计视图](screenshots/stats-view.png) | ![新建事件弹窗](screenshots/new-event-modal.png) |
+
+| 设置 | 移动端（375 px） |
+| --- | --- |
+| ![设置](screenshots/settings-view.png) | ![移动端](screenshots/mobile-view.png) |
+
+> 如果 Ogenda 对你有帮助，欢迎给仓库点个 ⭐，让更多人看到它。
+
+## ✨ 更新日志
+
+- **v0.0.5** — **移动端响应式布局**：议程面板现在能适配窄边栏与 Android / iPhone 屏幕。
+- **v0.0.5** — **分类标签**：事件表单和事件行支持带颜色的预设分类标签。
+- **v0.0.5** — **双语界面**：英文 / 简体中文标签会根据 Obsidian 语言或插件设置自动切换。
+
+## 🚀 功能
+
+- **双向同步** — 从 CalDAV / iCloud 拉取事件，也可将本地修改推回服务器。
+- **本地 Markdown 存储** — 每个事件都保存在仓库的月度笔记中，可附加你自己的文字。
+- **五种视图** — 列表、日、周、月、统计仪表盘。
+- **事件编辑器** — 使用分类标签、状态、地点、组织者、参与者、重复规则来创建和编辑事件。
+- **移动端友好** — 支持桌面、平板和手机上的 Obsidian。
+- **国际化** — 内置英文与中文。
+- **安全同步** — 服务器变更会与你的手动笔记合并，不会直接覆盖。
+
+## 📋 环境要求
+
+- Obsidian **1.5.0** 或更高版本。
+- 若使用同步：CalDAV 服务器（iCloud、Nextcloud、Fastmail 等）或开启应用专用密码的 iCloud 账号。
+
+## 📦 安装
+
+### 社区插件（上架后）
+
+1. 打开 **设置 → 社区插件 → 浏览**。
+2. 搜索 **Ogenda**。
+3. 点击 **安装**，然后 **启用**。
+
+### BRAT（测试版）
+
+1. 安装 [BRAT](https://github.com/TfTHacker/obsidian42-brat) 插件。
+2. 在 BRAT 设置中添加 `jiang198012/ogenda`。
+3. 在 **社区插件** 中启用 Ogenda。
+
+### 手动安装
+
+1. 从 [latest release](https://github.com/jiang198012/ogenda/releases) 下载 `main.js`、`manifest.json` 和 `styles.css`。
+2. 复制到仓库的 `.obsidian/plugins/ogenda/` 目录下。
+3. 打开 **设置 → 社区插件**，找到 **Ogenda** 并启用。
+
+## ⚙️ 首次设置
+
+1. 打开 **设置 → Ogenda**。
+2. 选择 **同步方式**：`CalDAV` 或 `iCloud`。
+3. 填写服务商信息（URL、用户名、密码 / 应用专用密码）。
+4. 选择月度事件笔记的**存储文件夹**（默认：`Agenda`）。
+5. 点击面板工具栏的 **Sync（同步）**。
+
+首次同步会按月生成 Markdown 文件，例如 `Agenda/2026-07.md`。你可以在事件块下方添加自己的笔记，后续同步会保留这些内容。
+
+## 🖱️ 使用
+
+- 打开命令面板，运行 **Ogenda: Open agenda panel**。
+- 在 **列表 / 日 / 周 / 月 / 统计** 标签之间切换。
+- 点击 **New event（新建事件）** 或已有事件卡片进行编辑。
+- 使用 **Today（今天）** 按钮或左右箭头在不同时间之间跳转。
+- 点击 **Sync（同步）** 从服务器刷新并推送本地修改。
+
+## 🛠️ 常见问题
+
+| 现象 | 可能原因 | 解决方法 |
+| --- | --- | --- |
+| 同步报 401/403 | 凭据错误或应用专用密码不对 | 在设置中重新输入用户名/密码；iCloud 请使用应用专用密码。 |
+| 同步后事件未出现 | CalDAV URL 错误或没有可写日历 | 检查 CalDAV URL，并确认账号下至少有一个可写日历。 |
+| 出现重复事件 | 导入/导出后 UID 冲突 | 手动删除重复块，然后重新同步。 |
+| 移动端布局拥挤 | Obsidian 边栏太窄 | 拉宽边栏或旋转设备；Ogenda 在 480 px 以下会自动适配。 |
+
+## 🙏 致谢
+
+Ogenda 是独立项目，与 Obsidian 或 Apple 没有关联。
+
+## License
+
+MIT © jiang

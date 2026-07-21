@@ -1,0 +1,182 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ogenda</title>
+<style>
+
+:root {
+  --background-primary: #ffffff;
+  --background-secondary: #f5f5f5;
+  --background-modifier-hover: #e8e8e8;
+  --background-modifier-active-hover: #dcdcdc;
+  --background-modifier-border: #d4d4d4;
+  --interactive-accent: #7c3aed;
+  --interactive-accent-hover: #6d28d9;
+  --text-normal: #1f2937;
+  --text-muted: #6b7280;
+  --text-faint: #9ca3af;
+  --text-on-accent: #ffffff;
+  --text-error: #dc2626;
+  --font-text-size: 16px;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--background-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--text-normal);
+}
+.viewport {
+  width: 900px;
+  min-height: 800px;
+  border: 1px solid var(--background-modifier-border);
+  overflow: hidden;
+}
+</style>
+<link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+<div class="viewport">
+<div class="ogenda-panel">
+  <div class="ogenda-panel-head">
+    <div class="ogenda-panel-tabs">
+      <div class="ogenda-panel-tab active">List</div>
+      <div class="ogenda-panel-tab">Day</div>
+      <div class="ogenda-panel-tab">Week</div>
+      <div class="ogenda-panel-tab">Month</div>
+      <div class="ogenda-panel-tab">Stats</div>
+    </div>
+    <div class="ogenda-panel-nav">
+      <span class="ogenda-navbtn">‹</span>
+      <span class="ogenda-navtoday">Today · Jul 21</span>
+      <span class="ogenda-navbtn">›</span>
+      <span class="ogenda-navtoday-btn">Today</span>
+    </div>
+    <div class="ogenda-panel-newbtn">New event</div>
+    <div class="ogenda-panel-syncbtn"><span>Sync</span></div>
+  </div>
+  <div class="ogenda-panel-body">
+<div class="ogenda-month-grid">
+  <div class="ogenda-month-dow">M</div>
+  <div class="ogenda-month-dow">T</div>
+  <div class="ogenda-month-dow">W</div>
+  <div class="ogenda-month-dow">T</div>
+  <div class="ogenda-month-dow">F</div>
+  <div class="ogenda-month-dow">S</div>
+  <div class="ogenda-month-dow">S</div>
+  <div class="ogenda-month-cell ogenda-month-othermonth">
+    <div class="ogenda-month-daynum">29</div>
+  </div>
+  <div class="ogenda-month-cell ogenda-month-othermonth">
+    <div class="ogenda-month-daynum">30</div>
+  </div>
+  <div class="ogenda-month-cell ogenda-month-othermonth">
+    <div class="ogenda-month-daynum">31</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">1</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">2</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">3</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">4</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">5</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">6</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">7</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">8</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">9</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">10</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">11</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">12</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">13</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">14</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">15</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">16</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">17</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">18</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">19</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">20</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">21</div>
+    <div class="ogenda-month-mini" style="border-left-color:#7c3aed">Standup</div>
+    <div class="ogenda-month-mini" style="border-left-color:#06b6d4">Review</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">22</div>
+    <div class="ogenda-month-mini" style="border-left-color:#f59e0b">Planning</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">23</div>
+    <div class="ogenda-month-mini" style="border-left-color:#22c55e">Gym</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">24</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">25</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">26</div>
+    <div class="ogenda-month-mini" style="border-left-color:#ef4444">Brunch</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">27</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">28</div>
+  </div>
+  <div class="ogenda-month-cell ogenda-month-othermonth">
+    <div class="ogenda-month-daynum">29</div>
+  </div>
+  <div class="ogenda-month-cell ogenda-month-othermonth">
+    <div class="ogenda-month-daynum">30</div>
+  </div>
+  <div class="ogenda-month-cell ogenda-month-othermonth">
+    <div class="ogenda-month-daynum">31</div>
+  </div>
+</div>
+  </div>
+</div>
+</div>
+</body>
+</html>
