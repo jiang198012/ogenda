@@ -1,3 +1,5 @@
+import { getLanguage } from "../i18n";
+
 interface CuratedZone {
   iana: string;
   cityZh: string;
@@ -66,10 +68,14 @@ export interface TimezoneOption {
 }
 
 export function buildTimezoneOptions(now: Date = new Date()): TimezoneOption[] {
-  return CURATED_ZONES.map((z) => ({
-    iana: z.iana,
-    cityZh: z.cityZh,
-    cityEn: z.cityEn,
-    label: `${formatOffset(offsetMinutes(z.iana, now))}(${z.cityZh})`,
-  }));
+  const lang = getLanguage();
+  return CURATED_ZONES.map((z) => {
+    const city = lang === "zh" ? z.cityZh : z.cityEn;
+    return {
+      iana: z.iana,
+      cityZh: z.cityZh,
+      cityEn: z.cityEn,
+      label: `${formatOffset(offsetMinutes(z.iana, now))}(${city})`,
+    };
+  });
 }

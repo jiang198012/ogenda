@@ -1,8 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { buildTimezoneOptions } from "../../src/settings/timezone-options";
+import { setLanguage } from "../../src/i18n";
 
 describe("buildTimezoneOptions", () => {
-  it("formats each option as '<+/-H:MM>(<city>)' using the current offset for the given instant", () => {
+  afterEach(() => {
+    setLanguage("en");
+  });
+
+  it("formats each option as '<+/-H:MM>(<city>)' using Chinese city names when language is zh", () => {
+    setLanguage("zh");
     const now = new Date("2026-07-18T12:00:00Z");
     const options = buildTimezoneOptions(now);
     const beijing = options.find((o) => o.iana === "Asia/Shanghai");
@@ -11,7 +17,15 @@ describe("buildTimezoneOptions", () => {
     expect(tokyo?.label).toBe("+9:00(东京)");
   });
 
-  it("recomputes DST-affected offsets correctly across winter/summer", () => {
+  it("uses English city names when language is en", () => {
+    setLanguage("en");
+    const options = buildTimezoneOptions(new Date("2026-07-18T12:00:00Z"));
+    expect(options.find((o) => o.iana === "Asia/Shanghai")?.label).toBe("+8:00(Beijing)");
+    expect(options.find((o) => o.iana === "Asia/Tokyo")?.label).toBe("+9:00(Tokyo)");
+  });
+
+  it("recomputes DST-affected offsets correctly across winter/summer in the current language", () => {
+    setLanguage("zh");
     const winter = buildTimezoneOptions(new Date("2026-01-15T12:00:00Z"));
     const summer = buildTimezoneOptions(new Date("2026-07-15T12:00:00Z"));
     const laWinter = winter.find((o) => o.iana === "America/Los_Angeles");
