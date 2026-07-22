@@ -8,7 +8,7 @@
 
 Ogenda adds a dedicated calendar/agenda panel to Obsidian. It keeps your events in local Markdown notes while syncing back and forth with CalDAV or iCloud, so your calendar stays portable and your notes stay in the vault.
 
-> **⚠️ Desktop and mobile are supported.** Obsidian **1.5.0+** is required. CalDAV sync needs a reachable server endpoint.
+> **⚠️ Desktop and mobile are supported.** Obsidian **1.7.2+** is required. CalDAV sync needs a reachable server endpoint.
 
 ---
 
@@ -36,6 +36,9 @@ Ogenda adds a dedicated calendar/agenda panel to Obsidian. It keeps your events 
 
 ## ✨ What’s New
 
+- **v0.0.7** — **All-day events made simpler**: same-day all-day events are now valid, the end-time hint is removed, and multi-day events are shown on every day they span.
+- **v0.0.7** — **Cross-day event display**: timed and all-day events that span midnight now appear on each calendar day they cover.
+- **v0.0.6** — **Automated market checks fixed**: release tags now match `manifest.json` exactly, `minAppVersion` is raised to **1.7.2**, and GitHub artifact attestations are produced for every release.
 - **v0.0.5** — **Mobile responsive layout**: the agenda panel now adapts to narrow Obsidian side panes and Android/iPhone screens.
 - **v0.0.5** — **Category chips**: preset categories with color-coded chips in the event form and event rows.
 - **v0.0.5** — **Bilingual UI**: English / 简体中文 labels follow Obsidian locale or the chosen plugin language.
@@ -56,7 +59,7 @@ Ogenda adds a dedicated calendar/agenda panel to Obsidian. It keeps your events 
 
 ## 📋 Requirements
 
-- Obsidian **1.5.0** or newer.
+- Obsidian **1.7.2** or newer.
 - For sync: a CalDAV server (iCloud, Nextcloud, Fastmail, etc.) or an iCloud account with app-specific password.
 
 ---
@@ -138,7 +141,7 @@ MIT © jiang
 
 Ogenda 为 Obsidian 增加了一个专门的日历/议程面板。它把事件保存在本地的 Markdown 笔记中，同时与 CalDAV 或 iCloud 双向同步，让你的日历可随身携带，笔记始终留在仓库里。
 
-> **⚠️ 支持桌面端与移动端。** 需要 Obsidian **1.5.0+**。CalDAV 同步需要可访问的服务器地址。
+> **⚠️ 支持桌面端与移动端。** 需要 Obsidian **1.7.2+**。CalDAV 同步需要可访问的服务器地址。
 
 ## 📸 截图
 
@@ -162,6 +165,9 @@ Ogenda 为 Obsidian 增加了一个专门的日历/议程面板。它把事件�
 
 ## ✨ 更新日志
 
+- **v0.0.7** — **全天事件更直观**：允许开始和结束为同一天的全天事件，移除结束时间提示中的歧义，跨天日程会在覆盖的每一天都显示。
+- **v0.0.7** — **跨天事件展示**：跨越午夜的有时间事件和全天事件，现在会显示在它们覆盖的每个日历日上。
+- **v0.0.6** — **修复市场自动化检查**：Release tag 与 `manifest.json` 版本严格一致，`minAppVersion` 提升至 **1.7.2**，并为每次 Release 生成 GitHub 工件来源证明。
 - **v0.0.5** — **移动端响应式布局**：议程面板现在能适配窄边栏与 Android / iPhone 屏幕。
 - **v0.0.5** — **分类标签**：事件表单和事件行支持带颜色的预设分类标签。
 - **v0.0.5** — **双语界面**：英文 / 简体中文标签会根据 Obsidian 语言或插件设置自动切换。
@@ -178,7 +184,7 @@ Ogenda 为 Obsidian 增加了一个专门的日历/议程面板。它把事件�
 
 ## 📋 环境要求
 
-- Obsidian **1.5.0** 或更高版本。
+- Obsidian **1.7.2** 或更高版本。
 - 若使用同步：CalDAV 服务器（iCloud、Nextcloud、Fastmail 等）或开启应用专用密码的 iCloud 账号。
 
 ## 📦 安装
