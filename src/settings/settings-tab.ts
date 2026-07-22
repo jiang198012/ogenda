@@ -38,7 +38,7 @@ export class OgendaSettingTab extends PluginSettingTab {
       });
 
     // Category
-    containerEl.createEl("h3", { text: t("settings.category.section") });
+    new Setting(containerEl).setName(t("settings.category.section")).setHeading();
     const currentDefault = s.defaultCategory || getDefaultCategory();
     const catOptions = getPredefinedCategories();
     const isPredefined = catOptions.some((o) => o.value === currentDefault);
@@ -65,7 +65,7 @@ export class OgendaSettingTab extends PluginSettingTab {
     });
 
     // Calendar sync
-    containerEl.createEl("h3", { text: t("settings.sync.section") });
+    new Setting(containerEl).setName(t("settings.sync.section")).setHeading();
     new Setting(containerEl)
       .setName(t("settings.sync.provider.name"))
       .setDesc(t("settings.sync.provider.desc"))
@@ -118,7 +118,7 @@ export class OgendaSettingTab extends PluginSettingTab {
       );
 
     // Storage
-    containerEl.createEl("h3", { text: t("settings.storage.section") });
+    new Setting(containerEl).setName(t("settings.storage.section")).setHeading();
     new Setting(containerEl).setName(t("settings.storage.folder.name")).addText((x) =>
       x.setValue(s.storageFolder).onChange(async (v) => { s.storageFolder = v.trim() || "Agenda"; await this.plugin.saveSettings(); }),
     );
