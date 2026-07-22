@@ -44,6 +44,12 @@ describe("eventToVCalendar", () => {
     expect(ics).toContain("DTEND;VALUE=DATE:20270101");
   });
 
+  it("uses start+1 day as DTEND when an all-day event's explicit end equals its start", () => {
+    const ics = eventToVCalendar(base({ start: "2026-07-21", end: "2026-07-21", allDay: true }));
+    expect(ics).toContain("DTSTART;VALUE=DATE:20260721");
+    expect(ics).toContain("DTEND;VALUE=DATE:20260722");
+  });
+
   it("uses the explicit end date for an all-day event when one is set", () => {
     const ics = eventToVCalendar(base({ start: "2026-07-21", end: "2026-07-23", allDay: true }));
     expect(ics).toContain("DTEND;VALUE=DATE:20260723");

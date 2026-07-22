@@ -125,7 +125,7 @@ export function validateEventForm(fields: {
   if (fields.allDay && fields.end && fields.end.trim()) {
     const s = isoToDateValue(fields.start);
     const e = isoToDateValue(fields.end);
-    if (e <= s) errors.push(t("validate.allDayEnd"));
+    if (e < s) errors.push(t("validate.allDayEnd"));
   }
   if (!fields.allDay && fields.end && fields.end.trim()) {
     const s = normSep(fields.start.trim());

@@ -1,5 +1,6 @@
 import ICAL from "ical.js";
 import { AgendaEvent } from "../core/event";
+import { startOfDay, addDays } from "./date-grid";
 
 export interface EventOccurrence {
   event: AgendaEvent;
@@ -19,6 +20,70 @@ function toIcalTime(iso: string, allDay: boolean | undefined): ICAL.Time {
   return allDay ? ICAL.Time.fromDateString(iso) : ICAL.Time.fromDateTimeString(iso);
 }
 
+function fmtDate(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+function fmtDateTime(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${fmtDate(d)}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+function expandSingleEvent(ev: AgendaEvent, rangeStart: Date, rangeEnd: Date): EventOccurrence[] {
+  const out: EventOccurrence[] = [];
+  const occStart = parseLocalDate(ev.start);
+  const occEnd = ev.end ? parseLocalDate(ev.end) : undefined;
+
+  // All-day event with no explicit end, or explicit end equal to start: single day on start.
+  if (ev.allDay && (!occEnd || occEnd.getTime() === startOfDay(occStart).getTime())) {
+    if (occStart >= rangeStart && occStart < rangeEnd) {
+      out.push({ event: ev, start: ev.start, end: ev.end });
+    }
+    return out;
+  }
+
+  // Multi-day all-day event: end date is exclusive (iCalendar semantics).
+  // Spans every day from start up to (but not including) end.
+  if (ev.allDay && occEnd) {
+    for (let d = startOfDay(occStart); d < occEnd; d = addDays(d, 1)) {
+      if (d >= rangeEnd) break;
+      if (d >= rangeStart) {
+        const dayStart = fmtDate(d);
+        const dayEnd = fmtDate(addDays(d, 1));
+        out.push({ event: ev, start: dayStart, end: dayEnd });
+      }
+    }
+    return out;
+  }
+
+  // Timed event: span from start datetime to end datetime, generating one clipped
+  // occurrence per calendar day that overlaps the range.
+  if (!ev.allDay) {
+    if (!occEnd) {
+      if (occStart >= rangeStart && occStart < rangeEnd) {
+        out.push({ event: ev, start: ev.start, end: ev.end });
+      }
+      return out;
+    }
+
+    for (let day = startOfDay(occStart); day <= startOfDay(occEnd); day = addDays(day, 1)) {
+      const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+      const dayEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1);
+      if (dayStart >= rangeEnd) break;
+      if (dayEnd <= rangeStart) continue;
+
+      const clipStart = occStart > dayStart ? occStart : dayStart;
+      const clipEnd = occEnd < dayEnd ? occEnd : dayEnd;
+      if (clipStart < clipEnd) {
+        out.push({ event: ev, start: fmtDateTime(clipStart), end: fmtDateTime(clipEnd) });
+      }
+    }
+  }
+
+  return out;
+}
+
 export function expandOccurrences(
   events: AgendaEvent[],
   rangeStart: Date,
@@ -28,10 +93,7 @@ export function expandOccurrences(
 
   for (const ev of events) {
     if (!ev.rrule) {
-      const occStart = parseLocalDate(ev.start);
-      if (occStart >= rangeStart && occStart < rangeEnd) {
-        out.push({ event: ev, start: ev.start, end: ev.end });
-      }
+      out.push(...expandSingleEvent(ev, rangeStart, rangeEnd));
       continue;
     }
 

@@ -36,8 +36,8 @@ describe("validateEventForm", () => {
     expect(validateEventForm({ title: "   ", start: "2026-07-20" }).valid).toBe(false);
   });
 
-  it("rejects an all-day event whose end is on or before the start (zero-length, #54)", () => {
-    expect(validateEventForm({ title: "x", start: "2026-07-14", end: "2026-07-14", allDay: true }).valid).toBe(false);
+  it("accepts a same-day all-day event and rejects an end date before the start", () => {
+    expect(validateEventForm({ title: "x", start: "2026-07-14", end: "2026-07-14", allDay: true }).valid).toBe(true);
     expect(validateEventForm({ title: "x", start: "2026-07-14", end: "2026-07-13", allDay: true }).valid).toBe(false);
   });
   it("accepts an all-day event whose end is the next day (exclusive)", () => {

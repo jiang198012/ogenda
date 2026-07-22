@@ -61,4 +61,34 @@ describe("expandOccurrences", () => {
       else process.env.TZ = originalTz;
     }
   });
+
+  it("expands a same-day all-day event with explicit end equal to start", () => {
+    const ev = mk({ start: "2026-07-13", end: "2026-07-13", allDay: true });
+    const out = expandOccurrences([ev], new Date(2026, 6, 13), new Date(2026, 6, 14));
+    expect(out).toEqual([{ event: ev, start: "2026-07-13", end: "2026-07-13" }]);
+  });
+
+  it("expands a multi-day all-day event across each day it spans", () => {
+    const ev = mk({ start: "2026-07-13", end: "2026-07-15", allDay: true });
+    const out = expandOccurrences([ev], new Date(2026, 6, 13), new Date(2026, 6, 16));
+    expect(out.map((o) => ({ start: o.start, end: o.end }))).toEqual([
+      { start: "2026-07-13", end: "2026-07-14" },
+      { start: "2026-07-14", end: "2026-07-15" },
+    ]);
+  });
+
+  it("expands a timed event across midnight into each calendar day", () => {
+    const ev = mk({ start: "2026-07-13T22:00:00", end: "2026-07-14T10:00:00" });
+    const out = expandOccurrences([ev], new Date(2026, 6, 13), new Date(2026, 6, 15));
+    expect(out.map((o) => ({ start: o.start, end: o.end }))).toEqual([
+      { start: "2026-07-13T22:00:00", end: "2026-07-14T00:00:00" },
+      { start: "2026-07-14T00:00:00", end: "2026-07-14T10:00:00" },
+    ]);
+  });
+
+  it("clips a multi-day event to the requested range", () => {
+    const ev = mk({ start: "2026-07-12T22:00:00", end: "2026-07-15T10:00:00" });
+    const out = expandOccurrences([ev], new Date(2026, 6, 13), new Date(2026, 6, 14));
+    expect(out.map((o) => o.start)).toEqual(["2026-07-13T00:00:00"]);
+  });
 });

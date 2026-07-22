@@ -52,8 +52,9 @@ export function eventToVCalendar(ev: AgendaEvent): string {
   if (ev.allDay) {
     lines.push(`DTSTART;VALUE=DATE:${toICalDate(ev.start)}`);
     // iCloud rejects all-day PUT-creates with no DTEND (empty-body 404) even though
-    // RFC 5545 treats it as optional; always send one, defaulting to a 1-day span.
-    const end = ev.end ?? addOneDay(ev.start);
+    // RFC 5545 treats it as optional; always send one.
+    // An explicit end equal to start means a single-day all-day event.
+    const end = ev.end && ev.end > ev.start ? ev.end : addOneDay(ev.start);
     lines.push(`DTEND;VALUE=DATE:${toICalDate(end)}`);
   } else {
     const dt = toICalDateTime(ev.start);
