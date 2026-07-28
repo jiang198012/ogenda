@@ -5,8 +5,9 @@ export interface DiscoveredCalendar {
 
 /**
  * Parse a calendar-home PROPFIND (Depth: 1) multistatus into selectable calendars.
- * Keeps only writable calendar collections: the home collection itself, schedule
- * inbox/outbox and read-only subscriptions are skipped.
+ * Keeps only writable VEVENT calendars: the home collection itself, schedule
+ * inbox/outbox, read-only subscriptions and reminder lists are skipped —
+ * iCloud reports VTODO reminder lists as calendar collections too.
  */
 export function parseCalendarList(xml: string, homeUrl: string): DiscoveredCalendar[] {
   const doc = new DOMParser().parseFromString(xml, "application/xml");
@@ -18,6 +19,7 @@ export function parseCalendarList(xml: string, homeUrl: string): DiscoveredCalen
     let href = "";
     let displayName = "";
     const types = new Set<string>();
+    const comps = new Set<string>();
     for (let j = 0; j < inner.length; j++) {
       const el = inner[j];
       if (el.localName === "href" && !href) href = (el.textContent || "").trim();
@@ -25,11 +27,16 @@ export function parseCalendarList(xml: string, homeUrl: string): DiscoveredCalen
       else if (el.localName === "resourcetype") {
         const kinds = el.getElementsByTagName("*");
         for (let k = 0; k < kinds.length; k++) types.add(kinds[k].localName || "");
+      } else if (el.localName === "supported-calendar-component-set") {
+        const kinds = el.getElementsByTagName("*");
+        for (let k = 0; k < kinds.length; k++) comps.add(kinds[k].getAttribute("name") || "");
       }
     }
     if (!href) continue;
     if (!types.has("calendar")) continue;
     if (types.has("subscribed") || types.has("schedule-inbox") || types.has("schedule-outbox")) continue;
+    // No component set advertised means "all components" per RFC 4791.
+    if (comps.size && !comps.has("VEVENT")) continue;
     const url = new URL(href, homeUrl).toString();
     out.push({ name: displayName || lastSegment(url), url });
   }
