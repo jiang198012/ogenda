@@ -36,6 +36,9 @@ Ogenda adds a dedicated calendar/agenda panel to Obsidian. It keeps your events 
 
 ## ✨ What’s New
 
+- **v0.0.9** — **Sync fixes**: the panel now refreshes when a sync finishes, so it can no longer show — or let you edit — a version the server has already replaced. A stalled CalDAV request fails after 30s instead of hanging the sync with no notice at all.
+- **v0.0.9** — **Calendar picker fixed**: iCloud reports reminder lists as calendars, so the picker used to offer duplicates that could never be written to. Only real event calendars are listed now.
+- **v0.0.9** — **Editing fixes**: toggling all-day off keeps the time you had entered; changing the storage folder takes effect without reopening the panel; the list view steps one day at a time; unreadable entries in a monthly note are reported instead of silently skipped.
 - **v0.0.8** — **Easier iCloud setup**: the app-specific password and calendar URL fields now tell you where to get the value and show an example format, and a button fetches your iCloud calendars so you can pick one from a dropdown.
 - **v0.0.8** — **Show/hide password**: an eye button toggles the iCloud and CalDAV password fields between masked and readable.
 - **v0.0.8** — **Month view readability**: day cells keep a minimum and maximum width, and long event titles wrap instead of being clipped.
@@ -168,6 +171,9 @@ Ogenda 为 Obsidian 增加了一个专门的日历/议程面板。它把事件�
 
 ## ✨ 更新日志
 
+- **v0.0.9** — **同步修复**：同步完成后面板会自动刷新，不会再显示、甚至让你编辑一个服务器上已经更新过的旧版本；CalDAV 请求卡住时 30 秒后失败退出，不再无声挂起。
+- **v0.0.9** — **日历选择修复**：iCloud 会把提醒事项列表也当作日历返回，导致选择列表里出现重名且无法写入的条目。现在只列出真正的事件日历。
+- **v0.0.9** — **编辑修复**：关闭「全天」不再丢失已填的时间；修改存储文件夹无需重开面板即可生效；清单视图改为按天翻页；月度笔记中无法解析的条目会给出提示，不再静默跳过。
 - **v0.0.8** — **iCloud 配置更省心**：App 专用密码与日历 URL 字段给出获取路径和示例格式，并新增按钮一键获取 iCloud 日历列表，从下拉中直接选择。
 - **v0.0.8** — **密码显隐切换**：iCloud 与 CalDAV 密码字段新增眼睛按钮，可在掩码与明文之间切换。
 - **v0.0.8** — **月视图更耐看**：日期格子有了最小与最大宽度，过长的事件标题会自动换行而不再被截断。
