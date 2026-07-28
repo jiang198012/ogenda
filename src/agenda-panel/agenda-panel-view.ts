@@ -1,7 +1,7 @@
 // src/agenda-panel/agenda-panel-view.ts
 import { ItemView, WorkspaceLeaf, Modal, Notice, setIcon } from "obsidian";
 import { AgendaEvent } from "../core/event";
-import { LocalEvent, MonthlyStore } from "../store/monthly-store";
+import { MonthlyStore } from "../store/monthly-store";
 import { expandOccurrences } from "./occurrences";
 import { startOfWeek, startOfDay, addDays, monthGridWeeks, toDateKey } from "./date-grid";
 import { openEventSource } from "./navigate";
@@ -18,7 +18,7 @@ import { localToEvent } from "./local-to-event";
 import { createColorResolver } from "./colors";
 import { formatDate, formatWeek, formatMonth } from "./date-format";
 import { getLanguage, t } from "../i18n";
-import { isAtToday } from "./today-nav";
+import { isAtToday, shiftAnchorFor } from "./today-nav";
 
 export const AGENDA_PANEL_VIEW_TYPE = "ogenda-agenda-panel";
 
@@ -31,10 +31,10 @@ export class AgendaPanelView extends ItemView {
 
   constructor(
     leaf: WorkspaceLeaf,
-    private store: MonthlyStore,
-    private folder: string,
+    private getStore: () => MonthlyStore,
+    private getFolder: () => string,
     private timezone: string | undefined,
-    private triggerSync: () => void,
+    private triggerSync: () => Promise<void>,
     private getSyncProvider: () => string,
     private getDefaultCategory: () => string,
   ) {
@@ -93,9 +93,9 @@ export class AgendaPanelView extends ItemView {
   }
 
   private async saveEvent(event: AgendaEvent): Promise<void> {
-    await this.store.savePanelEvent(event);
+    await this.getStore().savePanelEvent(event);
     this.maybeWarnIcsReadonly();
-    this.triggerSync();
+    void this.triggerSync();
     await this.render();
   }
 
@@ -112,9 +112,9 @@ export class AgendaPanelView extends ItemView {
     deleteBtn.addEventListener("click", () => {
       modal.close();
       void (async () => {
-        await this.store.removeByUid([event.uid]);
+        await this.getStore().removeByUid([event.uid]);
         this.maybeWarnIcsReadonly();
-        this.triggerSync();
+        void this.triggerSync();
         await this.render();
       })();
     });
@@ -177,7 +177,8 @@ export class AgendaPanelView extends ItemView {
 
     const body = container.createDiv({ cls: "ogenda-panel-body" });
     try {
-      const local: LocalEvent[] = await this.store.readEvents();
+      const { events: local, skipped } = await this.getStore().readEvents();
+      if (skipped > 0) new Notice(t("notice.unreadableBlocks", { count: skipped }), 10000);
       const events: AgendaEvent[] = local.map(localToEvent);
       const colors = createColorResolver();
       const newBtn = head.createDiv({ cls: "ogenda-panel-newbtn", text: t("panel.newEvent") });
@@ -200,7 +201,7 @@ export class AgendaPanelView extends ItemView {
       if (this.getSyncProvider() === "none") {
         syncBtn.addClass("ogenda-disabled");
       } else {
-        syncBtn.addEventListener("click", () => this.triggerSync());
+        syncBtn.addEventListener("click", () => void this.triggerSync());
       }
 
       const onEventClick = (event: AgendaEvent) => {
@@ -211,7 +212,7 @@ export class AgendaPanelView extends ItemView {
           false,
           this.getDefaultCategory(),
           (updated) => void this.saveEvent(updated),
-          () => void openEventSource(this.app, this.folder, event),
+          () => void openEventSource(this.app, this.getFolder(), event),
           () => this.confirmDelete(event),
         ).open();
       };
@@ -269,12 +270,7 @@ export class AgendaPanelView extends ItemView {
   }
 
   private shiftAnchor(dir: 1 | -1): Date {
-    if (this.tab === "day") return addDays(this.anchor, dir);
-    if (this.tab === "week" || this.tab === "list") return addDays(this.anchor, dir * 7);
-    const targetMonth = this.anchor.getMonth() + dir;
-    const daysInTarget = new Date(this.anchor.getFullYear(), targetMonth + 1, 0).getDate();
-    const day = Math.min(this.anchor.getDate(), daysInTarget);
-    return new Date(this.anchor.getFullYear(), targetMonth, day);
+    return shiftAnchorFor(this.tab, this.anchor, dir);
   }
 
 }
