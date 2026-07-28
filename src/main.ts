@@ -21,11 +21,20 @@ export default class OgendaPlugin extends Plugin {
   settings!: OgendaSettings;
 
   async onload() {
-    await this.loadSettings();
-    setLanguage(resolveLanguage(this.settings.language, getObsidianLocale()));
-    if (!this.settings.defaultCategory) {
-      this.settings.defaultCategory = getDefaultCategory();
-      await this.saveSettings();
+    // Anything here that throws would abort onload and leave the plugin with no
+    // commands and no ribbon icon, which reads as "the plugin has no commands"
+    // rather than as a failure. Fall back to defaults and carry on instead.
+    try {
+      await this.loadSettings();
+      setLanguage(resolveLanguage(this.settings.language, getObsidianLocale()));
+      if (!this.settings.defaultCategory) {
+        this.settings.defaultCategory = getDefaultCategory();
+        await this.saveSettings();
+      }
+    } catch (e) {
+      console.error("[ogenda] settings load failed; falling back to defaults", e);
+      this.settings = sanitizeSettings(null);
+      setLanguage(resolveLanguage(this.settings.language, getObsidianLocale()));
     }
     this.addSettingTab(new OgendaSettingTab(this.app, this));
 
@@ -45,10 +54,12 @@ export default class OgendaPlugin extends Plugin {
       (leaf) =>
         new AgendaPanelView(
           leaf,
-          this.store(),
-          this.settings.storageFolder,
+          // Getters, not snapshots: settings changed while the panel is open must
+          // take effect without reopening it (storage folder used to be captured here).
+          () => this.store(),
+          () => this.settings.storageFolder,
           this.settings.timezone,
-          () => void this.syncCalendarNow(),
+          () => this.syncCalendarNow(),
           () => this.settings.syncProvider,
           () => this.settings.defaultCategory,
         ),
@@ -86,6 +97,8 @@ export default class OgendaPlugin extends Plugin {
       } catch (e) {
         new Notice(t("notice.icsImportError", { msg: (e as Error).message }));
         console.error("[ogenda] ics import error", e);
+      } finally {
+        this.refreshOpenPanels();
       }
       return;
     }
@@ -102,6 +115,9 @@ export default class OgendaPlugin extends Plugin {
     } catch (e) {
       new Notice(t("notice.twoWaySyncError", { msg: (e as Error).message }));
       console.error("[ogenda] bidirectional sync error", e);
+    } finally {
+      // Sync rewrote the monthly files; open panels still hold the pre-sync read.
+      this.refreshOpenPanels();
     }
   }
 
@@ -171,7 +187,7 @@ export default class OgendaPlugin extends Plugin {
       ...c,
       depth: "1",
       contentType: XML_CT,
-      body: `<d:propfind xmlns:d="DAV:"><d:prop><d:displayname/><d:resourcetype/></d:prop></d:propfind>`,
+      body: `<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><d:displayname/><d:resourcetype/><c:supported-calendar-component-set/></d:prop></d:propfind>`,
     });
     if (r3.status < 200 || r3.status >= 300) {
       console.log("[ogenda] calendars", r3.status, "\n" + r3.text);
@@ -187,7 +203,7 @@ export default class OgendaPlugin extends Plugin {
       new Notice(cals.length ? t("notice.discoveryDone", { count: cals.length }) : t("notice.discoveryEmpty"));
     } catch (e) {
       console.error("[ogenda] discovery failed", e);
-      new Notice(t("notice.discoveryError", { msg: (e as Error).message }));
+      new Notice(t("notice.discoveryError", { msg: (e as Error).message }), 10000);
     }
   }
 
