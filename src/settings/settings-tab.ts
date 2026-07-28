@@ -9,6 +9,13 @@ export function getObsidianLocale(): string {
   return window.localStorage.getItem("language") ?? "en";
 }
 
+/** Dropdown label; same-named calendars get their id appended so they stay tellable apart. */
+function calendarLabel(cal: DiscoveredCalendar, all: DiscoveredCalendar[]): string {
+  if (all.filter((o) => o.name === cal.name).length < 2) return cal.name;
+  const id = cal.url.replace(/\/$/, "").split("/").pop() ?? cal.url;
+  return `${cal.name} (${id})`;
+}
+
 /** Adds an eye button that toggles the field between hidden and readable. */
 function addPasswordToggle(setting: Setting, input: HTMLInputElement): void {
   setting.addExtraButton((b) => {
@@ -44,7 +51,11 @@ export class OgendaSettingTab extends PluginSettingTab {
       );
       this.display();
     } catch (e) {
-      new Notice(t("notice.discoveryError", { msg: (e as Error).message }));
+      // 10s like the sync errors: the default 5s is easy to miss, and this one
+      // carries the HTTP status the user needs to tell a wrong password apart
+      // from a network problem.
+      new Notice(t("notice.discoveryError", { msg: (e as Error).message }), 10000);
+      console.error("[ogenda] calendar discovery failed", e);
     }
   }
 
@@ -133,22 +144,24 @@ export class OgendaSettingTab extends PluginSettingTab {
       const calSetting = new Setting(containerEl)
         .setName(t("settings.icloud.calUrl.name"))
         .setDesc(t("settings.icloud.calUrl.desc"));
-      calSetting.addText((x) =>
-        x.setValue(s.icloudCalUrl).onChange(async (v) => { s.icloudCalUrl = v.trim(); await this.plugin.saveSettings(); }),
-      );
+      let calUrlText: TextComponent | undefined;
+      calSetting.addText((x) => {
+        calUrlText = x;
+        x.setValue(s.icloudCalUrl).onChange(async (v) => { s.icloudCalUrl = v.trim(); await this.plugin.saveSettings(); });
+      });
       calSetting.addExtraButton((b) =>
         b.setIcon("search").setTooltip(t("settings.icloud.calUrl.fetch")).onClick(() => void this.fetchCalendars()),
       );
       if (this.discovered.length) {
         new Setting(containerEl).setName(t("settings.icloud.calUrl.pick.name")).addDropdown((d) => {
           d.addOption("", t("settings.icloud.calUrl.pick.placeholder"));
-          for (const c of this.discovered) d.addOption(c.url, c.name);
+          for (const c of this.discovered) d.addOption(c.url, calendarLabel(c, this.discovered));
           d.setValue(this.discovered.some((c) => c.url === s.icloudCalUrl) ? s.icloudCalUrl : "");
           d.onChange(async (v) => {
             if (!v) return;
             s.icloudCalUrl = v;
+            calUrlText?.setValue(v); // update the field in place; a full re-render would drop focus
             await this.plugin.saveSettings();
-            this.display();
           });
         });
       }

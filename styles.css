@@ -1,7 +1,9 @@
 /* ogenda — Agenda panel styles (v3-UI: em-relative "activity-informational" style) */
 
 .ogenda-panel {
-  padding: 0.5em 1em 1em;
+  /* Generous bottom padding: the status bar overlays the pane, and a tall month
+     grid would otherwise end flush against it. */
+  padding: 0.5em 1em 2em;
   font-size: var(--font-text-size, 16px);
 }
 
@@ -19,6 +21,10 @@
 /* Segmented tab control (iOS-style) */
 .ogenda-panel-tabs {
   display: inline-flex;
+  /* Wrap at any width: the mobile media query keys off the window, but this
+     panel is usually a side pane that can be dragged far narrower than that. */
+  flex-wrap: wrap;
+  max-width: 100%;
   background: var(--background-modifier-hover);
   border-radius: 10px;
   padding: 3px;
