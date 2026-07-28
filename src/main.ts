@@ -4,6 +4,7 @@ import { OgendaSettingTab, getObsidianLocale } from "./settings/settings-tab";
 import { ObsidianFileStore } from "./store/obsidian-file-store";
 import { MonthlyStore } from "./store/monthly-store";
 import { CalDavConnector } from "./connectors/caldav/caldav-connector";
+import { parseCalendarList, DiscoveredCalendar } from "./connectors/caldav/parse-calendar-list";
 import { CalDavWriter } from "./connectors/caldav/caldav-writer";
 import { IcsConnector } from "./connectors/ics/ics-connector";
 import { SyncService } from "./sync/sync-service";
@@ -124,68 +125,66 @@ export default class OgendaPlugin extends Plugin {
     }
   }
 
-  // --- iCloud CalDAV discovery helper (prints calendar URLs to console) ---
+  // --- iCloud CalDAV discovery helper ---
 
-  private icloudCreds(): { user: string; pass: string } | null {
+  /** Discover the account's writable iCloud calendars. Throws with a user-facing message on failure. */
+  async caldavListCalendars(): Promise<DiscoveredCalendar[]> {
     const user = this.settings.icloudUser;
     const pass = this.settings.icloudAppPassword;
-    if (!user || !pass) {
-      new Notice(t("notice.needIcloudCreds"));
-      return null;
+    if (!user || !pass) throw new Error(t("notice.needIcloudCreds"));
+    const c = { user, pass };
+
+    const r1 = await davRequest({
+      url: "https://caldav.icloud.com/",
+      method: "PROPFIND",
+      ...c,
+      depth: "0",
+      contentType: XML_CT,
+      body: `<d:propfind xmlns:d="DAV:"><d:prop><d:current-user-principal/></d:prop></d:propfind>`,
+    });
+    const principalHref = hrefInside(r1.text, "current-user-principal");
+    if (!principalHref) {
+      console.log("[ogenda] principal", r1.status, "\n" + r1.text);
+      throw new Error(t("notice.discoveryNoPrincipal", { status: r1.status }));
     }
-    return { user, pass };
+    const principalUrl = principalHref.startsWith("http")
+      ? principalHref
+      : "https://caldav.icloud.com" + principalHref;
+
+    const r2 = await davRequest({
+      url: principalUrl,
+      method: "PROPFIND",
+      ...c,
+      depth: "0",
+      contentType: XML_CT,
+      body: `<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><c:calendar-home-set/></d:prop></d:propfind>`,
+    });
+    const homeHref = hrefInside(r2.text, "calendar-home-set");
+    if (!homeHref) {
+      console.log("[ogenda] home", r2.status, "\n" + r2.text);
+      throw new Error(t("notice.discoveryNoHome", { status: r2.status }));
+    }
+
+    const r3 = await davRequest({
+      url: homeHref,
+      method: "PROPFIND",
+      ...c,
+      depth: "1",
+      contentType: XML_CT,
+      body: `<d:propfind xmlns:d="DAV:"><d:prop><d:displayname/><d:resourcetype/></d:prop></d:propfind>`,
+    });
+    if (r3.status < 200 || r3.status >= 300) {
+      console.log("[ogenda] calendars", r3.status, "\n" + r3.text);
+      throw new Error(t("notice.discoveryFailed", { status: r3.status }));
+    }
+    return parseCalendarList(r3.text, homeHref);
   }
 
   async caldavDiscover(): Promise<void> {
-    const c = this.icloudCreds();
-    if (!c) return;
     try {
-      const r1 = await davRequest({
-        url: "https://caldav.icloud.com/",
-        method: "PROPFIND",
-        ...c,
-        depth: "0",
-        contentType: XML_CT,
-        body: `<d:propfind xmlns:d="DAV:"><d:prop><d:current-user-principal/></d:prop></d:propfind>`,
-      });
-      const principalHref = hrefInside(r1.text, "current-user-principal");
-      if (!principalHref) {
-        new Notice(t("notice.discoveryNoPrincipal", { status: r1.status }));
-        console.log("[ogenda] principal", r1.status, "\n" + r1.text);
-        return;
-      }
-      const principalUrl = principalHref.startsWith("http")
-        ? principalHref
-        : "https://caldav.icloud.com" + principalHref;
-
-      const r2 = await davRequest({
-        url: principalUrl,
-        method: "PROPFIND",
-        ...c,
-        depth: "0",
-        contentType: XML_CT,
-        body: `<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><c:calendar-home-set/></d:prop></d:propfind>`,
-      });
-      const homeHref = hrefInside(r2.text, "calendar-home-set");
-      if (!homeHref) {
-        new Notice(t("notice.discoveryNoHome", { status: r2.status }));
-        console.log("[ogenda] home", r2.status, "\n" + r2.text);
-        return;
-      }
-
-      const r3 = await davRequest({
-        url: homeHref,
-        method: "PROPFIND",
-        ...c,
-        depth: "1",
-        contentType: XML_CT,
-        body: `<d:propfind xmlns:d="DAV:"><d:prop><d:displayname/><d:resourcetype/></d:prop></d:propfind>`,
-      });
-      console.log("[ogenda] calendars status", r3.status, "\n" + r3.text);
-      const home = new URL(homeHref);
-      new Notice(
-        t("notice.discoveryDone", { principal: r1.status, home: r2.status, calendars: r3.status, origin: home.origin }),
-      );
+      const cals = await this.caldavListCalendars();
+      console.log("[ogenda] calendars", cals);
+      new Notice(cals.length ? t("notice.discoveryDone", { count: cals.length }) : t("notice.discoveryEmpty"));
     } catch (e) {
       console.error("[ogenda] discovery failed", e);
       new Notice(t("notice.discoveryError", { msg: (e as Error).message }));

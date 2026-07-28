@@ -1,19 +1,53 @@
-import { App, PluginSettingTab, Setting, TextComponent } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting, TextComponent } from "obsidian";
 import type OgendaPlugin from "../main";
 import { buildTimezoneOptions } from "./timezone-options";
 import { t, setLanguage, resolveLanguage } from "../i18n";
 import { getDefaultCategory, getPredefinedCategories } from "../agenda-panel/event-form-fields";
+import type { DiscoveredCalendar } from "../connectors/caldav/parse-calendar-list";
 
 export function getObsidianLocale(): string {
   return window.localStorage.getItem("language") ?? "en";
 }
 
+/** Adds an eye button that toggles the field between hidden and readable. */
+function addPasswordToggle(setting: Setting, input: HTMLInputElement): void {
+  setting.addExtraButton((b) => {
+    const render = () => {
+      const hidden = input.type === "password";
+      b.setIcon(hidden ? "eye" : "eye-off");
+      b.setTooltip(hidden ? t("settings.password.show") : t("settings.password.hide"));
+    };
+    render();
+    b.onClick(() => {
+      input.type = input.type === "password" ? "text" : "password";
+      render();
+    });
+  });
+}
+
 export class OgendaSettingTab extends PluginSettingTab {
   plugin: OgendaPlugin;
+  /** Calendars from the last discovery run; kept across re-renders, cleared when the provider changes. */
+  private discovered: DiscoveredCalendar[] = [];
   constructor(app: App, plugin: OgendaPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }
+  private async fetchCalendars(): Promise<void> {
+    new Notice(t("notice.discoveryFetching"));
+    try {
+      this.discovered = await this.plugin.caldavListCalendars();
+      new Notice(
+        this.discovered.length
+          ? t("notice.discoveryDone", { count: this.discovered.length })
+          : t("notice.discoveryEmpty"),
+      );
+      this.display();
+    } catch (e) {
+      new Notice(t("notice.discoveryError", { msg: (e as Error).message }));
+    }
+  }
+
   display(): void {
     const { containerEl } = this;
     const s = this.plugin.settings;
@@ -77,6 +111,7 @@ export class OgendaSettingTab extends PluginSettingTab {
         d.setValue(s.syncProvider);
         d.onChange(async (v) => {
           s.syncProvider = v as typeof s.syncProvider;
+          this.discovered = [];
           await this.plugin.saveSettings();
           this.display(); // re-render to show only the selected provider's fields
         });
@@ -86,13 +121,37 @@ export class OgendaSettingTab extends PluginSettingTab {
       new Setting(containerEl).setName(t("settings.icloud.user.name")).addText((x) =>
         x.setValue(s.icloudUser).onChange(async (v) => { s.icloudUser = v.trim(); await this.plugin.saveSettings(); }),
       );
-      new Setting(containerEl).setName(t("settings.icloud.appPassword.name")).setDesc(t("settings.icloud.appPassword.desc")).addText((x) => {
+      const pwSetting = new Setting(containerEl)
+        .setName(t("settings.icloud.appPassword.name"))
+        .setDesc(t("settings.icloud.appPassword.desc"));
+      pwSetting.addText((x) => {
         x.inputEl.type = "password";
         x.setValue(s.icloudAppPassword).onChange(async (v) => { s.icloudAppPassword = v.trim(); await this.plugin.saveSettings(); });
+        addPasswordToggle(pwSetting, x.inputEl);
       });
-      new Setting(containerEl).setName(t("settings.icloud.calUrl.name")).setDesc(t("settings.icloud.calUrl.desc")).addText((x) =>
+
+      const calSetting = new Setting(containerEl)
+        .setName(t("settings.icloud.calUrl.name"))
+        .setDesc(t("settings.icloud.calUrl.desc"));
+      calSetting.addText((x) =>
         x.setValue(s.icloudCalUrl).onChange(async (v) => { s.icloudCalUrl = v.trim(); await this.plugin.saveSettings(); }),
       );
+      calSetting.addExtraButton((b) =>
+        b.setIcon("search").setTooltip(t("settings.icloud.calUrl.fetch")).onClick(() => void this.fetchCalendars()),
+      );
+      if (this.discovered.length) {
+        new Setting(containerEl).setName(t("settings.icloud.calUrl.pick.name")).addDropdown((d) => {
+          d.addOption("", t("settings.icloud.calUrl.pick.placeholder"));
+          for (const c of this.discovered) d.addOption(c.url, c.name);
+          d.setValue(this.discovered.some((c) => c.url === s.icloudCalUrl) ? s.icloudCalUrl : "");
+          d.onChange(async (v) => {
+            if (!v) return;
+            s.icloudCalUrl = v;
+            await this.plugin.saveSettings();
+            this.display();
+          });
+        });
+      }
     } else if (s.syncProvider === "caldav") {
       new Setting(containerEl).setName(t("settings.caldav.url.name")).addText((x) =>
         x.setValue(s.caldavUrl).onChange(async (v) => { s.caldavUrl = v.trim(); await this.plugin.saveSettings(); }),
@@ -100,9 +159,13 @@ export class OgendaSettingTab extends PluginSettingTab {
       new Setting(containerEl).setName(t("settings.caldav.user.name")).addText((x) =>
         x.setValue(s.caldavUser).onChange(async (v) => { s.caldavUser = v.trim(); await this.plugin.saveSettings(); }),
       );
-      new Setting(containerEl).setName(t("settings.caldav.pass.name")).setDesc(t("settings.caldav.pass.desc")).addText((x) => {
+      const davPwSetting = new Setting(containerEl)
+        .setName(t("settings.caldav.pass.name"))
+        .setDesc(t("settings.caldav.pass.desc"));
+      davPwSetting.addText((x) => {
         x.inputEl.type = "password";
         x.setValue(s.caldavPass).onChange(async (v) => { s.caldavPass = v.trim(); await this.plugin.saveSettings(); });
+        addPasswordToggle(davPwSetting, x.inputEl);
       });
     } else if (s.syncProvider === "ics") {
       new Setting(containerEl).setName(t("settings.ics.url.name")).setDesc(t("settings.ics.url.desc")).addText((x) =>
