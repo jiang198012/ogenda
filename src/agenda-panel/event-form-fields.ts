@@ -68,6 +68,21 @@ export function dateValueToIso(v: string): string {
   return v.trim().slice(0, 10);
 }
 
+/**
+ * Put a clock time back onto a date-only value, taking it from `previous` when
+ * that still carries one and using `fallbackTime` ("HH:MM:SS") otherwise.
+ *
+ * Leaving all-day mode needs this: the date input can only hand back a bare
+ * date, so the time the user typed before switching would be lost.
+ */
+export function withTimeFrom(dateIso: string, previous: string, fallbackTime: string): string {
+  const date = isoToDateValue(dateIso);
+  if (!date) return "";
+  const p = normSep(previous.trim());
+  const time = p.includes("T") ? p.slice(11, 19) : fallbackTime;
+  return `${date}T${time.length === 5 ? `${time}:00` : time}`;
+}
+
 /** Seed value for a new event's start field, honoring the all-day default. */
 export function initialStart(prefill: string, allDay: boolean): string {
   const p = normSep(prefill.trim());

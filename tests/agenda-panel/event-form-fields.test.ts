@@ -8,6 +8,7 @@ import {
   datetimeLocalValueToIso,
   isoToDateValue,
   dateValueToIso,
+  withTimeFrom,
   initialStart,
   shiftEndWithStart,
   defaultEndFor,
@@ -135,6 +136,30 @@ describe("datetime field conversions (#51)", () => {
   });
   it("dateValueToIso: date value → date-only ISO", () => {
     expect(dateValueToIso("2026-07-14")).toBe("2026-07-14");
+  });
+});
+
+describe("withTimeFrom — restoring the clock time when leaving all-day mode", () => {
+  it("puts the previous clock time back onto a date-only value", () => {
+    expect(withTimeFrom("2026-07-28", "2026-07-28T09:00:00", "00:00:00")).toBe("2026-07-28T09:00:00");
+  });
+  it("keeps the new date when the user changed it while in all-day mode", () => {
+    expect(withTimeFrom("2026-08-03", "2026-07-28T09:30:00", "00:00:00")).toBe("2026-08-03T09:30:00");
+  });
+  it("uses the fallback when the previous value carries no time", () => {
+    expect(withTimeFrom("2026-07-28", "2026-07-28", "09:00:00")).toBe("2026-07-28T09:00:00");
+  });
+  it("pads a minute-precision previous value out to seconds", () => {
+    expect(withTimeFrom("2026-07-28", "2026-07-28T09:00", "00:00:00")).toBe("2026-07-28T09:00:00");
+  });
+  it("tolerates a lowercase t separator in the previous value", () => {
+    expect(withTimeFrom("2026-07-28", "2026-07-28t14:15:00", "00:00:00")).toBe("2026-07-28T14:15:00");
+  });
+  it("reads only the date part when given a full datetime", () => {
+    expect(withTimeFrom("2026-07-28T00:00:00", "2026-07-28T09:00:00", "00:00:00")).toBe("2026-07-28T09:00:00");
+  });
+  it("returns empty when there is no date to work with", () => {
+    expect(withTimeFrom("", "2026-07-28T09:00:00", "09:00:00")).toBe("");
   });
 });
 

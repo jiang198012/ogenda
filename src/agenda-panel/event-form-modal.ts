@@ -10,6 +10,7 @@ import {
   isoToDatetimeLocalValue,
   dateValueToIso,
   datetimeLocalValueToIso,
+  withTimeFrom,
   shiftEndWithStart,
   defaultEndFor,
   RSVP_OPTIONS,
@@ -70,9 +71,19 @@ export class EventFormModal extends Modal {
 
     new Setting(contentEl).setName(t("form.allDay.name")).addToggle((tg) =>
       tg.setValue(this.fields.allDay).onChange((v) => {
+        const prevStart = this.fields.start;
+        const prevEnd = this.fields.end;
         this.fields.start = this.readDateInput(this.startInput);
         this.fields.end = this.readDateInput(this.endInput);
         this.fields.allDay = v;
+        if (!v) {
+          // The date input only hands back a bare date, so put the clock time back.
+          this.fields.start = withTimeFrom(this.fields.start, prevStart, "09:00:00");
+          if (this.fields.end) {
+            const oneHourOn = defaultEndFor(this.fields.start, false);
+            this.fields.end = withTimeFrom(this.fields.end, prevEnd, oneHourOn.slice(11, 19) || "10:00:00");
+          }
+        }
         this.applyDateInputs();
         this.updateValidity();
       }),
