@@ -1,7 +1,7 @@
 {
   "id": "ogenda",
   "name": "Ogenda",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "minAppVersion": "1.7.2",
   "description": "Two-way calendar sync (CalDAV/iCloud) with an agenda view.",
   "author": "jiang",

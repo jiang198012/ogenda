@@ -36,6 +36,9 @@ Ogenda adds a dedicated calendar/agenda panel to Obsidian. It keeps your events 
 
 ## ✨ What’s New
 
+- **v0.0.8** — **Easier iCloud setup**: the app-specific password and calendar URL fields now tell you where to get the value and show an example format, and a button fetches your iCloud calendars so you can pick one from a dropdown.
+- **v0.0.8** — **Show/hide password**: an eye button toggles the iCloud and CalDAV password fields between masked and readable.
+- **v0.0.8** — **Month view readability**: day cells keep a minimum and maximum width, and long event titles wrap instead of being clipped.
 - **v0.0.7** — **All-day events made simpler**: same-day all-day events are now valid, the end-time hint is removed, and multi-day events are shown on every day they span.
 - **v0.0.7** — **Cross-day event display**: timed and all-day events that span midnight now appear on each calendar day they cover.
 - **v0.0.6** — **Automated market checks fixed**: release tags now match `manifest.json` exactly, `minAppVersion` is raised to **1.7.2**, and GitHub artifact attestations are produced for every release.
@@ -165,6 +168,9 @@ Ogenda 为 Obsidian 增加了一个专门的日历/议程面板。它把事件�
 
 ## ✨ 更新日志
 
+- **v0.0.8** — **iCloud 配置更省心**：App 专用密码与日历 URL 字段给出获取路径和示例格式，并新增按钮一键获取 iCloud 日历列表，从下拉中直接选择。
+- **v0.0.8** — **密码显隐切换**：iCloud 与 CalDAV 密码字段新增眼睛按钮，可在掩码与明文之间切换。
+- **v0.0.8** — **月视图更耐看**：日期格子有了最小与最大宽度，过长的事件标题会自动换行而不再被截断。
 - **v0.0.7** — **全天事件更直观**：允许开始和结束为同一天的全天事件，移除结束时间提示中的歧义，跨天日程会在覆盖的每一天都显示。
 - **v0.0.7** — **跨天事件展示**：跨越午夜的有时间事件和全天事件，现在会显示在它们覆盖的每个日历日上。
 - **v0.0.6** — **修复市场自动化检查**：Release tag 与 `manifest.json` 版本严格一致，`minAppVersion` 提升至 **1.7.2**，并为每次 Release 生成 GitHub 工件来源证明。
