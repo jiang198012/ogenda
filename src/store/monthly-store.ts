@@ -25,6 +25,12 @@ export interface SyncSummary {
   months: string[];
 }
 
+export interface ReadEventsResult {
+  events: LocalEvent[];
+  /** Blocks that carry no uid or no usable start date, and so cannot be shown. */
+  skipped: number;
+}
+
 /** A parsed local event block, as found in a monthly file (not yet reconciled with the server). */
 export interface LocalEvent {
   uid: string;
@@ -69,20 +75,26 @@ export class MonthlyStore {
     return { added, updated, months };
   }
 
-  async readEvents(): Promise<LocalEvent[]> {
+  async readEvents(): Promise<ReadEventsResult> {
     const paths = await this.store.list(this.folder);
     const out: LocalEvent[] = [];
+    let skipped = 0;
     for (const path of paths) {
       const text = await this.store.read(path);
       if (!text) continue;
       const { blocks } = parseMonthlyDoc(text);
       for (const b of blocks) {
         const uid = b.fields["uid"];
-        if (!uid) continue;
+        // A block without a uid or a readable start renders nowhere; count it so
+        // the panel can say so instead of quietly showing less than the file holds.
+        if (!uid || !/^\d{4}-\d{2}-\d{2}/.test(b.fields["start"] ?? "")) {
+          skipped++;
+          continue;
+        }
         out.push({ uid, fields: b.fields, prose: b.prose, hasHref: Boolean(b.fields["href"]) });
       }
     }
-    return out;
+    return { events: out, skipped };
   }
 
   async readSyncState(): Promise<SyncState> {

@@ -108,6 +108,7 @@ export const en: Record<string, string> = {
   "confirm.delete.title": "Delete event",
   "confirm.delete.body": "Delete \"{title}\"?",
   "notice.icsReadonly": "ICS is a read-only subscription; local changes will not sync back.",
+  "notice.unreadableBlocks": "{count} entr(y/ies) have no uid or start date and cannot be shown — skipped. Check the monthly note.",
   "common.cancel": "Cancel",
   "common.delete": "Delete",
   "command.syncNow": "Sync calendar now",

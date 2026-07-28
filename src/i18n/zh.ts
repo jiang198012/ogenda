@@ -108,6 +108,7 @@ export const zh: Record<string, string> = {
   "confirm.delete.title": "删除事件",
   "confirm.delete.body": "确定删除《{title}》吗?",
   "notice.icsReadonly": "ICS 为只读订阅,本地改动不会同步回源。",
+  "notice.unreadableBlocks": "有 {count} 条记录缺少 uid 或开始日期,无法显示,已跳过。请检查月度笔记。",
   "common.cancel": "取消",
   "common.delete": "删除",
   "command.syncNow": "立即同步日历",

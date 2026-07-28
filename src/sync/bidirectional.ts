@@ -40,7 +40,8 @@ export async function syncBidirectional(
   store: MonthlyStore,
   notify: Notify,
 ): Promise<BidirectionalSummary> {
-  const [local, server] = await Promise.all([store.readEvents(), source.fetch()]);
+  const [read, server] = await Promise.all([store.readEvents(), source.fetch()]);
+  const local = read.events;
   const syncState = await store.readSyncState();
   const plan = planSync(server, local, syncState.tracked);
 

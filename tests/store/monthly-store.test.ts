@@ -61,7 +61,7 @@ describe("MonthlyStore.readEvents", () => {
     const p = "Agenda/2026-07.md";
     await fs.write(p, (await fs.read(p))!.replace(/\n$/, "") + "\n\n我的纪要\n");
 
-    const events = await store.readEvents();
+    const { events } = await store.readEvents();
     expect(events.map((e) => e.uid).sort()).toEqual(["a@x", "b@x"]);
 
     const july = events.find((e) => e.uid === "a@x")!;
@@ -74,16 +74,54 @@ describe("MonthlyStore.readEvents", () => {
     const fs = new InMemoryFileStore();
     const store = new MonthlyStore(fs, "Agenda");
     await store.sync([{ ...mk("a@x", "2026-07-14T15:00:00", "会"), href: "https://p1.example/cal/a.ics" }]);
-    const events = await store.readEvents();
+    const { events } = await store.readEvents();
     expect(events[0].hasHref).toBe(true);
   });
 
   it("skips blocks with no uid field and returns [] when the folder is empty", async () => {
     const fs = new InMemoryFileStore();
     const store = new MonthlyStore(fs, "Agenda");
-    expect(await store.readEvents()).toEqual([]);
+    expect((await store.readEvents()).events).toEqual([]);
     await fs.write("Agenda/2026-07.md", "## 手写的块\n\n没有 uid 字段\n");
-    expect(await store.readEvents()).toEqual([]);
+    expect((await store.readEvents()).events).toEqual([]);
+  });
+
+  it("counts unreadable blocks instead of dropping them silently", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    await store.sync([mk("good@x", "2026-07-14T15:00:00", "正常事件")]);
+    const p = "Agenda/2026-07.md";
+    const text = (await fs.read(p))!;
+    await fs.write(
+      p,
+      text +
+        "\n## 没有 uid\n- start:: 2026-07-15T10:00:00\n" +
+        "\n## 开始日期非法\n- uid:: bad-start@x\n- start:: 不是日期\n" +
+        "\n## 缺少开始时间\n- uid:: no-start@x\n- title:: 只有标题\n",
+    );
+
+    const r = await store.readEvents();
+    expect(r.events.map((e) => e.uid)).toEqual(["good@x"]);
+    expect(r.skipped).toBe(3);
+  });
+
+  it("reports no skips for a well-formed file", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    await store.sync([mk("a@x", "2026-07-14T15:00:00", "会")]);
+    expect((await store.readEvents()).skipped).toBe(0);
+  });
+
+  it("accepts a date-only start (all-day events)", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    await fs.write(
+      "Agenda/2026-07.md",
+      "# 2026-07\n\n## 全天\n- uid:: allday@x\n- start:: 2026-07-14\n- all_day:: true\n",
+    );
+    const r = await store.readEvents();
+    expect(r.events.map((e) => e.uid)).toEqual(["allday@x"]);
+    expect(r.skipped).toBe(0);
   });
 });
 
