@@ -101,4 +101,44 @@ describe("renderMiniCalendar", () => {
     expect(months[0].querySelector(".ogenda-mini-cal-selected")).toBeNull();
     expect(months[1].querySelector(".ogenda-mini-cal-selected")?.textContent).toBe("18");
   });
+
+  it("frames the today cell when today is passed in", () => {
+    const container = document.createElement("div");
+    renderMiniCalendar(container, new Date(2026, 6, 15), () => {}, { today: new Date(2026, 6, 20) });
+    const cells = [...container.querySelectorAll(".ogenda-mini-cal-cell")];
+    const today = cells.find((c) => c.classList.contains("ogenda-mini-cal-today"));
+    expect(today?.textContent).toBe("20");
+  });
+
+  it("frames today even when today is the selected day", () => {
+    const container = document.createElement("div");
+    renderMiniCalendar(container, new Date(2026, 6, 18), () => {}, { today: new Date(2026, 6, 18) });
+    const cells = [...container.querySelectorAll(".ogenda-mini-cal-cell")];
+    const today = cells.find((c) => c.classList.contains("ogenda-mini-cal-today"));
+    expect(today?.classList.contains("ogenda-mini-cal-selected")).toBe(true);
+  });
+
+  it("does not double-frame today when it is real in one month block but padding in an adjacent one", () => {
+    const container = document.createElement("div");
+    // Same layout as the double-dot test: monthCount:3 anchored in July shows Jun/Jul/Aug;
+    // 2026-07-29 is a real cell in July and a padding cell in the August block.
+    renderMiniCalendar(container, new Date(2026, 6, 15), () => {}, {
+      monthCount: 3,
+      today: new Date(2026, 6, 29),
+    });
+    expect(container.querySelectorAll(".ogenda-mini-cal-today").length).toBe(1);
+  });
+
+  it("does not frame today when it only appears as padding of a shown month", () => {
+    const container = document.createElement("div");
+    // Showing July only; 2026-06-29 is a padding cell in the July grid, not a real July day.
+    renderMiniCalendar(container, new Date(2026, 6, 15), () => {}, { today: new Date(2026, 5, 29) });
+    expect(container.querySelectorAll(".ogenda-mini-cal-today").length).toBe(0);
+  });
+
+  it("frames nothing when today is not passed", () => {
+    const container = document.createElement("div");
+    renderMiniCalendar(container, new Date(2026, 6, 15), () => {});
+    expect(container.querySelectorAll(".ogenda-mini-cal-today").length).toBe(0);
+  });
 });

@@ -11,6 +11,12 @@ export interface SyncPlan {
   pushUpdate: AgendaEvent[];
   pushCreate: AgendaEvent[];
   applyServer: AgendaEvent[];
+  /**
+   * Local no-href blocks whose uid already exists on the server: record the server's
+   * href/etag locally instead of blindly re-creating (a re-PUT would clobber the server
+   * copy every round without ever making progress).
+   */
+  adopt: AgendaEvent[];
   conflicts: SyncConflict[];
   deleteRemote: { uid: string; href: string; etag: string }[];
   markServerDeleted: AgendaEvent[];
@@ -60,13 +66,29 @@ export function planSync(
   const pushUpdate: AgendaEvent[] = [];
   const pushCreate: AgendaEvent[] = [];
   const applyServer: AgendaEvent[] = [];
+  const adopt: AgendaEvent[] = [];
   const conflicts: SyncConflict[] = [];
   const deleteRemote: { uid: string; href: string; etag: string }[] = [];
   const markServerDeleted: AgendaEvent[] = [];
 
   for (const l of local) {
     if (!l.hasHref) {
-      pushCreate.push(fieldsToEvent(l.fields));
+      const s = serverByUid.get(l.uid);
+      if (s?.href) {
+        // Adoption: the block predates href tracking (e.g. an import), yet the server
+        // already holds this uid. Take the server's href/etag into the local block;
+        // base_hash is the SERVER event's hash, so any real content difference shows up
+        // as a pushUpdate next round and the local version wins the push.
+        adopt.push({
+          ...fieldsToEvent(l.fields),
+          origin: "synced",
+          href: s.href,
+          etag: s.etag,
+          baseHash: hashEvent(s),
+        });
+      } else {
+        pushCreate.push(fieldsToEvent(l.fields));
+      }
       continue;
     }
     const s = serverByUid.get(l.uid);
@@ -108,5 +130,5 @@ export function planSync(
   const deletedRemoteUids = new Set(deleteRemote.map((d) => d.uid));
   const reconciledApplyServer = applyServer.filter((s) => !deletedRemoteUids.has(s.uid));
 
-  return { pushUpdate, pushCreate, applyServer: reconciledApplyServer, conflicts, deleteRemote, markServerDeleted };
+  return { pushUpdate, pushCreate, applyServer: reconciledApplyServer, adopt, conflicts, deleteRemote, markServerDeleted };
 }

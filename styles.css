@@ -380,6 +380,16 @@
   background: var(--interactive-accent);
   color: var(--text-on-accent);
 }
+/* Frame today with an inset ring: box-shadow disturbs neither the grid layout
+   (unlike border) nor the neighboring cells (unlike outline). */
+.ogenda-mini-cal-today {
+  box-shadow: inset 0 0 0 1.5px var(--interactive-accent);
+}
+/* When today IS the selected day the accent ring would vanish on the accent fill —
+   switch the ring to the on-accent color so the frame survives. */
+.ogenda-mini-cal-selected.ogenda-mini-cal-today {
+  box-shadow: inset 0 0 0 1.5px var(--text-on-accent);
+}
 .ogenda-mini-cal-dot {
   position: absolute;
   bottom: 2px;
@@ -669,7 +679,10 @@ textarea.ogenda-form-desc {
 
   /* Week view */
   .ogenda-week-grid {
-    min-width: 700px;
+    /* NO min-width here: widening the grid's own box would push the horizontal
+       scrollbar up to the whole pane (dragging the header with it). Keep the
+       grid box at panel width and let the min-width TRACKS overflow it, so the
+       grid scrolls internally — the desktop month view's mechanism. */
     overflow-x: auto;
     gap: 0.4em;
     grid-template-columns: repeat(7, minmax(90px, 1fr));
@@ -691,9 +704,12 @@ textarea.ogenda-form-desc {
 
   /* Month view */
   .ogenda-month-grid {
-    min-width: 560px;
+    /* Same as the week grid: no min-width on the grid box itself. */
     overflow-x: auto;
     grid-template-columns: repeat(7, minmax(70px, 1fr));
+    /* Centred overflow strands the left columns outside the reachable scroll
+       area; align start while the grid can overflow. */
+    justify-content: start;
   }
   .ogenda-month-cell {
     min-height: 4.5em;

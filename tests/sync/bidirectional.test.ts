@@ -297,4 +297,206 @@ describe("syncBidirectional", () => {
     expect(summary2.pulled).toBe(0);
     expect(await fs.read(p)).not.toContain("uid:: a@x");
   });
+
+  it("isolates a throwing PUT and still persists the round's other successes", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    const p = "Agenda/2026-07.md";
+    await fs.write(
+      p,
+      "# 2026-07\n\n## 甲\n- uid:: ok1\n- title:: 甲\n- start:: 2026-07-15T10:00:00\n\n## 炸\n- uid:: boom\n- title:: 炸\n- start:: 2026-07-15T11:00:00\n\n## 乙\n- uid:: ok2\n- title:: 乙\n- start:: 2026-07-15T12:00:00\n",
+    );
+
+    // old behavior: the throw aborted the whole round and ok1's href was never written.
+    const source: CalDavSource = {
+      fetch: async () => [],
+      putEvent: async (url) => {
+        if (url.includes("boom")) throw new Error("network down");
+        return { status: 201, etag: '"c1"' };
+      },
+      deleteEvent: async () => ({ status: 204 }),
+    };
+    const msgs: string[] = [];
+    const summary = await syncBidirectional(source, CAL_URL, store, (m) => msgs.push(m), {
+      sleep: async () => {},
+      flushEvery: 1,
+    });
+
+    expect(summary.created).toBe(2);
+    const text = (await fs.read(p))!;
+    expect(text).toContain("href:: https://cal.example/home/ok1.ics");
+    expect(text).toContain("href:: https://cal.example/home/ok2.ics");
+    expect(text).not.toContain("href:: https://cal.example/home/boom.ics");
+    expect(text).toContain("uid:: boom"); // untouched block — retried next round
+    expect(msgs.some((m) => m.includes("network down"))).toBe(true);
+  });
+
+  it("caps creates per round and reports the backlog for later rounds", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    const p = "Agenda/2026-07.md";
+    const block = (i: number) =>
+      `## 会${i}\n- uid:: cap${i}\n- title:: 会${i}\n- start:: 2026-07-15T1${i}:00:00\n`;
+    await fs.write(p, "# 2026-07\n\n" + [0, 1, 2, 3, 4].map(block).join("\n"));
+
+    const calls: PutCall[] = [];
+    const source = fakeSource([], { status: 201, etag: '"c1"' }, calls);
+    const msgs: string[] = [];
+    const summary = await syncBidirectional(source, CAL_URL, store, (m) => msgs.push(m), {
+      sleep: async () => {},
+      maxCreatesPerRound: 2,
+    });
+
+    expect(summary.created).toBe(2);
+    expect(summary.createBacklog).toBe(3);
+    expect(calls).toHaveLength(2);
+    expect(msgs.some((m) => m.includes("剩余 3"))).toBe(true);
+
+    const text = (await fs.read(p))!;
+    expect(text).toContain("href:: https://cal.example/home/cap0.ics");
+    expect(text).toContain("href:: https://cal.example/home/cap1.ics");
+    expect(text).not.toContain("href:: https://cal.example/home/cap2.ics");
+  });
+
+  it("retries a 503 create with backoff and records the success", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    const p = "Agenda/2026-07.md";
+    await fs.write(p, "# 2026-07\n\n## 会\n- uid:: r1\n- title:: 会\n- start:: 2026-07-15T10:00:00\n");
+
+    let attempts = 0;
+    const source: CalDavSource = {
+      fetch: async () => [],
+      putEvent: async () => (++attempts === 1 ? { status: 503 } : { status: 201, etag: '"c1"' }),
+      deleteEvent: async () => ({ status: 204 }),
+    };
+    const sleeps: number[] = [];
+    const summary = await syncBidirectional(source, CAL_URL, store, () => {}, {
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+    });
+
+    expect(summary.created).toBe(1);
+    expect(attempts).toBe(2);
+    expect(sleeps).toContain(2000); // first backoff delay
+    expect((await fs.read(p))!).toContain("href:: https://cal.example/home/r1.ics");
+  });
+
+  it("paces server writes (sleep between requests, none before the first)", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    const p = "Agenda/2026-07.md";
+    const block = (i: number) => `## 会${i}\n- uid:: pace${i}\n- title:: 会${i}\n- start:: 2026-07-15T1${i}:00:00\n`;
+    await fs.write(p, "# 2026-07\n\n" + [0, 1, 2].map(block).join("\n"));
+
+    const calls: PutCall[] = [];
+    const source = fakeSource([], { status: 201, etag: '"c1"' }, calls);
+    const sleeps: number[] = [];
+    await syncBidirectional(source, CAL_URL, store, () => {}, {
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+      paceMs: 250,
+      retry503Delays: [],
+    });
+
+    expect(calls).toHaveLength(3);
+    expect(sleeps).toEqual([250, 250]); // before writes 2 and 3 only
+  });
+
+  it("adopts server href/etag for a no-href block already on the server (no PUT, prose kept, no-op next round)", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    const p = "Agenda/2026-07.md";
+    await fs.write(
+      p,
+      "# 2026-07\n\n## 老会\n- uid:: old1\n- title:: 老会\n- start:: 2026-07-15T15:00:00\n- origin:: imported\n\n我手写的备注\n",
+    );
+
+    const s = mkSynced({
+      uid: "old1",
+      title: "老会",
+      start: "2026-07-15T15:00:00",
+      href: "https://cal.example/home/old1.ics",
+      etag: '"srv1"',
+    });
+    const calls: PutCall[] = [];
+    const source = fakeSource([s], { status: 201, etag: '"unused"' }, calls);
+    const summary = await syncBidirectional(source, CAL_URL, store, () => {}, { sleep: async () => {} });
+
+    expect(summary.adopted).toBe(1);
+    expect(summary.created).toBe(0);
+    expect(summary.pushed).toBe(0);
+    expect(calls).toHaveLength(0); // adoption writes nothing to the server
+
+    const text = (await fs.read(p))!;
+    expect(text).toContain("href:: https://cal.example/home/old1.ics");
+    expect(text).toContain('etag:: "srv1"');
+    expect(text).toContain("origin:: synced");
+    expect(text).toContain("我手写的备注"); // prose survives
+
+    const state = await store.readSyncState();
+    expect(state.tracked["old1"]).toEqual({ href: "https://cal.example/home/old1.ics", etag: '"srv1"' });
+
+    // base_hash is the server event's hash and content matches → next round is a true no-op
+    const calls2: PutCall[] = [];
+    const summary2 = await syncBidirectional(
+      fakeSource([s], { status: 201 }, calls2),
+      CAL_URL,
+      store,
+      () => {},
+      { sleep: async () => {} },
+    );
+    expect(summary2.pushed).toBe(0);
+    expect(summary2.pulled).toBe(0);
+    expect(summary2.adopted).toBe(0);
+    expect(summary2.conflicts).toBe(0);
+    expect(calls2).toHaveLength(0);
+  });
+
+  it("after adoption, a divergent local block pushes its content over the server's (local wins)", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    const p = "Agenda/2026-07.md";
+    // local block title differs from the server copy of the same uid
+    await fs.write(
+      p,
+      "# 2026-07\n\n## 本地权威标题\n- uid:: old2\n- title:: 本地权威标题\n- start:: 2026-07-15T15:00:00\n",
+    );
+
+    const s = mkSynced({
+      uid: "old2",
+      title: "服务器旧标题",
+      start: "2026-07-15T15:00:00",
+      href: "https://cal.example/home/old2.ics",
+      etag: '"srv1"',
+    });
+
+    // round 1: adopt only — no write to the server
+    const round1Calls: PutCall[] = [];
+    const r1 = await syncBidirectional(
+      fakeSource([s], { status: 204, etag: '"srv2"' }, round1Calls),
+      CAL_URL,
+      store,
+      () => {},
+      { sleep: async () => {} },
+    );
+    expect(r1.adopted).toBe(1);
+    expect(round1Calls).toHaveLength(0);
+
+    // round 2: local content differs from the server-hash baseline → pushUpdate, local wins
+    const round2Calls: PutCall[] = [];
+    const r2 = await syncBidirectional(
+      fakeSource([s], { status: 204, etag: '"srv2"' }, round2Calls),
+      CAL_URL,
+      store,
+      () => {},
+      { sleep: async () => {} },
+    );
+    expect(r2.pushed).toBe(1);
+    expect(round2Calls).toHaveLength(1);
+    expect(round2Calls[0].ics).toContain("本地权威标题");
+    expect(round2Calls[0].ifMatch).toBe('"srv1"');
+  });
 });

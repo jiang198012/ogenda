@@ -21,6 +21,7 @@ export function daysWithEvents(occurrences: EventOccurrence[]): Set<string> {
 interface MiniCalOpts {
   monthCount?: number;
   eventDays?: Set<string>;
+  today?: Date;
 }
 
 function renderOneMonth(
@@ -29,6 +30,7 @@ function renderOneMonth(
   selected: Date | null,
   eventDays: Set<string>,
   onDayClick: (day: Date) => void,
+  todayKey: string | null,
 ): void {
   const monthEl = document.createElement("div");
   monthEl.className = "ogenda-mini-cal-month";
@@ -59,6 +61,11 @@ function renderOneMonth(
       if (day.getMonth() !== month) cell.classList.add("ogenda-mini-cal-othermonth");
       const dayKey = toDateKey(day);
       if (selKey && dayKey === selKey) cell.classList.add("ogenda-mini-cal-selected");
+      // Frame today, but only in its OWN month block — same rule as the dot below,
+      // so a padding duplicate in an adjacent stacked block is not double-framed.
+      if (todayKey && dayKey === todayKey && day.getMonth() === month) {
+        cell.classList.add("ogenda-mini-cal-today");
+      }
       cell.textContent = String(day.getDate());
       // Only dot a day in its OWN month block — a padding (othermonth) cell that repeats a day
       // shown as a real cell in an adjacent stacked block must not double-dot it.
@@ -88,11 +95,12 @@ export function renderMiniCalendar(
   const count = Math.max(1, opts.monthCount ?? 1);
   const shift = count >= 2 ? 1 : 0;
   const eventDays = opts.eventDays ?? new Set<string>();
+  const todayKey = opts.today ? toDateKey(startOfDay(opts.today)) : null;
   for (let i = 0; i < count; i++) {
     const monthAnchor = new Date(anchor.getFullYear(), anchor.getMonth() - shift + i, 1);
     const isCurrent =
       monthAnchor.getFullYear() === anchor.getFullYear() && monthAnchor.getMonth() === anchor.getMonth();
-    renderOneMonth(wrap, monthAnchor, isCurrent ? anchor : null, eventDays, onDayClick);
+    renderOneMonth(wrap, monthAnchor, isCurrent ? anchor : null, eventDays, onDayClick, todayKey);
   }
   container.appendChild(wrap);
 }

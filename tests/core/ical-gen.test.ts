@@ -66,6 +66,17 @@ describe("eventToVCalendar", () => {
     const ics = eventToVCalendar(base({ start: "2026-07-19t14:00:00" }));
     expect(ics).toContain("DTSTART:20260719T140000");
   });
+
+  it("emits DTEND = DTSTART for a timed event with no end set (iCloud 404s PUT-creates without DTEND)", () => {
+    const ics = eventToVCalendar(base({ start: "2023-12-13T01:00:00" }));
+    expect(ics).toContain("DTSTART:20231213T010000");
+    expect(ics).toContain("DTEND:20231213T010000");
+  });
+
+  it("keeps the explicit end for a timed event when one is set", () => {
+    const ics = eventToVCalendar(base({ start: "2023-12-13T01:00:00", end: "2023-12-13T02:30:00" }));
+    expect(ics).toContain("DTEND:20231213T023000");
+  });
 });
 
 describe("eventToVCalendar — extended push fields", () => {

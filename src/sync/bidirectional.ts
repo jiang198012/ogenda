@@ -16,11 +16,34 @@ export interface BidirectionalSummary {
   pulled: number;
   pushed: number;
   created: number;
+  adopted: number;
+  /** No-href local events left for future rounds because this round hit the create cap. */
+  createBacklog: number;
   conflicts: number;
   deleted: number;
   markedServerDeleted: number;
   store: SyncSummary;
 }
+
+export interface SyncOptions {
+  /** Max PUT-creates per round; a larger backlog drains across rounds. Default 100. */
+  maxCreatesPerRound?: number;
+  /** Pause between server write requests, to stay under server-side throttling. Default 250. */
+  paceMs?: number;
+  /** Backoff delays (ms) for retrying a write that got HTTP 503. Default [2000, 5000]. */
+  retry503Delays?: number[];
+  /** Persist accumulated local changes to disk every N staged events. Default 10. */
+  flushEvery?: number;
+  /** Injectable for tests. */
+  sleep?: (ms: number) => Promise<void>;
+}
+
+const DEFAULT_MAX_CREATES = 100;
+const DEFAULT_PACE_MS = 250;
+const DEFAULT_RETRY_503 = [2000, 5000];
+const DEFAULT_FLUSH_EVERY = 10;
+
+const realSleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
 function withBaseHash(ev: AgendaEvent): AgendaEvent {
   return { ...ev, baseHash: hashEvent(ev) };
@@ -34,71 +57,147 @@ function isOk(status: number): boolean {
   return status >= 200 && status < 300;
 }
 
+function errMsg(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
 export async function syncBidirectional(
   source: CalDavSource,
   calendarUrl: string,
   store: MonthlyStore,
   notify: Notify,
+  opts: SyncOptions = {},
 ): Promise<BidirectionalSummary> {
+  const maxCreates = opts.maxCreatesPerRound ?? DEFAULT_MAX_CREATES;
+  const paceMs = opts.paceMs ?? DEFAULT_PACE_MS;
+  const retry503 = opts.retry503Delays ?? DEFAULT_RETRY_503;
+  const flushEvery = Math.max(1, opts.flushEvery ?? DEFAULT_FLUSH_EVERY);
+  const sleep = opts.sleep ?? realSleep;
+
   const [read, server] = await Promise.all([store.readEvents(), source.fetch()]);
   const local = read.events;
   const syncState = await store.readSyncState();
   const plan = planSync(server, local, syncState.tracked);
 
+  // Adopted events already carry the SERVER event's baseHash from planSync — never re-hash them.
   const toApply: AgendaEvent[] = plan.applyServer.map(withBaseHash);
+  toApply.push(...plan.adopt);
+
+  // Incremental persistence: staged changes reach disk in batches during the round, so an
+  // abort (timeout, crash, quitting Obsidian) can only lose the events staged since the
+  // last flush — never the whole round. The tracked-state ledger is still written once at
+  // the end so it can never run ahead of what's actually on disk.
+  const storeSummary: SyncSummary = { added: 0, updated: 0, months: [] };
+  let flushedUpTo = 0;
+  const flush = async (): Promise<void> => {
+    if (flushedUpTo >= toApply.length) return;
+    const s = await store.sync(toApply.slice(flushedUpTo));
+    flushedUpTo = toApply.length;
+    storeSummary.added += s.added;
+    storeSummary.updated += s.updated;
+    for (const m of s.months) if (!storeSummary.months.includes(m)) storeSummary.months.push(m);
+  };
+  const flushIfDue = async (): Promise<void> => {
+    if (toApply.length - flushedUpTo >= flushEvery) await flush();
+  };
+  await flush(); // pulls + adoptions are local-only; persist them before any server write
+
+  // Throttle pacing: sleep before every server write except the first.
+  let writes = 0;
+  const pace = async (): Promise<void> => {
+    if (writes++ > 0 && paceMs > 0) await sleep(paceMs);
+  };
+  const putWith503Retry = async (url: string, ics: string, ifMatch?: string) => {
+    let res = await source.putEvent(url, ics, ifMatch);
+    for (const delay of retry503) {
+      if (res.status !== 503) break;
+      await sleep(delay);
+      writes++;
+      res = await source.putEvent(url, ics, ifMatch);
+    }
+    return res;
+  };
+
   let pushed = 0;
   let created = 0;
 
   for (const ev of plan.pushUpdate) {
     // planSync only puts events with hasHref === true into pushUpdate, so href is always set here.
-    const res = await source.putEvent(ev.href!, eventToVCalendar(ev), ev.etag);
-    if (isOk(res.status)) {
-      toApply.push(withBaseHash({ ...ev, etag: res.etag ?? ev.etag }));
-      pushed++;
-    } else if (res.status === 412) {
-      notify(t("sync.pushSkipped", { title: ev.title }));
-    } else {
-      notify(t("sync.pushFailed", { title: ev.title, status: res.status }));
-      console.error(`[ogenda] pushUpdate failed for ${ev.uid} (${ev.title}): HTTP ${res.status}`, {
-        url: ev.href,
-        ics: eventToVCalendar(ev),
-        responseBody: res.text,
-      });
+    await pace();
+    try {
+      const res = await putWith503Retry(ev.href!, eventToVCalendar(ev), ev.etag);
+      if (isOk(res.status)) {
+        toApply.push(withBaseHash({ ...ev, etag: res.etag ?? ev.etag }));
+        pushed++;
+        await flushIfDue();
+      } else if (res.status === 412) {
+        notify(t("sync.pushSkipped", { title: ev.title }));
+      } else {
+        notify(t("sync.pushFailed", { title: ev.title, status: res.status }));
+        console.error(`[ogenda] pushUpdate failed for ${ev.uid} (${ev.title}): HTTP ${res.status}`, {
+          url: ev.href,
+          ics: eventToVCalendar(ev),
+          responseBody: res.text,
+        });
+      }
+    } catch (e) {
+      // one bad event must never abort the round — the rest still apply and persist
+      notify(t("sync.pushFailedNet", { title: ev.title, msg: errMsg(e) }));
+      console.error(`[ogenda] pushUpdate threw for ${ev.uid} (${ev.title})`, e);
     }
   }
 
-  for (const ev of plan.pushCreate) {
+  const creates = plan.pushCreate.slice(0, Math.max(0, maxCreates));
+  const createBacklog = plan.pushCreate.length - creates.length;
+  for (const ev of creates) {
     const url = resourceUrl(calendarUrl, ev.uid);
-    const res = await source.putEvent(url, eventToVCalendar(ev));
-    if (isOk(res.status)) {
-      toApply.push(withBaseHash({ ...ev, origin: "synced", href: url, etag: res.etag }));
-      created++;
-    } else {
-      notify(t("sync.createFailed", { title: ev.title, status: res.status }));
-      console.error(`[ogenda] pushCreate failed for ${ev.uid} (${ev.title}): HTTP ${res.status}`, {
-        url,
-        ics: eventToVCalendar(ev),
-        responseBody: res.text,
-      });
+    await pace();
+    try {
+      const res = await putWith503Retry(url, eventToVCalendar(ev));
+      if (isOk(res.status)) {
+        toApply.push(withBaseHash({ ...ev, origin: "synced", href: url, etag: res.etag }));
+        created++;
+        await flushIfDue();
+      } else {
+        notify(t("sync.createFailed", { title: ev.title, status: res.status }));
+        console.error(`[ogenda] pushCreate failed for ${ev.uid} (${ev.title}): HTTP ${res.status}`, {
+          url,
+          ics: eventToVCalendar(ev),
+          responseBody: res.text,
+        });
+      }
+    } catch (e) {
+      notify(t("sync.createFailedNet", { title: ev.title, msg: errMsg(e) }));
+      console.error(`[ogenda] pushCreate threw for ${ev.uid} (${ev.title})`, e);
     }
+  }
+  if (createBacklog > 0) {
+    notify(t("sync.createRemaining", { done: creates.length, created, remaining: createBacklog }));
   }
 
   for (const c of plan.conflicts) {
     toApply.push(withBaseHash(c.server));
     notify(t("sync.conflict", { title: c.server.title }));
+    await flushIfDue();
   }
 
   let deleted = 0;
   const confirmedDeleted: string[] = [];
   for (const d of plan.deleteRemote) {
-    const res = await source.deleteEvent(d.href, d.etag);
-    if (isOk(res.status) || res.status === 404) {
-      confirmedDeleted.push(d.uid);
-      deleted++;
-    } else if (res.status === 412) {
-      notify(t("sync.deleteSkipped", { uid: d.uid }));
-    } else {
-      notify(t("sync.deleteFailed", { uid: d.uid, status: res.status }));
+    await pace();
+    try {
+      const res = await source.deleteEvent(d.href, d.etag);
+      if (isOk(res.status) || res.status === 404) {
+        confirmedDeleted.push(d.uid);
+        deleted++;
+      } else if (res.status === 412) {
+        notify(t("sync.deleteSkipped", { uid: d.uid }));
+      } else {
+        notify(t("sync.deleteFailed", { uid: d.uid, status: res.status }));
+      }
+    } catch (e) {
+      notify(t("sync.deleteFailedNet", { uid: d.uid, msg: errMsg(e) }));
+      console.error(`[ogenda] deleteRemote threw for ${d.uid}`, e);
     }
   }
   if (confirmedDeleted.length) await store.removeByUid(confirmedDeleted);
@@ -131,19 +230,20 @@ export async function syncBidirectional(
     if (!confirmedDeleted.includes(d.uid)) newTracked[d.uid] = { href: d.href, etag: d.etag };
   }
 
-  const summary = await store.sync(toApply);
-  // written after store.sync succeeds, so a failed sync doesn't leave the ledger ahead of
+  await flush();
+  // written after the final flush, so a failed sync doesn't leave the ledger ahead of
   // what's actually on disk (e.g. a pushCreate's new href tracked but never written locally).
   await store.writeSyncState({ tracked: newTracked });
   notify(
     t("sync.complete", {
       applied: plan.applyServer.length,
+      adopted: plan.adopt.length,
       pushed,
       created,
       conflicts: plan.conflicts.length,
       deleted,
       serverDeleted: markedServerDeleted,
-      months: summary.months.join(", ") || t("sync.noChange"),
+      months: storeSummary.months.join(", ") || t("sync.noChange"),
     }),
   );
 
@@ -151,9 +251,11 @@ export async function syncBidirectional(
     pulled: plan.applyServer.length,
     pushed,
     created,
+    adopted: plan.adopt.length,
+    createBacklog,
     conflicts: plan.conflicts.length,
     deleted,
     markedServerDeleted,
-    store: summary,
+    store: storeSummary,
   };
 }

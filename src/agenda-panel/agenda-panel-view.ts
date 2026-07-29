@@ -258,7 +258,7 @@ export class AgendaPanelView extends ItemView {
               this.anchor = day;
               void this.render();
             },
-            { monthCount, eventDays: daysWithEvents(miniOccs) },
+            { monthCount, eventDays: daysWithEvents(miniOccs), today: this.safeToday() },
           );
         } else if (this.tab === "week") renderWeekView(body, occurrences, this.anchor, onEventClick, onEmptyClick, colors);
         else renderMonthView(body, occurrences, this.anchor, onEventClick, onEmptyClick, colors);

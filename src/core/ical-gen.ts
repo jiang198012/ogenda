@@ -61,7 +61,10 @@ export function eventToVCalendar(ev: AgendaEvent): string {
     const zoned = ev.tz && ev.tz !== "floating" && ev.tz !== "UTC" && !dt.endsWith("Z");
     const param = zoned ? `;TZID=${ev.tz}` : "";
     lines.push(`DTSTART${param}:${dt}`);
-    if (ev.end) lines.push(`DTEND${param}:${toICalDateTime(ev.end)}`);
+    // iCloud rejects ANY PUT-create with no DTEND (empty-body 404), timed events included.
+    // RFC 5545 defines a missing DTEND as zero duration, so DTEND = DTSTART is the
+    // faithful serialization of "no end set".
+    lines.push(`DTEND${param}:${ev.end ? toICalDateTime(ev.end) : dt}`);
   }
 
   if (ev.organizer) lines.push(`ORGANIZER:mailto:${stripMailto(ev.organizer)}`);

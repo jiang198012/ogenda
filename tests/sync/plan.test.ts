@@ -136,6 +136,79 @@ describe("planSync", () => {
     expect(plan.applyServer).toEqual([]);
     expect(plan.conflicts).toEqual([]);
   });
+
+  it("adopts a no-href local block whose uid already exists on the server instead of re-creating it", () => {
+    const s = serverEvent();
+    const l: LocalEvent = {
+      uid: s.uid,
+      fields: { uid: s.uid, title: s.title, start: s.start, origin: "imported" },
+      prose: "我的笔记",
+      hasHref: false,
+    };
+    const plan = planSync([s], [l]);
+    expect(plan.pushCreate).toEqual([]);
+    expect(plan.adopt).toHaveLength(1);
+    expect(plan.adopt[0]).toMatchObject({
+      uid: s.uid,
+      title: s.title,
+      origin: "synced",
+      href: s.href,
+      etag: s.etag,
+      baseHash: hashEvent(s),
+    });
+    // adoption is purely local metadata: nothing is pulled, pushed, or deleted for this uid
+    expect(plan.applyServer).toEqual([]);
+    expect(plan.pushUpdate).toEqual([]);
+    expect(plan.deleteRemote).toEqual([]);
+    expect(plan.markServerDeleted).toEqual([]);
+  });
+
+  it("falls back to pushCreate when the matching server event carries no href", () => {
+    const s = serverEvent({ href: undefined });
+    const l: LocalEvent = {
+      uid: s.uid,
+      fields: { uid: s.uid, title: s.title, start: s.start },
+      prose: "",
+      hasHref: false,
+    };
+    const plan = planSync([s], [l]);
+    expect(plan.adopt).toEqual([]);
+    expect(plan.pushCreate).toHaveLength(1);
+  });
+
+  it("after adoption, an identical local block is a no-op in the next round", () => {
+    const s = serverEvent();
+    const l: LocalEvent = {
+      uid: s.uid,
+      fields: { uid: s.uid, title: s.title, start: s.start },
+      prose: "",
+      hasHref: false,
+    };
+    const adopted = planSync([s], [l]).adopt[0];
+    const nextRound = planSync([s], [mkLocal(adopted)]);
+    expect(nextRound.pushUpdate).toEqual([]);
+    expect(nextRound.applyServer).toEqual([]);
+    expect(nextRound.conflicts).toEqual([]);
+    expect(nextRound.adopt).toEqual([]);
+  });
+
+  it("after adoption, a local edit surfaces as a pushUpdate (local wins) in the next round", () => {
+    const s = serverEvent();
+    const l: LocalEvent = {
+      uid: s.uid,
+      fields: { uid: s.uid, title: s.title, start: s.start },
+      prose: "",
+      hasHref: false,
+    };
+    const adopted = planSync([s], [l]).adopt[0];
+    const edited = mkLocal(adopted);
+    edited.fields.title = "本地才是权威标题";
+    const nextRound = planSync([s], [edited]);
+    expect(nextRound.pushUpdate).toHaveLength(1);
+    expect(nextRound.pushUpdate[0]).toMatchObject({ uid: s.uid, title: "本地才是权威标题", href: s.href });
+    expect(nextRound.applyServer).toEqual([]);
+    expect(nextRound.conflicts).toEqual([]);
+  });
 });
 
 describe("fieldsToEvent — extended synced fields", () => {
