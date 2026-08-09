@@ -36,6 +36,7 @@ Ogenda adds a dedicated calendar/agenda panel to Obsidian. It keeps your events 
 
 ## ✨ What’s New
 
+- **v1.0.1** — **24-hour time input**: the event form no longer uses the OS locale's 12-hour clock. Times are typed and shown as `09:00`–`23:59`, so a morning meeting ending at noon is clearly `09:00 → 12:00` (never `12:00 AM`), and shorthand like `1423` or `900` formats itself as you type.
 - **v0.0.9** — **Sync fixes**: the panel now refreshes when a sync finishes, so it can no longer show — or let you edit — a version the server has already replaced. A stalled CalDAV request fails after 30s instead of hanging the sync with no notice at all.
 - **v0.0.9** — **Calendar picker fixed**: iCloud reports reminder lists as calendars, so the picker used to offer duplicates that could never be written to. Only real event calendars are listed now.
 - **v0.0.9** — **Editing fixes**: toggling all-day off keeps the time you had entered; changing the storage folder takes effect without reopening the panel; the list view steps one day at a time; unreadable entries in a monthly note are reported instead of silently skipped.
@@ -171,6 +172,7 @@ Ogenda 为 Obsidian 增加了一个专门的日历/议程面板。它把事件�
 
 ## ✨ 更新日志
 
+- **v1.0.1** — **24 小时制时间输入**：事件表单不再跟随系统地区的 12 小时制。时间统一按 `09:00`–`23:59` 输入和显示，上午会议到中午结束明确是 `09:00 → 12:00`（绝不会出现 `12:00 AM`），`1423`、`900` 这类简写会边打边自动格式化。
 - **v0.0.9** — **同步修复**：同步完成后面板会自动刷新，不会再显示、甚至让你编辑一个服务器上已经更新过的旧版本；CalDAV 请求卡住时 30 秒后失败退出，不再无声挂起。
 - **v0.0.9** — **日历选择修复**：iCloud 会把提醒事项列表也当作日历返回，导致选择列表里出现重名且无法写入的条目。现在只列出真正的事件日历。
 - **v0.0.9** — **编辑修复**：关闭「全天」不再丢失已填的时间；修改存储文件夹无需重开面板即可生效；清单视图改为按天翻页；月度笔记中无法解析的条目会给出提示，不再静默跳过。
