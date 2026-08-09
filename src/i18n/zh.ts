@@ -65,6 +65,7 @@ export const zh: Record<string, string> = {
   "form.start.name": "开始时间",
   "form.end.name": "结束时间",
   "form.end.desc": "可留空",
+  "form.timeInvalid": "时间格式无效——请用 24 小时制(例如 14:23)",
   "form.location.name": "地点",
   "form.organizer.name": "组织者",
   "form.attendees.name": "参与人",

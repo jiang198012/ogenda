@@ -7,9 +7,12 @@ import {
   RawFormFields,
   initialStart,
   isoToDateValue,
-  isoToDatetimeLocalValue,
+  isoToTimeValue,
+  formatTimeTyping,
+  normalizeTimeInput,
+  isValidTimeValue,
+  combineDateAndTime,
   dateValueToIso,
-  datetimeLocalValueToIso,
   withTimeFrom,
   shiftEndWithStart,
   defaultEndFor,
@@ -23,8 +26,10 @@ import { getPredefinedCategories } from "./event-form-fields";
 export class EventFormModal extends Modal {
   private fields: RawFormFields;
   private errorEl: HTMLElement | null = null;
-  private startInput!: HTMLInputElement;
-  private endInput!: HTMLInputElement;
+  private startDate!: HTMLInputElement;
+  private startTime!: HTMLInputElement;
+  private endDate!: HTMLInputElement;
+  private endTime!: HTMLInputElement;
   private titleInput!: HTMLInputElement;
   private saveBtn!: HTMLButtonElement;
 
@@ -73,8 +78,8 @@ export class EventFormModal extends Modal {
       tg.setValue(this.fields.allDay).onChange((v) => {
         const prevStart = this.fields.start;
         const prevEnd = this.fields.end;
-        this.fields.start = this.readDateInput(this.startInput);
-        this.fields.end = this.readDateInput(this.endInput);
+        this.fields.start = this.readStartIso();
+        this.fields.end = this.readEndIso();
         this.fields.allDay = v;
         if (!v) {
           // The date input only hands back a bare date, so put the clock time back.
@@ -90,21 +95,26 @@ export class EventFormModal extends Modal {
     );
 
     const startRow = new Setting(contentEl).setName(t("form.start.name") + " *");
-    this.startInput = startRow.controlEl.createEl("input", { cls: "ogenda-form-datetime" });
+    this.startDate = startRow.controlEl.createEl("input", { type: "date", cls: "ogenda-form-date" });
+    this.startTime = startRow.controlEl.createEl("input", {
+      type: "text",
+      cls: "ogenda-form-time",
+      attr: { inputmode: "numeric", autocomplete: "off", placeholder: "HH:MM" },
+    });
     const endRow = new Setting(contentEl).setName(t("form.end.name")).setDesc(t("form.end.desc"));
-    this.endInput = endRow.controlEl.createEl("input", { cls: "ogenda-form-datetime" });
+    this.endDate = endRow.controlEl.createEl("input", { type: "date", cls: "ogenda-form-date" });
+    this.endTime = endRow.controlEl.createEl("input", {
+      type: "text",
+      cls: "ogenda-form-time",
+      attr: { inputmode: "numeric", autocomplete: "off", placeholder: "HH:MM" },
+    });
     this.applyDateInputs();
-    this.startInput.addEventListener("change", () => {
-      const newStart = this.readDateInput(this.startInput);
-      this.fields.end = shiftEndWithStart(this.fields.start, this.readDateInput(this.endInput), newStart);
-      this.fields.start = newStart;
-      this.applyDateInputs();
-      this.updateValidity();
-    });
-    this.endInput.addEventListener("change", () => {
-      this.fields.end = this.readDateInput(this.endInput);
-      this.updateValidity();
-    });
+
+    // The date inputs and the clock-time inputs both commit a field value.
+    this.startDate.addEventListener("change", () => this.commitStart());
+    this.endDate.addEventListener("change", () => this.commitEnd());
+    this.bindTimeField(this.startTime, true);
+    this.bindTimeField(this.endTime, false);
 
     new Setting(contentEl).setName(t("form.location.name")).addText((tx) =>
       tx.setValue(this.fields.location).onChange((v) => (this.fields.location = v)),
@@ -206,40 +216,88 @@ export class EventFormModal extends Modal {
     });
   }
 
-  private updateValidity(): void {
-    const result = validateEventForm({
-      title: this.fields.title,
-      start: this.readDateInput(this.startInput),
-      end: this.readDateInput(this.endInput),
-      allDay: this.fields.allDay,
+  /** Live-format the 24-hour clock-time field while typing; normalize it on blur. */
+  private bindTimeField(input: HTMLInputElement, isStart: boolean): void {
+    input.addEventListener("input", () => {
+      const f = formatTimeTyping(input.value);
+      if (f !== input.value) {
+        input.value = f;
+        const end = input.value.length;
+        try {
+          input.setSelectionRange(end, end);
+        } catch {
+          // Not a text input; ignore.
+        }
+      }
     });
-    if (this.errorEl) this.errorEl.setText(result.valid ? "" : result.errors.join("; "));
-    if (this.saveBtn) this.saveBtn.disabled = !result.valid;
+    input.addEventListener("blur", () => {
+      input.value = normalizeTimeInput(input.value);
+    });
+    input.addEventListener("change", () => {
+      if (isStart) this.commitStart();
+      else this.commitEnd();
+    });
+  }
+
+  private commitStart(): void {
+    const newStart = this.readStartIso();
+    this.fields.end = shiftEndWithStart(this.fields.start, this.readEndIso(), newStart);
+    this.fields.start = newStart;
+    this.applyDateInputs();
+    this.updateValidity();
+  }
+
+  private commitEnd(): void {
+    this.fields.end = this.readEndIso();
+    this.applyDateInputs();
+    this.updateValidity();
+  }
+
+  private updateValidity(): void {
+    const timeInvalid =
+      !this.fields.allDay && this.startTime.value.trim() !== "" && !isValidTimeValue(normalizeTimeInput(this.startTime.value));
+    const errors: string[] = [];
+    if (timeInvalid) {
+      errors.push(t("form.timeInvalid"));
+    } else {
+      const result = validateEventForm({
+        title: this.fields.title,
+        start: this.readStartIso(),
+        end: this.readEndIso(),
+        allDay: this.fields.allDay,
+      });
+      errors.push(...result.errors);
+    }
+    if (this.errorEl) this.errorEl.setText(errors.join("; "));
+    if (this.saveBtn) this.saveBtn.disabled = errors.length > 0;
   }
 
   private applyDateInputs(): void {
-    if (this.fields.allDay) {
-      this.startInput.type = "date";
-      this.endInput.type = "date";
-      this.startInput.value = isoToDateValue(this.fields.start);
-      this.endInput.value = this.fields.end ? isoToDateValue(this.fields.end) : "";
-    } else {
-      this.startInput.type = "datetime-local";
-      this.endInput.type = "datetime-local";
-      this.startInput.value = isoToDatetimeLocalValue(this.fields.start);
-      this.endInput.value = this.fields.end ? isoToDatetimeLocalValue(this.fields.end) : "";
+    this.startDate.value = isoToDateValue(this.fields.start);
+    this.endDate.value = this.fields.end ? isoToDateValue(this.fields.end) : "";
+    if (!this.fields.allDay) {
+      this.startTime.value = isoToTimeValue(this.fields.start);
+      this.endTime.value = this.fields.end ? isoToTimeValue(this.fields.end) : "";
     }
+    // The clock-time fields keep their value while hidden, so leaving all-day mode
+    // can restore the time the user had typed.
+    this.startTime.style.display = this.fields.allDay ? "none" : "";
+    this.endTime.style.display = this.fields.allDay ? "none" : "";
   }
 
-  private readDateInput(input: HTMLInputElement): string {
-    const v = input.value;
-    if (!v) return "";
-    return this.fields.allDay ? dateValueToIso(v) : datetimeLocalValueToIso(v);
+  private readStartIso(): string {
+    if (this.fields.allDay) return dateValueToIso(this.startDate.value);
+    return combineDateAndTime(this.startDate.value, this.startTime.value);
+  }
+
+  private readEndIso(): string {
+    if (this.fields.allDay) return this.endDate.value ? dateValueToIso(this.endDate.value) : "";
+    return combineDateAndTime(this.endDate.value, this.endTime.value);
   }
 
   private handleSave(): void {
-    this.fields.start = this.readDateInput(this.startInput);
-    this.fields.end = this.readDateInput(this.endInput);
+    this.fields.start = this.readStartIso();
+    this.fields.end = this.readEndIso();
     const result = validateEventForm(this.fields);
     if (!result.valid) {
       if (this.errorEl) this.errorEl.setText(result.errors.join("; "));

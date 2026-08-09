@@ -4,10 +4,14 @@ import {
   validateEventForm,
   buildEventFromFields,
   RawFormFields,
-  isoToDatetimeLocalValue,
   datetimeLocalValueToIso,
   isoToDateValue,
   dateValueToIso,
+  isoToTimeValue,
+  formatTimeTyping,
+  normalizeTimeInput,
+  isValidTimeValue,
+  combineDateAndTime,
   withTimeFrom,
   initialStart,
   shiftEndWithStart,
@@ -118,15 +122,6 @@ describe("buildEventFromFields", () => {
 });
 
 describe("datetime field conversions (#51)", () => {
-  it("isoToDatetimeLocalValue: ISO datetime → minute-precision local value", () => {
-    expect(isoToDatetimeLocalValue("2026-07-14T15:00:00")).toBe("2026-07-14T15:00");
-  });
-  it("isoToDatetimeLocalValue: date-only → midnight local value", () => {
-    expect(isoToDatetimeLocalValue("2026-07-14")).toBe("2026-07-14T00:00");
-  });
-  it("isoToDatetimeLocalValue: tolerates a lowercase t separator", () => {
-    expect(isoToDatetimeLocalValue("2026-07-14t15:00:00")).toBe("2026-07-14T15:00");
-  });
   it("datetimeLocalValueToIso: local value → ISO datetime with seconds", () => {
     expect(datetimeLocalValueToIso("2026-07-14T15:00")).toBe("2026-07-14T15:00:00");
   });
@@ -136,6 +131,76 @@ describe("datetime field conversions (#51)", () => {
   });
   it("dateValueToIso: date value → date-only ISO", () => {
     expect(dateValueToIso("2026-07-14")).toBe("2026-07-14");
+  });
+});
+
+describe("24-hour time helpers (no more 12:00 AM ambiguity)", () => {
+  it("isoToTimeValue: ISO datetime → 24h HH:MM (midnight = 00:00, noon = 12:00)", () => {
+    expect(isoToTimeValue("2026-07-14T15:00:00")).toBe("15:00");
+    expect(isoToTimeValue("2026-07-14T00:00:00")).toBe("00:00");
+    expect(isoToTimeValue("2026-07-14T12:00:00")).toBe("12:00");
+    expect(isoToTimeValue("2026-07-14T15:00")).toBe("15:00");
+  });
+  it("isoToTimeValue: date-only or empty → empty", () => {
+    expect(isoToTimeValue("2026-07-14")).toBe("");
+    expect(isoToTimeValue("")).toBe("");
+  });
+
+  it("formatTimeTyping: inserts a colon after two digits while typing", () => {
+    expect(formatTimeTyping("1")).toBe("1");
+    expect(formatTimeTyping("14")).toBe("14");
+    expect(formatTimeTyping("142")).toBe("14:2");
+    expect(formatTimeTyping("1423")).toBe("14:23");
+  });
+  it("formatTimeTyping: three digits whose first two are out of hour range read as h:mm", () => {
+    expect(formatTimeTyping("900")).toBe("9:00");
+    expect(formatTimeTyping("905")).toBe("9:05");
+    expect(formatTimeTyping("120")).toBe("12:0");
+    expect(formatTimeTyping("1200")).toBe("12:00");
+  });
+  it("formatTimeTyping: leaves an already-colon'd value alone", () => {
+    expect(formatTimeTyping("14:23")).toBe("14:23");
+    expect(formatTimeTyping("14:0")).toBe("14:0");
+  });
+  it("formatTimeTyping: strips stray non-digits from the digit path", () => {
+    expect(formatTimeTyping("14p")).toBe("14");
+  });
+
+  it("normalizeTimeInput: completes partial input on blur", () => {
+    expect(normalizeTimeInput("1423")).toBe("14:23");
+    expect(normalizeTimeInput("14")).toBe("14:00");
+    expect(normalizeTimeInput("9")).toBe("09:00");
+    expect(normalizeTimeInput("900")).toBe("09:00");
+    expect(normalizeTimeInput("905")).toBe("09:05");
+    expect(normalizeTimeInput("14:2")).toBe("14:20");
+    expect(normalizeTimeInput("14:")).toBe("14:00");
+    expect(normalizeTimeInput("")).toBe("");
+  });
+  it("normalizeTimeInput: midnight is 00:00, never 12:00 AM", () => {
+    expect(normalizeTimeInput("0")).toBe("00:00");
+    expect(normalizeTimeInput("00")).toBe("00:00");
+    expect(normalizeTimeInput("00:00")).toBe("00:00");
+  });
+
+  it("isValidTimeValue: 00:00–23:59 valid, out-of-range invalid", () => {
+    expect(isValidTimeValue("00:00")).toBe(true);
+    expect(isValidTimeValue("23:59")).toBe(true);
+    expect(isValidTimeValue("24:00")).toBe(false);
+    expect(isValidTimeValue("25:00")).toBe(false);
+    expect(isValidTimeValue("14:60")).toBe(false);
+    expect(isValidTimeValue("14:99")).toBe(false);
+    expect(isValidTimeValue("")).toBe(true); // end time is optional
+  });
+
+  it("combineDateAndTime: date + 24h time → ISO datetime", () => {
+    expect(combineDateAndTime("2026-07-14", "15:00")).toBe("2026-07-14T15:00:00");
+    expect(combineDateAndTime("2026-07-14", "00:00")).toBe("2026-07-14T00:00:00");
+    expect(combineDateAndTime("2026-07-14", "1423")).toBe("2026-07-14T14:23:00");
+  });
+  it("combineDateAndTime: empty date or empty/invalid time → empty", () => {
+    expect(combineDateAndTime("", "15:00")).toBe("");
+    expect(combineDateAndTime("2026-07-14", "")).toBe("");
+    expect(combineDateAndTime("2026-07-14", "25:00")).toBe("");
   });
 });
 
@@ -190,6 +255,11 @@ describe("validateEventForm — timed end", () => {
   it("timed event with empty end is valid", () => {
     const r = validateEventForm({ title: "x", start: "2026-07-19T14:00:00", end: "", allDay: false });
     expect(r.valid).toBe(true);
+  });
+  it("9:00 → 12:00 (morning meeting) is valid — noon is 12:00, not 00:00", () => {
+    const r = validateEventForm({ title: "x", start: "2026-07-19T09:00:00", end: "2026-07-19T12:00:00", allDay: false });
+    expect(r.valid).toBe(true);
+    expect(r.errors).toEqual([]);
   });
 });
 

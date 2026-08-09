@@ -527,8 +527,16 @@
   justify-content: flex-end;
   margin-top: 0.8em;
 }
-.ogenda-form-datetime {
-  width: 100%;
+.ogenda-form-date {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ogenda-form-time {
+  flex: 0 0 auto;
+  width: 4.5em;
+  margin-left: 0.5em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 .ogenda-form-title .setting-item-control,
 .ogenda-form-desc-row .setting-item-control {

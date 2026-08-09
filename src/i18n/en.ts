@@ -65,6 +65,7 @@ export const en: Record<string, string> = {
   "form.start.name": "Start",
   "form.end.name": "End",
   "form.end.desc": "Optional",
+  "form.timeInvalid": "Invalid time — use 24-hour format (e.g. 14:23)",
   "form.location.name": "Location",
   "form.organizer.name": "Organizer",
   "form.attendees.name": "Attendees",

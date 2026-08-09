@@ -42,15 +42,58 @@ function fmtLocal(d: Date, dateOnly: boolean): string {
   return dateOnly ? date : `${date}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
-/** ISO (date or datetime) → <input type="datetime-local"> value "YYYY-MM-DDTHH:mm". */
-export function isoToDatetimeLocalValue(iso: string): string {
+/** ISO (date or datetime) → 24-hour clock time "HH:MM"; date-only → "". */
+export function isoToTimeValue(iso: string): string {
   const s = normSep(iso.trim());
-  if (!s) return "";
-  if (s.includes("T")) return s.slice(0, 16);
-  return `${s.slice(0, 10)}T00:00`;
+  return s.includes("T") ? s.slice(11, 16) : "";
 }
 
-/** <input type="datetime-local"> value → ISO datetime with seconds. */
+/**
+ * Live-format a clock-time field as the user types, always 24-hour.
+ * Pure digits get a ":" inserted after the second digit once enough are entered;
+ * a leading ":" (or an existing one) is left alone so "14:23" and "14:02" stay
+ * exactly as typed. Three digits whose first two are out of hour range read as
+ * "h:mm" — e.g. "900" → "9:00", not the invalid "90:0".
+ */
+export function formatTimeTyping(raw: string): string {
+  const s = raw.trim();
+  if (!s) return "";
+  if (s.includes(":")) return s.replace(/[^0-9:]/g, "").slice(0, 5);
+  const d = s.replace(/\D/g, "").slice(0, 4);
+  if (d.length <= 2) return d;
+  if (d.length === 3 && Number(d.slice(0, 2)) > 23) {
+    return `${d.slice(0, 1)}:${d.slice(1)}`;
+  }
+  return `${d.slice(0, 2)}:${d.slice(2)}`;
+}
+
+/** Finalize a clock-time field to "HH:MM" (24-hour) on blur; "" when empty. */
+export function normalizeTimeInput(raw: string): string {
+  const f = formatTimeTyping(raw.trim());
+  if (!f) return "";
+  const [hPart, mPart] = f.split(":");
+  if (!hPart) return "";
+  const h = hPart.length === 1 ? `0${hPart}` : hPart;
+  const m = mPart ? (mPart.length === 1 ? `${mPart}0` : mPart) : "";
+  return m ? `${h}:${m}` : `${h}:00`;
+}
+
+/** True for a "HH:MM" clock time in range 00:00–23:59; "" (optional field) is allowed. */
+export function isValidTimeValue(v: string): boolean {
+  if (!v.trim()) return true;
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(v.trim());
+}
+
+/** <input type="date"> value + 24-hour "HH:MM" → ISO datetime; "" when either is missing or the time is out of range. */
+export function combineDateAndTime(date: string, time: string): string {
+  const d = isoToDateValue(date);
+  if (!d) return "";
+  const t = normalizeTimeInput(time);
+  if (!t || !isValidTimeValue(t)) return "";
+  return `${d}T${t}:00`;
+}
+
+/** A "YYYY-MM-DDTHH:MM" (or "HH:MM:SS") string → ISO datetime with seconds. */
 export function datetimeLocalValueToIso(v: string): string {
   const s = normSep(v.trim());
   if (!s) return "";
