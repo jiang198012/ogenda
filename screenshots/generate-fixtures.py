@@ -373,7 +373,7 @@ for name, fn in fixtures.items():
     (FIXTURES / f"{name}.html").write_text(fn(DESKTOP_WIDTH[name]), encoding="utf-8")
 
 for name in MOBILE_VIEWS:
-    (FIXTURES / f"{name}-mobile.html").write_text(fn(375), encoding="utf-8")
+    (FIXTURES / f"{name}-mobile.html").write_text(fixtures[name](375), encoding="utf-8")
 
 print("Fixtures generated:", ", ".join(fixtures.keys()))
 print("Mobile variants:", ", ".join(MOBILE_VIEWS))

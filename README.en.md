@@ -16,6 +16,14 @@
 
 > ⚠️ **Desktop and mobile are supported.** Requires Obsidian **1.7.2+**. CalDAV sync needs a reachable server.
 
+<p align="center">
+  <img src="screenshots/ogenda-demo.gif" alt="Ogenda 24-hour time input demo — typing 1423 formats to 14:23, 900 to 09:00 (10s loop)" width="90%"/>
+</p>
+
+<p align="center">
+  <img src="screenshots/mobile-strip.png" alt="Mobile: list / day / month" width="90%"/>
+</p>
+
 ## Highlights
 
 | Capability | What it gives you |

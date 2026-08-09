@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ogenda settings</title>
+<title>ogenda</title>
 <style>
 
 :root {
@@ -40,22 +40,143 @@ body {
 </head>
 <body>
 <div class="viewport">
-
-<div style="padding:1em 1.5em;max-width:600px;">
-  <div style="font-size:1.2em;font-weight:700;margin-bottom:1em;">Ogenda 设置</div>
-  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">语言</div></div><div class="setting-item-control"><select><option>跟随 Obsidian</option><option selected>简体中文</option><option>English</option></select></div></div>
-  <h3 style="margin-top:1.5em;">分类</h3>
-  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">默认分类</div><div class="setting-item-description">新建事件时的默认分类</div></div><div class="setting-item-control"><select><option>自定义</option><option selected>工作</option><option>个人</option></select><input type="text" value="工作" style="margin-left:0.5em;"></div></div>
-  <h3 style="margin-top:1.5em;">日历同步</h3>
-  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">同步方式</div></div><div class="setting-item-control"><select><option>关闭</option><option>iCloud (CalDAV)</option><option selected>通用 CalDAV</option><option>ICS 订阅(只读)</option></select></div></div>
-  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">CalDAV 日历 URL</div></div><div class="setting-item-control"><input type="text" value="https://caldav.example.com/calendars/home" style="width:100%"></div></div>
-  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">用户名</div></div><div class="setting-item-control"><input type="text" value="user@example.com" style="width:100%"></div></div>
-  <h3 style="margin-top:1.5em;">存储</h3>
-  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">存储文件夹</div></div><div class="setting-item-control"><input type="text" value="Agenda" style="width:100%"></div></div>
-  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">时区</div></div><div class="setting-item-control"><select><option>跟随系统</option><option>Asia/Shanghai</option><option>America/Los_Angeles</option></select></div></div>
-  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">启动时自动同步</div></div><div class="setting-item-control"><input type="checkbox" checked></div></div>
+<div class="ogenda-panel">
+  <div class="ogenda-panel-head">
+    <div class="ogenda-panel-tabs">
+      <div class="ogenda-panel-tab active">清单</div>
+      <div class="ogenda-panel-tab">日</div>
+      <div class="ogenda-panel-tab">周</div>
+      <div class="ogenda-panel-tab">月</div>
+      <div class="ogenda-panel-tab">统计</div>
+    </div>
+    <div class="ogenda-panel-nav">
+      <span class="ogenda-navbtn">‹</span>
+      <span class="ogenda-navtoday">今天 · 7月21日</span>
+      <span class="ogenda-navbtn">›</span>
+      <span class="ogenda-navtoday-btn">今天</span>
+    </div>
+    <div class="ogenda-panel-newbtn">+ 新建</div>
+    <div class="ogenda-panel-syncbtn"><span>同步</span></div>
+  </div>
+  <div class="ogenda-panel-body">
+<div class="ogenda-month-grid">
+  <div class="ogenda-month-dow">一</div>
+  <div class="ogenda-month-dow">二</div>
+  <div class="ogenda-month-dow">三</div>
+  <div class="ogenda-month-dow">四</div>
+  <div class="ogenda-month-dow">五</div>
+  <div class="ogenda-month-dow">六</div>
+  <div class="ogenda-month-dow">日</div>
+  <div class="ogenda-month-cell ogenda-month-othermonth">
+    <div class="ogenda-month-daynum">29</div>
+  </div>
+  <div class="ogenda-month-cell ogenda-month-othermonth">
+    <div class="ogenda-month-daynum">30</div>
+  </div>
+  <div class="ogenda-month-cell ogenda-month-othermonth">
+    <div class="ogenda-month-daynum">31</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">1</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">2</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">3</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">4</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">5</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">6</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">7</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">8</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">9</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">10</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">11</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">12</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">13</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">14</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">15</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">16</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">17</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">18</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">19</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">20</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">21</div>
+    <div class="ogenda-month-mini" style="border-left-color:#7c3aed">团队周会</div>
+    <div class="ogenda-month-mini" style="border-left-color:#06b6d4">客户评审</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">22</div>
+    <div class="ogenda-month-mini" style="border-left-color:#f59e0b">季度规划</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">23</div>
+    <div class="ogenda-month-mini" style="border-left-color:#22c55e">健身房</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">24</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">25</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">26</div>
+    <div class="ogenda-month-mini" style="border-left-color:#ef4444">早午餐</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">27</div>
+  </div>
+  <div class="ogenda-month-cell">
+    <div class="ogenda-month-daynum">28</div>
+  </div>
+  <div class="ogenda-month-cell ogenda-month-othermonth">
+    <div class="ogenda-month-daynum">29</div>
+  </div>
+  <div class="ogenda-month-cell ogenda-month-othermonth">
+    <div class="ogenda-month-daynum">30</div>
+  </div>
+  <div class="ogenda-month-cell ogenda-month-othermonth">
+    <div class="ogenda-month-daynum">31</div>
+  </div>
 </div>
-
+  </div>
+</div>
 </div>
 </body>
 </html>

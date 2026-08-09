@@ -26,7 +26,7 @@ license: MIT
 > ⚠️ **桌面端与移动端均支持**。需要 Obsidian **1.7.2+**。CalDAV 同步需要可访问的服务器地址。
 
 <p align="center">
-  <img src="screenshots/list-view.png" alt="列表视图(桌面端)" width="90%"/>
+  <img src="screenshots/ogenda-demo.gif" alt="Ogenda 24 小时制时间输入演示——输入 1423 自动格式化为 14:23,输入 900 自动补为 09:00(10 秒循环)" width="90%"/>
 </p>
 
 <p align="center">

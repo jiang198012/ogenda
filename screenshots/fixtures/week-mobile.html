@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ogenda settings</title>
+<title>ogenda</title>
 <style>
 
 :root {
@@ -40,22 +40,77 @@ body {
 </head>
 <body>
 <div class="viewport">
-
-<div style="padding:1em 1.5em;max-width:600px;">
-  <div style="font-size:1.2em;font-weight:700;margin-bottom:1em;">Ogenda 设置</div>
-  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">语言</div></div><div class="setting-item-control"><select><option>跟随 Obsidian</option><option selected>简体中文</option><option>English</option></select></div></div>
-  <h3 style="margin-top:1.5em;">分类</h3>
-  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">默认分类</div><div class="setting-item-description">新建事件时的默认分类</div></div><div class="setting-item-control"><select><option>自定义</option><option selected>工作</option><option>个人</option></select><input type="text" value="工作" style="margin-left:0.5em;"></div></div>
-  <h3 style="margin-top:1.5em;">日历同步</h3>
-  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">同步方式</div></div><div class="setting-item-control"><select><option>关闭</option><option>iCloud (CalDAV)</option><option selected>通用 CalDAV</option><option>ICS 订阅(只读)</option></select></div></div>
-  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">CalDAV 日历 URL</div></div><div class="setting-item-control"><input type="text" value="https://caldav.example.com/calendars/home" style="width:100%"></div></div>
-  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">用户名</div></div><div class="setting-item-control"><input type="text" value="user@example.com" style="width:100%"></div></div>
-  <h3 style="margin-top:1.5em;">存储</h3>
-  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">存储文件夹</div></div><div class="setting-item-control"><input type="text" value="Agenda" style="width:100%"></div></div>
-  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">时区</div></div><div class="setting-item-control"><select><option>跟随系统</option><option>Asia/Shanghai</option><option>America/Los_Angeles</option></select></div></div>
-  <div class="setting-item"><div class="setting-item-info"><div class="setting-item-name">启动时自动同步</div></div><div class="setting-item-control"><input type="checkbox" checked></div></div>
+<div class="ogenda-panel">
+  <div class="ogenda-panel-head">
+    <div class="ogenda-panel-tabs">
+      <div class="ogenda-panel-tab active">清单</div>
+      <div class="ogenda-panel-tab">日</div>
+      <div class="ogenda-panel-tab">周</div>
+      <div class="ogenda-panel-tab">月</div>
+      <div class="ogenda-panel-tab">统计</div>
+    </div>
+    <div class="ogenda-panel-nav">
+      <span class="ogenda-navbtn">‹</span>
+      <span class="ogenda-navtoday">今天 · 7月21日</span>
+      <span class="ogenda-navbtn">›</span>
+      <span class="ogenda-navtoday-btn">今天</span>
+    </div>
+    <div class="ogenda-panel-newbtn">+ 新建</div>
+    <div class="ogenda-panel-syncbtn"><span>同步</span></div>
+  </div>
+  <div class="ogenda-panel-body">
+<div class="ogenda-week-grid">
+  <div class="ogenda-week-col-head" style="color:#3B82F6">周一 20</div>
+  <div class="ogenda-week-col-head" style="color:#22C55E">周二 21</div>
+  <div class="ogenda-week-col-head" style="color:#06B6D4">周三 22</div>
+  <div class="ogenda-week-col-head" style="color:#A855F7">周四 23</div>
+  <div class="ogenda-week-col-head" style="color:#64748B">周五 24</div>
+  <div class="ogenda-week-col-head" style="color:#F59E0B">周六 25</div>
+  <div class="ogenda-week-col-head" style="color:#EF4444">周日 26</div>
+  <div class="ogenda-week-col">
+    <div class="ogenda-week-card" style="border-left-color:#7c3aed">
+      <div class="ogenda-week-card-time">09:00</div>
+      <div class="ogenda-week-card-title">团队周会</div>
+      <div class="ogenda-week-card-loc">A 会议室</div>
+    </div>
+  </div>
+  <div class="ogenda-week-col">
+    <div class="ogenda-week-card" style="border-left-color:#06b6d4">
+      <div class="ogenda-week-card-time">14:00</div>
+      <div class="ogenda-week-card-title">客户评审</div>
+      <div class="ogenda-week-card-loc">视频会议</div>
+    </div>
+    <div class="ogenda-week-card" style="border-left-color:#7c3aed">
+      <div class="ogenda-week-card-time">16:00</div>
+      <div class="ogenda-week-card-title">设计同步</div>
+    </div>
+  </div>
+  <div class="ogenda-week-col">
+    <div class="ogenda-week-card" style="border-left-color:#f59e0b">
+      <div class="ogenda-week-card-time">全天</div>
+      <div class="ogenda-week-card-title">季度规划</div>
+    </div>
+  </div>
+  <div class="ogenda-week-col">
+    <div class="ogenda-week-card" style="border-left-color:#22c55e">
+      <div class="ogenda-week-card-time">10:00</div>
+      <div class="ogenda-week-card-title">健身房</div>
+      <div class="ogenda-week-card-loc">健身中心</div>
+    </div>
+  </div>
+  <div class="ogenda-week-col">
+  </div>
+  <div class="ogenda-week-col">
+    <div class="ogenda-week-card" style="border-left-color:#ef4444">
+      <div class="ogenda-week-card-time">11:00</div>
+      <div class="ogenda-week-card-title">早午餐</div>
+    </div>
+  </div>
+  <div class="ogenda-week-col">
+  </div>
 </div>
-
+  </div>
+</div>
 </div>
 </body>
 </html>

@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ogenda form animation</title>
+<style>
+:root {
+  --background-primary: #ffffff;
+  --background-secondary: #f5f5f5;
+  --background-modifier-hover: #e8e8e8;
+  --background-modifier-active-hover: #dcdcdc;
+  --background-modifier-border: #d4d4d4;
+  --interactive-accent: #7c3aed;
+  --interactive-accent-hover: #6d28d9;
+  --text-normal: #1f2937;
+  --text-muted: #6b7280;
+  --text-faint: #9ca3af;
+  --text-on-accent: #ffffff;
+  --text-error: #dc2626;
+  --font-text-size: 16px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 0;
+  background: var(--background-secondary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text-normal);
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh;
+}
+.form-card {
+  width: 460px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  padding: 1.4em 1.6em 1.6em;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.form-card.visible { opacity: 1; transform: translateY(0); }
+.form-title {
+  font-size: 1.25em; font-weight: 700;
+  display: flex; align-items: center; gap: 0.5em;
+  margin-bottom: 1.1em;
+}
+.form-title .ogenda-logo {
+  width: 26px; height: 26px; border-radius: 7px;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 14px; font-weight: 800;
+}
+.field {
+  margin-bottom: 1em;
+}
+.field-label {
+  font-size: 0.85em; font-weight: 600; color: var(--text-muted);
+  margin-bottom: 0.4em;
+}
+.field-label .req { color: var(--text-error); }
+.field-control {
+  display: flex; gap: 0.6em; align-items: center;
+}
+.field input[type="text"], .field input[type="date"] {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 0.55em 0.7em;
+  font-size: 0.95em;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field input:focus {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+}
+.field .date { flex: 1; }
+.field .time {
+  width: 5em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.field .time:focus { border-color: var(--interactive-accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 0.5em; }
+.chip {
+  border-left: 3px solid var(--interactive-accent);
+  background: rgba(124,58,237,0.08);
+  border-radius: 6px;
+  padding: 0.35em 0.7em;
+  font-size: 0.85em;
+  color: var(--text-normal);
+}
+.chip.active { background: rgba(124,58,237,0.18); }
+.save-row { display: flex; justify-content: flex-end; margin-top: 1.4em; }
+.save-btn {
+  background: var(--interactive-accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6em 1.8em;
+  font-size: 0.95em;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(124,58,237,0.3);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.save-btn.pulse { animation: pulse 0.5s ease 2; }
+@keyframes pulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.06); box-shadow: 0 6px 18px rgba(124,58,237,0.45); }
+}
+/* typing caret */
+@keyframes blink { 50% { opacity: 0; } }
+.caret {
+  display: inline-block; width: 1.5px; height: 1.1em;
+  background: var(--interactive-accent);
+  vertical-align: text-bottom; margin-left: 1px;
+  animation: blink 0.8s step-end infinite;
+}
+</style>
+<link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+<div class="form-card" id="card">
+  <div class="form-title"><span class="ogenda-logo">O</span> 新建事件</div>
+
+  <div class="field">
+    <div class="field-label">标题 <span class="req">*</span></div>
+    <div class="field-control"><input type="text" value="团队周会" style="flex:1"></div>
+  </div>
+
+  <div class="field">
+    <div class="field-label">开始时间 <span class="req">*</span></div>
+    <div class="field-control">
+      <input type="date" class="date" value="2026-07-21">
+      <input type="text" class="time" id="startTime" placeholder="HH:MM" inputmode="numeric">
+    </div>
+  </div>
+
+  <div class="field">
+    <div class="field-label">结束时间</div>
+    <div class="field-control">
+      <input type="date" class="date" value="2026-07-21">
+      <input type="text" class="time" id="endTime" placeholder="HH:MM" inputmode="numeric">
+    </div>
+  </div>
+
+  <div class="field">
+    <div class="field-label">地点</div>
+    <div class="field-control"><input type="text" value="A 会议室" style="flex:1"></div>
+  </div>
+
+  <div class="field">
+    <div class="field-label">分类</div>
+    <div class="chips">
+      <span class="chip active">工作</span>
+      <span class="chip">个人</span>
+      <span class="chip">学习</span>
+      <span class="chip">会议</span>
+      <span class="chip">旅行</span>
+      <span class="chip">健康</span>
+    </div>
+  </div>
+
+  <div class="save-row">
+    <button class="save-btn" id="saveBtn">保存</button>
+  </div>
+</div>
+
+<script>
+// 简易 24 小时制输入格式化(与插件逻辑一致)
+function formatTyping(raw) {
+  const s = raw.trim();
+  if (!s) return "";
+  if (s.includes(":")) return s.replace(/[^0-9:]/g, "").slice(0, 5);
+  const d = s.replace(/\D/g, "").slice(0, 4);
+  if (d.length <= 2) return d;
+  if (d.length === 3 && Number(d.slice(0, 2)) > 23) return d.slice(0, 1) + ":" + d.slice(1);
+  return d.slice(0, 2) + ":" + d.slice(2);
+}
+function normalize(raw) {
+  const f = formatTyping(raw.trim());
+  if (!f) return "";
+  const [h, m] = f.split(":");
+  const hh = h.length === 1 ? "0" + h : h;
+  const mm = m ? (m.length === 1 ? m + "0" : m) : "";
+  return mm ? hh + ":" + mm : hh + ":00";
+}
+
+const startTime = document.getElementById("startTime");
+const endTime = document.getElementById("endTime");
+const card = document.getElementById("card");
+const saveBtn = document.getElementById("saveBtn");
+
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// 剧本:用 startTime 上逐个显示字符(模拟打字),再自动格式化成 HH:MM
+async function typeInto(input, text, delayMs, holdMs) {
+  input.focus();
+  input.value = "";
+  for (let i = 0; i < text.length; i++) {
+    input.value = text.slice(0, i + 1);
+    // 触发格式化的"中间态"
+    const formatted = formatTyping(input.value);
+    if (formatted !== input.value) input.value = formatted;
+    await wait(delayMs);
+  }
+  await wait(holdMs);
+  // 失焦归一化
+  input.value = normalize(input.value);
+  input.blur();
+}
+
+(async () => {
+  await wait(300);
+  card.classList.add("visible");
+  await wait(700);
+
+  // 开始时间:输入 1423 → 自动 14:23
+  await typeInto(startTime, "1423", 380, 600);
+
+  // 结束时间:输入 900 → 自动 09:00
+  await typeInto(endTime, "900", 420, 600);
+
+  // 保存按钮脉冲
+  await wait(400);
+  saveBtn.classList.add("pulse");
+  await wait(1200);
+  saveBtn.classList.remove("pulse");
+
+  // 停留
+  await wait(800);
+})();
+</script>
+</body>
+</html>
