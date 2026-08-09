@@ -16,9 +16,9 @@ FIXTURES = ROOT / "fixtures"
 OUT = ROOT
 
 DESKTOP = {"list", "day", "week", "month", "stats", "settings"}
-MOBILE = {"list", "day", "week", "month"}
-MOBILE_STRIP = ["list", "day", "month"]  # the three mobile views shown in the README strip
-MOBILE_HEIGHT = 1400  # fixed viewport height so strip cells align
+MOBILE = {"day", "week", "month"}
+MOBILE_STRIP = ["day", "week", "month"]  # the three mobile views shown in the README strip
+MOBILE_WIDTH, MOBILE_HEIGHT = 375, 812  # iPhone-style screen ratio, one screen tall
 STRIP_GAP = 20
 
 
@@ -43,7 +43,7 @@ def main():
             if not html.exists():
                 continue
             png = OUT / f"mobile-{name}.png"
-            render(page, html, png, 375, MOBILE_HEIGHT, full_page=False)
+            render(page, html, png, MOBILE_WIDTH, MOBILE_HEIGHT, full_page=False)
             print(f"rendered {png.name}")
             if name in MOBILE_STRIP:
                 mobile_pngs.append(png)

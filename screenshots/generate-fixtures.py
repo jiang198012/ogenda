@@ -136,7 +136,7 @@ def list_fixture(width: int = 900):
     return panel_shell(body, width)
 
 
-def day_fixture(width: int = 900):
+def day_fixture(width: int = 900, mobile: bool = False):
     card = f"""
   <div class="ogenda-day-card" style="border-left-color: #7c3aed;">
     <div class="ogenda-day-time">09:00–10:00</div>
@@ -201,7 +201,7 @@ def day_fixture(width: int = 900):
     return panel_shell(content, width)
 
 
-def week_fixture(width: int = 900):
+def week_fixture(width: int = 900, mobile: bool = False):
     heads = ["周一 20", "周二 21", "周三 22", "周四 23", "周五 24", "周六 25", "周日 26"]
     colors = ["#3B82F6", "#22C55E", "#06B6D4", "#A855F7", "#64748B", "#F59E0B", "#EF4444"]
     events = [
@@ -213,7 +213,10 @@ def week_fixture(width: int = 900):
         [("11:00", "早午餐", "", "#ef4444")],
         [],
     ]
-    html = '<div class="ogenda-week-grid">\n'
+    # On a 375px phone the 7 columns would scroll sideways; for the README strip
+    # we show the full week by giving each column an equal share of the width.
+    grid_style = ' style="grid-template-columns:repeat(7,1fr);overflow:visible;"' if mobile else ""
+    html = f'<div class="ogenda-week-grid"{grid_style}>\n'
     for h, c in zip(heads, colors):
         html += f'  <div class="ogenda-week-col-head" style="color:{c}">{h}</div>\n'
     for day_events in events:
@@ -230,7 +233,7 @@ def week_fixture(width: int = 900):
     return panel_shell(html, width)
 
 
-def month_fixture(width: int = 900):
+def month_fixture(width: int = 900, mobile: bool = False):
     days = list(range(29, 32)) + list(range(1, 32))  # Jul 2026 starts Wed
     events = {
         21: [("团队周会", "#7c3aed"), ("客户评审", "#06b6d4")],
@@ -238,7 +241,9 @@ def month_fixture(width: int = 900):
         23: [("健身房", "#22c55e")],
         26: [("早午餐", "#ef4444")],
     }
-    html = '<div class="ogenda-month-grid">\n'
+    # Same as week: equal column shares so a full month fits one phone screen.
+    grid_style = ' style="grid-template-columns:repeat(7,1fr);overflow:visible;"' if mobile else ""
+    html = f'<div class="ogenda-month-grid"{grid_style}>\n'
     for dow in ["一", "二", "三", "四", "五", "六", "日"]:
         html += f'  <div class="ogenda-month-dow">{dow}</div>\n'
     for d in days:
@@ -366,14 +371,14 @@ DESKTOP_WIDTH = {
     "list": 900, "day": 900, "week": 900, "month": 900, "stats": 900,
     "form": 520, "settings": 600,
 }
-# Mobile variants: 375px phones for the README strip.
-MOBILE_VIEWS = ["list", "day", "week", "month"]
+# Mobile variants: 375px phones for the README strip (day / week / month).
+MOBILE_VIEWS = ["day", "week", "month"]
 
 for name, fn in fixtures.items():
     (FIXTURES / f"{name}.html").write_text(fn(DESKTOP_WIDTH[name]), encoding="utf-8")
 
 for name in MOBILE_VIEWS:
-    (FIXTURES / f"{name}-mobile.html").write_text(fixtures[name](375), encoding="utf-8")
+    (FIXTURES / f"{name}-mobile.html").write_text(fixtures[name](375, mobile=True), encoding="utf-8")
 
 print("Fixtures generated:", ", ".join(fixtures.keys()))
 print("Mobile variants:", ", ".join(MOBILE_VIEWS))

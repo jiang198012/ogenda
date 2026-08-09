@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ogenda demo</title>
+<style>
+:root {
+  --background-primary: #ffffff;
+  --background-secondary: #f5f5f5;
+  --background-modifier-hover: #e8e8e8;
+  --background-modifier-active-hover: #dcdcdc;
+  --background-modifier-border: #d4d4d4;
+  --interactive-accent: #7c3aed;
+  --interactive-accent-hover: #6d28d9;
+  --text-normal: #1f2937;
+  --text-muted: #6b7280;
+  --text-faint: #9ca3af;
+  --text-on-accent: #ffffff;
+  --text-error: #dc2626;
+  --font-text-size: 16px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 0;
+  background: var(--background-secondary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text-normal);
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh;
+}
+.window {
+  width: 900px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.1);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(10px) scale(0.99);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.window.visible { opacity: 1; transform: none; }
+.window-titlebar {
+  display: flex; align-items: center; gap: 0.5em;
+  padding: 0.6em 1em;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+  font-size: 0.8em; color: var(--text-muted);
+}
+.window-titlebar .dots { display: flex; gap: 5px; }
+.window-titlebar .dot { width: 10px; height: 10px; border-radius: 50%; }
+.window-titlebar .dot.r { background: #ff5f57; }
+.window-titlebar .dot.y { background: #febc2e; }
+.window-titlebar .dot.g { background: #28c840; }
+.window-titlebar .title { margin-left: 0.5em; }
+
+/* Panel header */
+.panel-head {
+  display: flex; align-items: center; gap: 0.75em;
+  padding: 0.6em 1em;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+}
+.tabs { display: flex; gap: 0.2em; }
+.tab {
+  padding: 0.4em 0.9em;
+  border-radius: 6px;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: default;
+  transition: all 0.25s;
+}
+.tab.active { background: rgba(124,58,237,0.12); color: var(--interactive-accent); }
+.nav { display: flex; align-items: center; gap: 0.3em; margin-left: auto; }
+.navbtn {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; background: var(--background-modifier-hover);
+  color: var(--text-normal); font-size: 1.1em;
+}
+.navtoday { font-size: 0.85em; color: var(--text-muted); padding: 0 0.5em; }
+.todaybtn {
+  padding: 0.4em 0.9em; border-radius: 6px;
+  background: var(--interactive-accent); color: #fff;
+  font-size: 0.85em; font-weight: 600;
+}
+.newbtn, .syncbtn {
+  padding: 0.45em 0.9em; border-radius: 6px;
+  font-size: 0.85em; font-weight: 600; cursor: default;
+}
+.newbtn { background: var(--interactive-accent); color: #fff; }
+.syncbtn { background: var(--background-modifier-hover); color: var(--text-normal); }
+.syncbtn.syncing { color: var(--text-muted); }
+
+/* Panel body */
+.panel-body { padding: 1em; min-height: 420px; }
+.view { display: none; }
+.view.active { display: block; }
+
+/* List view */
+.statusgroup { margin-bottom: 1em; }
+.statusheader {
+  font-size: 0.85em; font-weight: 700; color: var(--text-muted);
+  padding: 0.3em 0.2em;
+}
+.event-row {
+  display: flex; align-items: center; gap: 0.8em;
+  border-left: 3px solid var(--interactive-accent);
+  background: var(--background-primary);
+  border-radius: 6px;
+  padding: 0.6em 0.8em;
+  margin-bottom: 0.4em;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.event-when { font-size: 0.8em; color: var(--text-muted); min-width: 7em; }
+.event-title { font-weight: 600; }
+.event-loc { font-size: 0.8em; color: var(--text-faint); }
+.pill {
+  font-size: 0.72em; padding: 0.15em 0.6em; border-radius: 10px;
+  color: #fff; margin-left: auto; white-space: nowrap;
+}
+.catpill {
+  font-size: 0.72em; padding: 0.15em 0.6em; border-radius: 10px;
+  background: rgba(124,58,237,0.12); color: #7c3aed; white-space: nowrap;
+}
+
+/* Day view */
+.day-layout { display: flex; gap: 1em; }
+.day-main { flex: 1; }
+.day-card {
+  border-left: 3px solid var(--interactive-accent);
+  border-radius: 6px; padding: 0.7em 0.9em; margin-bottom: 0.6em;
+  background: var(--background-primary); box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.day-time { font-size: 0.8em; color: var(--interactive-accent); font-weight: 600; }
+.day-title { font-weight: 600; margin: 0.1em 0 0.3em; }
+.field-grid { display: grid; grid-template-columns: auto 1fr; gap: 0.2em 0.8em; font-size: 0.78em; }
+.field-key { color: var(--text-faint); }
+.mini-cal {
+  width: 220px; background: var(--background-secondary);
+  border-radius: 8px; padding: 0.8em;
+}
+.mini-cal-title { font-size: 0.85em; font-weight: 600; text-align: center; margin-bottom: 0.5em; }
+.mini-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+.mini-dow { font-size: 0.65em; color: var(--text-faint); text-align: center; padding: 0.2em 0; }
+.mini-cell {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 0.72em; border-radius: 4px;
+}
+.mini-cell.sel { background: var(--interactive-accent); color: #fff; font-weight: 700; }
+
+/* Week view */
+.week-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 0.4em; }
+.week-col { background: var(--background-secondary); border-radius: 6px; padding: 0.4em; min-height: 12em; }
+.week-col-head { font-size: 0.72em; font-weight: 700; padding: 0.3em 0.2em; }
+.week-card {
+  border-left: 3px solid var(--interactive-accent);
+  background: #fff; border-radius: 4px; padding: 0.4em 0.5em; margin-bottom: 0.3em;
+  font-size: 0.72em; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.week-card-title { font-weight: 600; }
+.week-card-time { color: var(--text-muted); }
+
+/* Form (modal) */
+.modal-overlay {
+  position: absolute; inset: 0;
+  background: rgba(30,30,30,0.4);
+  display: none; align-items: flex-start; justify-content: center;
+  padding-top: 3em;
+  z-index: 10;
+}
+.modal-overlay.open { display: flex; }
+.form-card {
+  width: 460px; background: #fff;
+  border-radius: 10px; box-shadow: 0 14px 40px rgba(0,0,0,0.25);
+  padding: 1.3em 1.5em;
+  transform: translateY(20px) scale(0.96);
+  transition: transform 0.3s ease;
+}
+.modal-overlay.open .form-card { transform: none; }
+.form-title { font-size: 1.1em; font-weight: 700; margin-bottom: 1em; }
+.field { margin-bottom: 0.9em; }
+.field-label { font-size: 0.8em; font-weight: 600; color: var(--text-muted); margin-bottom: 0.3em; }
+.field-control { display: flex; gap: 0.5em; }
+.field input {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px; padding: 0.5em 0.7em; font-size: 0.9em; outline: none;
+}
+.field input:focus { border-color: var(--interactive-accent); box-shadow: 0 0 0 3px rgba(124,58,237,0.15); }
+.field .fdate { flex: 1; }
+.field .ftime { width: 5em; text-align: center; font-variant-numeric: tabular-nums; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.4em; }
+.chip {
+  border-left: 3px solid #7c3aed; background: rgba(124,58,237,0.08);
+  border-radius: 5px; padding: 0.25em 0.6em; font-size: 0.8em;
+}
+.chip.active { background: rgba(124,58,237,0.18); }
+.save-row { display: flex; justify-content: flex-end; margin-top: 1.2em; }
+.save-btn {
+  background: var(--interactive-accent); color: #fff; border: none;
+  border-radius: 6px; padding: 0.55em 1.6em; font-size: 0.9em; font-weight: 600;
+  cursor: default; box-shadow: 0 3px 10px rgba(124,58,237,0.3);
+}
+.save-btn.pulse { animation: pulse 0.5s ease 2; }
+@keyframes pulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.06); box-shadow: 0 6px 18px rgba(124,58,237,0.45); }
+}
+/* Sync spinner */
+.spin { display: inline-block; width: 0.8em; height: 0.8em; border: 2px solid rgba(124,58,237,0.3); border-top-color: #7c3aed; border-radius: 50%; animation: rotate 0.6s linear infinite; vertical-align: -0.1em; margin-right: 0.3em; }
+@keyframes rotate { to { transform: rotate(360deg); } }
+</style>
+<link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+<div class="window" id="win">
+  <div class="window-titlebar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="title">Obsidian — Agenda</div>
+  </div>
+
+  <div class="panel-head">
+    <div class="tabs">
+      <div class="tab active" data-view="list">清单</div>
+      <div class="tab" data-view="day">日</div>
+      <div class="tab" data-view="week">周</div>
+      <div class="tab" data-view="month">月</div>
+    </div>
+    <div class="nav">
+      <span class="navbtn">‹</span>
+      <span class="navtoday" id="navToday">今天 · 7月21日</span>
+      <span class="navbtn">›</span>
+      <span class="todaybtn">今天</span>
+    </div>
+    <span class="newbtn" id="newBtn">+ 新建</span>
+    <span class="syncbtn" id="syncBtn">同步</span>
+  </div>
+
+  <div class="panel-body">
+    <!-- List view -->
+    <div class="view active" data-view="list">
+      <div class="statusgroup">
+        <div class="statusheader">已确认 · 3</div>
+        <div class="event-row"><div class="event-when">7月21日 09:00–10:00</div><div><div class="event-title">团队周会</div><div class="event-loc">A 会议室</div></div><span class="pill" style="background:#22c55e">已确认</span><span class="catpill">工作</span></div>
+        <div class="event-row"><div class="event-when">7月21日 14:00–15:00</div><div><div class="event-title">客户评审</div><div class="event-loc">视频会议</div></div><span class="pill" style="background:#22c55e">已确认</span><span class="catpill">工作</span></div>
+        <div class="event-row" id="newRow" style="display:none;"><div class="event-when">7月21日 14:23–15:23</div><div><div class="event-title">产品设计评审</div><div class="event-loc">会议室 B</div></div><span class="pill" style="background:#22c55e">已确认</span><span class="catpill">会议</span></div>
+      </div>
+    </div>
+
+    <!-- Day view -->
+    <div class="view" data-view="day">
+      <div class="day-layout">
+        <div class="day-main">
+          <div class="day-card"><div class="day-time">09:00–10:00</div><div class="day-title">团队周会</div><div class="field-grid"><span class="field-key">地点</span><span>A 会议室</span><span class="field-key">分类</span><span>工作</span></div></div>
+          <div class="day-card" id="newDayCard" style="display:none;"><div class="day-time">14:23–15:23</div><div class="day-title">产品设计评审</div><div class="field-grid"><span class="field-key">地点</span><span>会议室 B</span><span class="field-key">分类</span><span>会议</span></div></div>
+        </div>
+        <div class="mini-cal">
+          <div class="mini-cal-title">2026年7月</div>
+          <div class="mini-grid">
+            <span class="mini-dow">一</span><span class="mini-dow">二</span><span class="mini-dow">三</span><span class="mini-dow">四</span><span class="mini-dow">五</span><span class="mini-dow">六</span><span class="mini-dow">日</span>
+            <span class="mini-cell"></span><span class="mini-cell"></span><span class="mini-cell"></span><span class="mini-cell"></span><span class="mini-cell"></span><span class="mini-cell"></span><span class="mini-cell"></span>
+            <span class="mini-cell">6</span><span class="mini-cell">7</span><span class="mini-cell">8</span><span class="mini-cell">9</span><span class="mini-cell">10</span><span class="mini-cell">11</span><span class="mini-cell">12</span>
+            <span class="mini-cell">13</span><span class="mini-cell">14</span><span class="mini-cell">15</span><span class="mini-cell">16</span><span class="mini-cell">17</span><span class="mini-cell">18</span><span class="mini-cell">19</span>
+            <span class="mini-cell">20</span><span class="mini-cell sel">21</span><span class="mini-cell">22</span><span class="mini-cell">23</span><span class="mini-cell">24</span><span class="mini-cell">25</span><span class="mini-cell">26</span>
+            <span class="mini-cell">27</span><span class="mini-cell">28</span><span class="mini-cell">29</span><span class="mini-cell">30</span><span class="mini-cell">31</span><span class="mini-cell"></span><span class="mini-cell"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Week view -->
+    <div class="view" data-view="week">
+      <div class="week-grid">
+        <div class="week-col"><div class="week-col-head" style="color:#3B82F6">周一 20</div></div>
+        <div class="week-col"><div class="week-col-head" style="color:#22C55E">周二 21</div>
+          <div class="week-card" style="border-left-color:#7c3aed"><div class="week-card-time">09:00</div><div class="week-card-title">团队周会</div></div>
+          <div class="week-card" style="border-left-color:#06b6d4"><div class="week-card-time">14:00</div><div class="week-card-title">客户评审</div></div>
+        </div>
+        <div class="week-col"><div class="week-col-head" style="color:#06B6D4">周三 22</div>
+          <div class="week-card" style="border-left-color:#f59e0b"><div class="week-card-time">全天</div><div class="week-card-title">季度规划</div></div>
+        </div>
+        <div class="week-col"><div class="week-col-head" style="color:#A855F7">周四 23</div>
+          <div class="week-card" style="border-left-color:#22c55e"><div class="week-card-time">10:00</div><div class="week-card-title">健身房</div></div>
+        </div>
+        <div class="week-col"><div class="week-col-head" style="color:#64748B">周五 24</div></div>
+        <div class="week-col"><div class="week-col-head" style="color:#F59E0B">周六 25</div></div>
+        <div class="week-col"><div class="week-col-head" style="color:#EF4444">周日 26</div></div>
+      </div>
+    </div>
+
+    <!-- Month view -->
+    <div class="view" data-view="month">
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-size:0.75em;color:var(--text-faint);text-align:center;padding-bottom:0.3em;">
+        <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;color:var(--text-faint);font-size:0.72em;">29</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;color:var(--text-faint);font-size:0.72em;">30</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">1</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">2</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">3</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">4</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">5</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">6</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">7</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">8</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">9</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">10</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">11</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">12</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">13</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">14</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">15</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">16</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">17</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">18</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">19</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">20</div>
+        <div style="min-height:3.4em;background:var(--interactive-accent);border-radius:4px;padding:0.25em;color:#fff;font-weight:700;font-size:0.72em;">21</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">22</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">23</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">24</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">25</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">26</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">27</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">28</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">29</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">30</div>
+        <div style="min-height:3.4em;background:var(--background-secondary);border-radius:4px;padding:0.25em;font-size:0.72em;">31</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New event modal -->
+  <div class="modal-overlay" id="modal">
+    <div class="form-card">
+      <div class="form-title">新建事件</div>
+      <div class="field">
+        <div class="field-label">标题 <span style="color:var(--text-error)">*</span></div>
+        <div class="field-control"><input type="text" id="fTitle" value="产品设计评审" style="flex:1"></div>
+      </div>
+      <div class="field">
+        <div class="field-label">开始时间 <span style="color:var(--text-error)">*</span></div>
+        <div class="field-control"><input type="date" class="fdate" value="2026-07-21"><input type="text" class="ftime" id="fStart" placeholder="HH:MM" inputmode="numeric"></div>
+      </div>
+      <div class="field">
+        <div class="field-label">结束时间</div>
+        <div class="field-control"><input type="date" class="fdate" value="2026-07-21"><input type="text" class="ftime" id="fEnd" placeholder="HH:MM" inputmode="numeric"></div>
+      </div>
+      <div class="field">
+        <div class="field-label">地点</div>
+        <div class="field-control"><input type="text" value="会议室 B" style="flex:1"></div>
+      </div>
+      <div class="field">
+        <div class="field-label">分类</div>
+        <div class="chips">
+          <span class="chip">工作</span><span class="chip active" style="border-left-color:#06b6d4;color:#06b6d4">会议</span>
+          <span class="chip">学习</span><span class="chip">旅行</span><span class="chip">健康</span>
+        </div>
+      </div>
+      <div class="save-row"><button class="save-btn" id="saveBtn">保存</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const win = document.getElementById("win");
+const tabs = document.querySelectorAll(".tab");
+const views = document.querySelectorAll(".view");
+const modal = document.getElementById("modal");
+const newRow = document.getElementById("newRow");
+const newDayCard = document.getElementById("newDayCard");
+const syncBtn = document.getElementById("syncBtn");
+const fStart = document.getElementById("fStart");
+const fEnd = document.getElementById("fEnd");
+
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+function switchView(name) {
+  tabs.forEach(t => t.classList.toggle("active", t.dataset.view === name));
+  views.forEach(v => v.classList.toggle("active", v.dataset.view === name));
+}
+function formatTyping(raw) {
+  const s = raw.trim();
+  if (!s) return "";
+  if (s.includes(":")) return s.replace(/[^0-9:]/g, "").slice(0, 5);
+  const d = s.replace(/\D/g, "").slice(0, 4);
+  if (d.length <= 2) return d;
+  if (d.length === 3 && Number(d.slice(0, 2)) > 23) return d.slice(0, 1) + ":" + d.slice(1);
+  return d.slice(0, 2) + ":" + d.slice(2);
+}
+function normalize(raw) {
+  const f = formatTyping(raw.trim());
+  if (!f) return "";
+  const [h, m] = f.split(":");
+  const hh = h.length === 1 ? "0" + h : h;
+  const mm = m ? (m.length === 1 ? m + "0" : m) : "";
+  return mm ? hh + ":" + mm : hh + ":00";
+}
+async function typeInto(input, text, delay) {
+  input.focus();
+  input.value = "";
+  for (let i = 0; i < text.length; i++) {
+    input.value = text.slice(0, i + 1);
+    const f = formatTyping(input.value);
+    if (f !== input.value) input.value = f;
+    await wait(delay);
+  }
+  input.value = normalize(input.value);
+}
+
+(async () => {
+  await wait(200);
+  win.classList.add("visible");
+  await wait(700);
+
+  // Scene 2: open the New event form
+  await wait(300);
+  modal.classList.add("open");
+  await wait(400);
+
+  // Scene 3: type the title + 24h times
+  await typeInto(fStart, "1423", 300);
+  await wait(350);
+  await typeInto(fEnd, "900", 300);
+  await wait(350);
+
+  // Scene 4: save — new event appears in list + day view
+  const saveBtn = document.getElementById("saveBtn");
+  saveBtn.classList.add("pulse");
+  await wait(600);
+  modal.classList.remove("open");
+  newRow.style.display = "";
+  await wait(400);
+  switchView("day");
+  newDayCard.style.display = "";
+  await wait(600);
+
+  // Scene 5: week view
+  switchView("week");
+  await wait(700);
+
+  // Scene 6: sync spinner
+  syncBtn.innerHTML = '<span class="spin"></span>同步中…';
+  await wait(800);
+  syncBtn.innerHTML = "同步";
+  await wait(600);
+})();
+</script>
+</body>
+</html>

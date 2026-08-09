@@ -26,11 +26,11 @@ license: MIT
 > ⚠️ **桌面端与移动端均支持**。需要 Obsidian **1.7.2+**。CalDAV 同步需要可访问的服务器地址。
 
 <p align="center">
-  <img src="screenshots/ogenda-demo.gif" alt="Ogenda 24 小时制时间输入演示——输入 1423 自动格式化为 14:23,输入 900 自动补为 09:00(10 秒循环)" width="90%"/>
+  <img src="screenshots/ogenda-demo.gif" alt="Ogenda 演示:创建日程(24 小时制时间输入)→ 日/周视图查询 → 同步(10 秒循环)" width="90%"/>
 </p>
 
 <p align="center">
-  <img src="screenshots/mobile-strip.png" alt="移动端:清单 / 日 / 月" width="90%"/>
+  <img src="screenshots/mobile-strip.png" alt="移动端:日 / 周 / 月三视图" width="90%"/>
 </p>
 
 > **⭐ 如果你觉得 Ogenda 有用,欢迎 [Star 这个仓库](https://github.com/jiang198012/ogenda),帮助更多人发现它。**
