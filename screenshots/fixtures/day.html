@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,7 +26,7 @@ body {
   margin: 0;
   padding: 0;
   background: var(--background-primary);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
   color: var(--text-normal);
 }
 .viewport {
@@ -43,55 +43,65 @@ body {
 <div class="ogenda-panel">
   <div class="ogenda-panel-head">
     <div class="ogenda-panel-tabs">
-      <div class="ogenda-panel-tab active">List</div>
-      <div class="ogenda-panel-tab">Day</div>
-      <div class="ogenda-panel-tab">Week</div>
-      <div class="ogenda-panel-tab">Month</div>
-      <div class="ogenda-panel-tab">Stats</div>
+      <div class="ogenda-panel-tab active">清单</div>
+      <div class="ogenda-panel-tab">日</div>
+      <div class="ogenda-panel-tab">周</div>
+      <div class="ogenda-panel-tab">月</div>
+      <div class="ogenda-panel-tab">统计</div>
     </div>
     <div class="ogenda-panel-nav">
       <span class="ogenda-navbtn">‹</span>
-      <span class="ogenda-navtoday">Today · Jul 21</span>
+      <span class="ogenda-navtoday">今天 · 7月21日</span>
       <span class="ogenda-navbtn">›</span>
-      <span class="ogenda-navtoday-btn">Today</span>
+      <span class="ogenda-navtoday-btn">今天</span>
     </div>
-    <div class="ogenda-panel-newbtn">New event</div>
-    <div class="ogenda-panel-syncbtn"><span>Sync</span></div>
+    <div class="ogenda-panel-newbtn">+ 新建</div>
+    <div class="ogenda-panel-syncbtn"><span>同步</span></div>
   </div>
   <div class="ogenda-panel-body">
 <div class="ogenda-day-layout"><div class="ogenda-day-main">
   <div class="ogenda-day-card" style="border-left-color: #7c3aed;">
     <div class="ogenda-day-time">09:00–10:00</div>
     <div class="ogenda-day-titlerow">
-      <div class="ogenda-day-title">Team weekly standup</div>
-      <span class="ogenda-status-pill" style="color:#fff;background:#22c55e;">Confirmed</span>
+      <div class="ogenda-day-title">团队周会</div>
+      <span class="ogenda-status-pill" style="color:#fff;background:#22c55e;">已确认</span>
     </div>
     <div class="ogenda-field-grid">
-      <span class="ogenda-field-key">Location</span><span class="ogenda-field-value">Room A</span>
-      <span class="ogenda-field-key">Organizer</span><span class="ogenda-field-value">alice@example.com</span>
-      <span class="ogenda-field-key">Attendees</span><span class="ogenda-field-value">bob@example.com, carol@example.com</span>
-      <span class="ogenda-field-key">Category</span><span class="ogenda-field-value">Work</span>
+      <span class="ogenda-field-key">地点</span><span class="ogenda-field-value">A 会议室</span>
+      <span class="ogenda-field-key">组织者</span><span class="ogenda-field-value">alice@example.com</span>
+      <span class="ogenda-field-key">参与人</span><span class="ogenda-field-value">bob@example.com, carol@example.com</span>
+      <span class="ogenda-field-key">分类</span><span class="ogenda-field-value">工作</span>
     </div>
   </div>
   <div class="ogenda-day-card" style="border-left-color: #06b6d4;">
     <div class="ogenda-day-time">14:00–15:00</div>
     <div class="ogenda-day-titlerow">
-      <div class="ogenda-day-title">Client review</div>
-      <span class="ogenda-status-pill" style="color:#fff;background:#22c55e;">Confirmed</span>
+      <div class="ogenda-day-title">客户评审</div>
+      <span class="ogenda-status-pill" style="color:#fff;background:#22c55e;">已确认</span>
     </div>
     <div class="ogenda-field-grid">
-      <span class="ogenda-field-key">Location</span><span class="ogenda-field-value">Zoom</span>
-      <span class="ogenda-field-key">Category</span><span class="ogenda-field-value">Meeting</span>
+      <span class="ogenda-field-key">地点</span><span class="ogenda-field-value">视频会议</span>
+      <span class="ogenda-field-key">分类</span><span class="ogenda-field-value">会议</span>
+    </div>
+  </div>
+  <div class="ogenda-day-card" style="border-left-color: #22c55e;">
+    <div class="ogenda-day-time">10:00–11:00</div>
+    <div class="ogenda-day-titlerow">
+      <div class="ogenda-day-title">健身房</div>
+    </div>
+    <div class="ogenda-field-grid">
+      <span class="ogenda-field-key">地点</span><span class="ogenda-field-value">健身中心</span>
+      <span class="ogenda-field-key">分类</span><span class="ogenda-field-value">健康</span>
     </div>
   </div>
 </div>
   <div class="ogenda-day-side">
     <div class="ogenda-mini-cal-month">
-      <div class="ogenda-mini-cal-header">July 2026</div>
+      <div class="ogenda-mini-cal-header">2026年7月</div>
       <div class="ogenda-mini-cal-grid">
-        <div class="ogenda-mini-cal-dow">M</div><div class="ogenda-mini-cal-dow">T</div><div class="ogenda-mini-cal-dow">W</div>
-        <div class="ogenda-mini-cal-dow">T</div><div class="ogenda-mini-cal-dow">F</div><div class="ogenda-mini-cal-dow">S</div>
-        <div class="ogenda-mini-cal-dow">S</div>
+        <div class="ogenda-mini-cal-dow">一</div><div class="ogenda-mini-cal-dow">二</div><div class="ogenda-mini-cal-dow">三</div>
+        <div class="ogenda-mini-cal-dow">四</div><div class="ogenda-mini-cal-dow">五</div><div class="ogenda-mini-cal-dow">六</div>
+        <div class="ogenda-mini-cal-dow">日</div>
         <div class="ogenda-mini-cal-cell ogenda-mini-cal-othermonth">29</div>
         <div class="ogenda-mini-cal-cell ogenda-mini-cal-othermonth">30</div>
         <div class="ogenda-mini-cal-cell">1</div><div class="ogenda-mini-cal-cell">2</div><div class="ogenda-mini-cal-cell">3</div>

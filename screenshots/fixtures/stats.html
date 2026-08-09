@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,7 +26,7 @@ body {
   margin: 0;
   padding: 0;
   background: var(--background-primary);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
   color: var(--text-normal);
 }
 .viewport {
@@ -43,63 +43,63 @@ body {
 <div class="ogenda-panel">
   <div class="ogenda-panel-head">
     <div class="ogenda-panel-tabs">
-      <div class="ogenda-panel-tab active">List</div>
-      <div class="ogenda-panel-tab">Day</div>
-      <div class="ogenda-panel-tab">Week</div>
-      <div class="ogenda-panel-tab">Month</div>
-      <div class="ogenda-panel-tab">Stats</div>
+      <div class="ogenda-panel-tab active">清单</div>
+      <div class="ogenda-panel-tab">日</div>
+      <div class="ogenda-panel-tab">周</div>
+      <div class="ogenda-panel-tab">月</div>
+      <div class="ogenda-panel-tab">统计</div>
     </div>
     <div class="ogenda-panel-nav">
       <span class="ogenda-navbtn">‹</span>
-      <span class="ogenda-navtoday">Today · Jul 21</span>
+      <span class="ogenda-navtoday">今天 · 7月21日</span>
       <span class="ogenda-navbtn">›</span>
-      <span class="ogenda-navtoday-btn">Today</span>
+      <span class="ogenda-navtoday-btn">今天</span>
     </div>
-    <div class="ogenda-panel-newbtn">New event</div>
-    <div class="ogenda-panel-syncbtn"><span>Sync</span></div>
+    <div class="ogenda-panel-newbtn">+ 新建</div>
+    <div class="ogenda-panel-syncbtn"><span>同步</span></div>
   </div>
   <div class="ogenda-panel-body">
 
   <div class="ogenda-stat-kpis">
-    <div class="ogenda-kpi"><div class="ogenda-kpi-num">12</div><div class="ogenda-kpi-label">Total events</div></div>
-    <div class="ogenda-kpi"><div class="ogenda-kpi-num" style="color:#22c55e">8</div><div class="ogenda-kpi-label">Confirmed</div></div>
-    <div class="ogenda-kpi"><div class="ogenda-kpi-num" style="color:#f59e0b">3</div><div class="ogenda-kpi-label">Tentative</div></div>
-    <div class="ogenda-kpi ogenda-kpi-warn"><div class="ogenda-kpi-num" style="color:var(--text-error)">2</div><div class="ogenda-kpi-label">Unsynced</div></div>
+    <div class="ogenda-kpi"><div class="ogenda-kpi-num">12</div><div class="ogenda-kpi-label">本月事件</div></div>
+    <div class="ogenda-kpi"><div class="ogenda-kpi-num" style="color:#22c55e">8</div><div class="ogenda-kpi-label">已确认</div></div>
+    <div class="ogenda-kpi"><div class="ogenda-kpi-num" style="color:#f59e0b">3</div><div class="ogenda-kpi-label">待定</div></div>
+    <div class="ogenda-kpi ogenda-kpi-warn"><div class="ogenda-kpi-num" style="color:var(--text-error)">1</div><div class="ogenda-kpi-label">未同步</div></div>
   </div>
 
   <div class="ogenda-stat-card">
-    <div class="ogenda-stat-card-title">Status distribution</div>
+    <div class="ogenda-stat-card-title">状态分布</div>
     <div class="ogenda-stat-bar-row">
-      <span class="ogenda-stat-bar-label" style="color:#22c55e">Confirmed</span>
+      <span class="ogenda-stat-bar-label" style="color:#22c55e">已确认</span>
       <div class="ogenda-stat-bar-track"><div class="ogenda-stat-bar-fill" style="width:100%;background:#22c55e"></div></div>
       <span class="ogenda-stat-bar-count">8</span>
     </div>
     <div class="ogenda-stat-bar-row">
-      <span class="ogenda-stat-bar-label" style="color:#f59e0b">Tentative</span>
+      <span class="ogenda-stat-bar-label" style="color:#f59e0b">待定</span>
       <div class="ogenda-stat-bar-track"><div class="ogenda-stat-bar-fill" style="width:38%;background:#f59e0b"></div></div>
       <span class="ogenda-stat-bar-count">3</span>
     </div>
     <div class="ogenda-stat-bar-row">
-      <span class="ogenda-stat-bar-label" style="color:#6b7280">No status</span>
+      <span class="ogenda-stat-bar-label" style="color:#6b7280">未设置</span>
       <div class="ogenda-stat-bar-track"><div class="ogenda-stat-bar-fill" style="width:13%;background:#6b7280"></div></div>
       <span class="ogenda-stat-bar-count">1</span>
     </div>
   </div>
 
   <div class="ogenda-stat-card">
-    <div class="ogenda-stat-card-title">Category distribution</div>
+    <div class="ogenda-stat-card-title">分类分布</div>
     <div class="ogenda-cat-chips">
-      <span class="ogenda-cat-chip"><span class="ogenda-cat-chip-bar" style="background:#7c3aed"></span><span>Work</span><span class="ogenda-cat-chip-count">5</span></span>
-      <span class="ogenda-cat-chip"><span class="ogenda-cat-chip-bar" style="background:#06b6d4"></span><span>Meeting</span><span class="ogenda-cat-chip-count">3</span></span>
-      <span class="ogenda-cat-chip"><span class="ogenda-cat-chip-bar" style="background:#22c55e"></span><span>Health</span><span class="ogenda-cat-chip-count">2</span></span>
-      <span class="ogenda-cat-chip"><span class="ogenda-cat-chip-bar" style="background:#f59e0b"></span><span>Personal</span><span class="ogenda-cat-chip-count">2</span></span>
+      <span class="ogenda-cat-chip"><span class="ogenda-cat-chip-bar" style="background:#7c3aed"></span><span>工作</span><span class="ogenda-cat-chip-count">5</span></span>
+      <span class="ogenda-cat-chip"><span class="ogenda-cat-chip-bar" style="background:#06b6d4"></span><span>会议</span><span class="ogenda-cat-chip-count">3</span></span>
+      <span class="ogenda-cat-chip"><span class="ogenda-cat-chip-bar" style="background:#22c55e"></span><span>健康</span><span class="ogenda-cat-chip-count">2</span></span>
+      <span class="ogenda-cat-chip"><span class="ogenda-cat-chip-bar" style="background:#f59e0b"></span><span>个人</span><span class="ogenda-cat-chip-count">2</span></span>
     </div>
   </div>
 
   <div class="ogenda-stat-minis">
-    <div class="ogenda-stat-mini"><div class="ogenda-stat-mini-label">All-day / Timed</div><div class="ogenda-stat-mini-val">2 / 10</div></div>
-    <div class="ogenda-stat-mini"><div class="ogenda-stat-mini-label">Recurring</div><div class="ogenda-stat-mini-val">3</div></div>
-    <div class="ogenda-stat-mini"><div class="ogenda-stat-mini-label">Busiest day</div><div class="ogenda-stat-mini-val">Jul 21 · 4</div></div>
+    <div class="ogenda-stat-mini"><div class="ogenda-stat-mini-label">全天 / 带时间</div><div class="ogenda-stat-mini-val">2 / 10</div></div>
+    <div class="ogenda-stat-mini"><div class="ogenda-stat-mini-label">循环事件</div><div class="ogenda-stat-mini-val">3</div></div>
+    <div class="ogenda-stat-mini"><div class="ogenda-stat-mini-label">最忙一天</div><div class="ogenda-stat-mini-val">7月21日 · 4</div></div>
   </div>
 
   </div>

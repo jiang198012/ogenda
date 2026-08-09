@@ -6,3 +6,5 @@ main.js.map
 .superpowers/
 .DS_Store
 .serena/
+__pycache__/
+*.pyc

@@ -26,23 +26,11 @@ license: MIT
 > ⚠️ **桌面端与移动端均支持**。需要 Obsidian **1.7.2+**。CalDAV 同步需要可访问的服务器地址。
 
 <p align="center">
-  <img src="screenshots/list-view.png" alt="列表视图" width="49%"/>
-  <img src="screenshots/day-view.png" alt="日视图" width="49%"/>
+  <img src="screenshots/list-view.png" alt="列表视图(桌面端)" width="90%"/>
 </p>
 
 <p align="center">
-  <img src="screenshots/week-view.png" alt="周视图" width="49%"/>
-  <img src="screenshots/month-view.png" alt="月视图" width="49%"/>
-</p>
-
-<p align="center">
-  <img src="screenshots/stats-view.png" alt="统计视图" width="49%"/>
-  <img src="screenshots/new-event-modal.png" alt="新建事件弹窗" width="49%"/>
-</p>
-
-<p align="center">
-  <img src="screenshots/settings-view.png" alt="设置" width="49%"/>
-  <img src="screenshots/mobile-view.png" alt="移动端(375px)" width="49%"/>
+  <img src="screenshots/mobile-strip.png" alt="移动端:清单 / 日 / 月" width="90%"/>
 </p>
 
 > **⭐ 如果你觉得 Ogenda 有用,欢迎 [Star 这个仓库](https://github.com/jiang198012/ogenda),帮助更多人发现它。**
