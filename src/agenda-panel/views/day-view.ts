@@ -1,7 +1,15 @@
 import { AgendaEvent } from "../../core/event";
 import { EventOccurrence } from "../occurrences";
 import { ColorResolver, createColorResolver, statusStyle } from "../colors";
+import { RSVP_OPTIONS } from "../event-form-fields";
 import { t } from "../../i18n";
+
+/** Localize an RSVP enum value (ACCEPTED → 已接受); unknown values pass through. */
+function rsvpLabel(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const opt = RSVP_OPTIONS.find((o) => o.value === value);
+  return opt ? t(opt.labelKey) : value;
+}
 
 function addField(grid: HTMLElement, label: string, value: string | undefined): void {
   if (!value) return;
@@ -66,7 +74,7 @@ export function renderDayView(
     addField(grid, t("field.location"), ev.location);
     addField(grid, t("field.organizer"), ev.organizer);
     addField(grid, t("field.attendees"), ev.attendees?.length ? ev.attendees.join("、") : undefined);
-    addField(grid, "RSVP", ev.rsvp);
+    addField(grid, t("rsvp.name"), rsvpLabel(ev.rsvp));
     addField(grid, t("field.category"), ev.category);
     addField(grid, t("field.rrule"), ev.rrule);
     card.appendChild(grid);

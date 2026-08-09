@@ -12,7 +12,7 @@ describe("renderDayView", () => {
     const ev: AgendaEvent = {
       uid: "a@x", title: "团队周会", start: "2026-07-16T14:00:00", end: "2026-07-16T15:00:00",
       allDay: false, location: "会议室 A", organizer: "alice@example.com",
-      attendees: ["alice@example.com", "bob@example.com"], status: "confirmed", rsvp: "accepted",
+      attendees: ["alice@example.com", "bob@example.com"], status: "confirmed", rsvp: "ACCEPTED",
       origin: "synced", href: "https://example.com/a.ics", etag: '"e1"',
     };
     const container = document.createElement("div");
@@ -22,7 +22,8 @@ describe("renderDayView", () => {
     expect(container.textContent).toContain("会议室 A");
     expect(container.textContent).toContain("alice@example.com");
     expect(container.textContent).toContain("已确认");
-    expect(container.textContent).toContain("accepted");
+    expect(container.textContent).toContain("已接受"); // RSVP enum localized, not raw "accepted"
+    expect(container.textContent).not.toContain("accepted");
     expect(container.textContent).not.toContain("https://example.com/a.ics");
     expect(container.textContent).not.toContain('"e1"');
   });
@@ -52,5 +53,11 @@ describe("renderDayView", () => {
     const card = container.querySelector(".ogenda-day-card") as HTMLElement;
     expect(card.style.borderLeftColor).not.toBe("");
     expect(container.querySelector(".ogenda-status-pill")?.textContent).toBe("已确认");
+  });
+
+  it("renders an empty day without throwing and shows no cards (T5.7)", () => {
+    const container = document.createElement("div");
+    expect(() => renderDayView(container, [], () => {})).not.toThrow();
+    expect(container.querySelectorAll(".ogenda-day-card").length).toBe(0);
   });
 });

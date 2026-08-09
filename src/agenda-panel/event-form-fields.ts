@@ -168,7 +168,7 @@ export function getPredefinedCategories(): { value: string; label: string }[] {
 
 /** Default category for new events, in the current UI language. */
 export function getDefaultCategory(): string {
-  return getLanguage() === "zh" ? "工作" : "Work";
+  return t("category.work");
 }
 
 export function validateEventForm(fields: {

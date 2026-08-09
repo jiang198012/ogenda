@@ -4,6 +4,9 @@ import { monthGridWeeks, startOfDay } from "../date-grid";
 import { ColorResolver, createColorResolver } from "../colors";
 import { t } from "../../i18n";
 
+/** How many event chips a day cell shows before a "+N more" affordance. */
+const MAX_MINI = 6;
+
 export function renderMonthView(
   container: HTMLElement,
   occurrences: EventOccurrence[],
@@ -44,17 +47,41 @@ export function renderMonthView(
       cell.appendChild(num);
 
       const dayOccs = occurrences.filter((occ) => startOfDay(parseLocalDate(occ.start)).getTime() === day.getTime());
-      for (const occ of dayOccs) {
-        const mini = document.createElement("div");
-        mini.className = "ogenda-month-mini";
-        mini.style.borderLeftColor = colors.category(occ.event.category);
-        mini.textContent = occ.event.title;
-        mini.addEventListener("click", () => onEventClick(occ.event));
-        cell.appendChild(mini);
+      // Cap the chips so one dense day can't stretch the whole week row (and
+      // strand the last week's content above the scroll stop); "more" expands.
+      const shown = dayOccs.slice(0, MAX_MINI);
+      for (const occ of shown) {
+        cell.appendChild(miniChip(occ, colors, onEventClick));
+      }
+      if (dayOccs.length > MAX_MINI) {
+        const more = document.createElement("div");
+        more.className = "ogenda-month-more";
+        more.textContent = t("month.more", { count: dayOccs.length - MAX_MINI });
+        more.addEventListener("click", (e) => {
+          e.stopPropagation();
+          // Lift the cell's overflow clip so the revealed chips are visible.
+          cell.classList.add("ogenda-month-cell-expanded");
+          for (const occ of dayOccs.slice(MAX_MINI)) cell.appendChild(miniChip(occ, colors, onEventClick));
+          more.remove();
+        });
+        cell.appendChild(more);
       }
 
       grid.appendChild(cell);
     }
   }
   container.appendChild(grid);
+}
+
+function miniChip(
+  occ: EventOccurrence,
+  colors: ColorResolver,
+  onEventClick: (event: AgendaEvent) => void,
+): HTMLElement {
+  const mini = document.createElement("div");
+  mini.className = "ogenda-month-mini";
+  mini.style.borderLeftColor = colors.category(occ.event.category);
+  mini.textContent = occ.event.title;
+  mini.addEventListener("click", () => onEventClick(occ.event));
+  return mini;
 }

@@ -103,4 +103,27 @@ describe("renderMonthView", () => {
     const mini = container.querySelector(".ogenda-month-mini") as HTMLElement;
     expect(mini.style.borderLeftColor).not.toBe("");
   });
+
+  it("renders an empty month without throwing and shows no chips (T5.7)", () => {
+    const container = document.createElement("div");
+    expect(() => renderMonthView(container, [], new Date(2026, 6, 15), () => {})).not.toThrow();
+    expect(container.querySelectorAll(".ogenda-month-mini").length).toBe(0);
+    expect(container.querySelectorAll(".ogenda-month-cell").length).toBe(35);
+  });
+
+  it("caps a dense day at MAX_MINI chips and expands on the '+N more' click", () => {
+    const container = document.createElement("div");
+    const occs = Array.from({ length: 10 }, (_, i) => mkOcc(`2026-07-06T${String(9 + i).padStart(2, "0")}:00:00`, `事件${i + 1}`));
+    renderMonthView(container, occs, new Date(2026, 6, 15), () => {});
+    // July 6, 2026 is the 8th day from Mon Jun 29 -> index 7
+    const cell = container.querySelectorAll(".ogenda-month-cell")[7];
+    expect(cell.querySelectorAll(".ogenda-month-mini").length).toBe(6); // MAX_MINI
+    const more = cell.querySelector(".ogenda-month-more") as HTMLElement;
+    expect(more).toBeTruthy();
+    expect(more.textContent).toContain("4"); // 10 - 6
+    more.click();
+    expect(cell.querySelectorAll(".ogenda-month-mini").length).toBe(10);
+    expect(cell.querySelector(".ogenda-month-more")).toBeNull();
+    expect(cell.classList.contains("ogenda-month-cell-expanded")).toBe(true);
+  });
 });

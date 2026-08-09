@@ -315,9 +315,30 @@
 }
 .ogenda-month-cell {
   min-height: 6.5em;
+  /* Bound a dense day so the week row can't grow to several viewport heights
+     and strand the month's last rows above the scroll stop; expanding "+N"
+     (month.more) reveals the hidden chips. */
+  max-height: 14em;
+  overflow: hidden;
   border-radius: 6px;
   background: var(--background-secondary);
   padding: 0.35em;
+}
+/* The "+N more" click expands the day; lift the clip so the revealed chips are
+   actually visible (a hidden, unclickable expand would be worse than none). */
+.ogenda-month-cell-expanded {
+  max-height: none;
+  overflow: visible;
+}
+.ogenda-month-more {
+  font-size: 0.68em;
+  color: var(--interactive-accent);
+  cursor: pointer;
+  margin-top: 0.2em;
+  padding: 0.1em 0.3em;
+}
+.ogenda-month-more:hover {
+  text-decoration: underline;
 }
 .ogenda-month-othermonth {
   opacity: 0.4;
@@ -698,13 +719,12 @@ textarea.ogenda-form-desc {
 
   /* Week view */
   .ogenda-week-grid {
-    /* NO min-width here: widening the grid's own box would push the horizontal
-       scrollbar up to the whole pane (dragging the header with it). Keep the
-       grid box at panel width and let the min-width TRACKS overflow it, so the
-       grid scrolls internally — the desktop month view's mechanism. */
+    /* No min column floor: the 90px floor used to force ~668px of content into
+       a ≤560px pane, clipping the weekend columns behind a hidden horizontal
+       scrollbar. Matching the month grid's minmax(0,1fr) fits all 7 columns. */
     overflow-x: auto;
     gap: 0.4em;
-    grid-template-columns: repeat(7, minmax(90px, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
   }
   .ogenda-week-col {
     min-height: 10em;

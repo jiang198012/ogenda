@@ -108,4 +108,38 @@ describe("renderWeekView", () => {
     expect(sat).not.toBe("");
     expect(mon).not.toBe(sat);
   });
+
+  it("renders an empty week without throwing and shows 7 empty columns (T5.7)", () => {
+    const container = document.createElement("div");
+    expect(() => renderWeekView(container, [], new Date(2026, 6, 15), () => {})).not.toThrow();
+    expect(container.querySelectorAll(".ogenda-week-col").length).toBe(7);
+    expect(container.querySelectorAll(".ogenda-week-card").length).toBe(0);
+  });
+
+  it("shows a multi-day all-day event in every day column it spans (T5.9)", () => {
+    const container = document.createElement("div");
+    const occs = [
+      { event: { uid: "a", title: "出差", start: "2026-07-13", end: "2026-07-15", allDay: true, origin: "synced" }, start: "2026-07-13" },
+      { event: { uid: "a", title: "出差", start: "2026-07-13", end: "2026-07-15", allDay: true, origin: "synced" }, start: "2026-07-14" },
+    ];
+    renderWeekView(container, occs, new Date(2026, 6, 15), () => {});
+    const cols = container.querySelectorAll(".ogenda-week-col");
+    const cards = [...cols].map((c) => c.querySelectorAll(".ogenda-week-card").length);
+    // Mon 13 + Tue 14 each carry the all-day card; Wed 15 is the anchor day (in-week)
+    expect(cards[0]).toBe(1);
+    expect(cards[1]).toBe(1);
+  });
+
+  it("renders a cross-midnight event on the day it spans (T5.8)", () => {
+    const container = document.createElement("div");
+    // 22:00 Mon Jul 13 → 01:00 Tue Jul 14: expandOccurrences yields an occurrence on Tue
+    const occs = [
+      { event: { uid: "a", title: "夜班", start: "2026-07-13T22:00:00", end: "2026-07-14T01:00:00", origin: "synced" }, start: "2026-07-13T22:00:00" },
+      { event: { uid: "a", title: "夜班", start: "2026-07-13T22:00:00", end: "2026-07-14T01:00:00", origin: "synced" }, start: "2026-07-14T00:00:00" },
+    ];
+    renderWeekView(container, occs, new Date(2026, 6, 15), () => {});
+    const cols = container.querySelectorAll(".ogenda-week-col");
+    expect(cols[0].querySelectorAll(".ogenda-week-card").length).toBe(1); // Mon
+    expect(cols[1].querySelectorAll(".ogenda-week-card").length).toBe(1); // Tue
+  });
 });

@@ -90,6 +90,7 @@ export const zh: Record<string, string> = {
   "validate.startRequired": "开始时间不能为空",
   "validate.allDayEnd": "结束日期不能早于开始日期",
   "validate.timedEnd": "结束时间需晚于开始时间",
+  "month.more": "还有 {count} 个",
   "view.allDay": "全天",
   "field.location": "地点",
   "field.organizer": "组织者",

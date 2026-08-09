@@ -90,6 +90,7 @@ export const en: Record<string, string> = {
   "validate.startRequired": "Start time is required",
   "validate.allDayEnd": "End date cannot be before start date",
   "validate.timedEnd": "End time must be after start time",
+  "month.more": "+{count} more",
   "view.allDay": "All-day",
   "field.location": "Location",
   "field.organizer": "Organizer",

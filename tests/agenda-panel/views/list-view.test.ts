@@ -104,4 +104,10 @@ describe("renderListView", () => {
     expect(when.querySelector(".ogenda-event-date")?.textContent).toBe("7月18日 周六");
     expect(when.querySelector(".ogenda-event-time")?.textContent).toBe("14:00");
   });
+
+  it("renders an empty list without throwing (T5.7)", () => {
+    const container = document.createElement("div");
+    expect(() => renderListView(container, [], () => {})).not.toThrow();
+    expect(container.querySelectorAll(".ogenda-event-row").length).toBe(0);
+  });
 });
