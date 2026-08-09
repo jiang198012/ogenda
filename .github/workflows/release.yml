@@ -37,7 +37,7 @@ jobs:
           gh release create "$RELEASE_TAG" \
             --title "Ogenda $RELEASE_TAG" \
             --generate-notes \
-            main.js manifest.json styles.css
+            main.js manifest.json styles.css versions.json
 
       - name: Attest release assets
         uses: actions/attest-build-provenance@v2
