@@ -5,6 +5,10 @@
      grid would otherwise end flush against it. */
   padding: 0.5em 1em 2em;
   font-size: var(--font-text-size, 16px);
+  /* The panel is usually a side pane that can be dragged far narrower than the
+     Obsidian window. Layout media queries below key off the *pane* width via
+     container queries, not the window (whose width @media measures). */
+  container-type: inline-size;
 }
 
 .ogenda-panel-head {
@@ -197,8 +201,8 @@
   min-width: 0;
 }
 .ogenda-day-side {
-  width: 230px;
-  flex-shrink: 0;
+  flex: 0 1 230px;
+  min-width: 0;
 }
 
 .ogenda-day-card {
@@ -596,8 +600,15 @@ textarea.ogenda-form-desc {
   width: 100%;
 }
 
-/* ---------- Mobile responsive adaptation ---------- */
-@media (max-width: 480px) {
+/* ---------- Narrow-pane responsive adaptation ----------
+   Container query: keys off the PANEL's own width, so dragging an Obsidian
+   side pane narrow (while the window stays wide) triggers the same compact
+   layout as a phone screen. A plain @media would miss that because it only
+   measures the window.
+   560px: a side pane is commonly dragged to ~400-500px; below that the day
+   view's fixed 230px mini-calendar plus the event column would squeeze the
+   text. Stack the day view there instead. */
+@container (max-width: 560px) {
   .ogenda-panel {
     padding: 0.4em 0.6em 0.8em;
   }
@@ -714,7 +725,7 @@ textarea.ogenda-form-desc {
   .ogenda-month-grid {
     /* Same as the week grid: no min-width on the grid box itself. */
     overflow-x: auto;
-    grid-template-columns: repeat(7, minmax(70px, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     /* Centred overflow strands the left columns outside the reachable scroll
        area; align start while the grid can overflow. */
     justify-content: start;
