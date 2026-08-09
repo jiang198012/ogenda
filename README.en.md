@@ -109,6 +109,7 @@ After entering your Apple ID and app-specific password in settings, click the **
 
 **Latest: v1.0.1**
 
+- **v1.0.3** — **Dense month views stay usable**: days with more than 6 events fold into a "+N more" expander, and the month's last week always scrolls into view. The week view shows all 7 columns in a narrow side pane (weekend columns are no longer cut off). RSVP shows localized labels ("Accepted") instead of the raw enum.
 - **v1.0.2** — **Narrow side panes no longer overflow**: day/month views now use container queries and respond to the panel's own width. Drag an Obsidian side pane narrow and the day view stacks vertically, the month grid shows all 7 columns, and the tab bar wraps — no more clipped text.
 - **v1.0.1** — **24-hour time input**: the event form no longer follows the OS locale's 12-hour clock. Times are entered and shown as `09:00`–`23:59`; noon is clearly `12:00` (never `12:00 AM`). Shorthand like `1423` / `900` formats itself as you type.
 - **v1.0.0** — First stable release. **Sync hardening**: adopt server-known UIDs, incremental flushing, paced writes with 503 backoff, one bad event no longer aborts a round. **iCloud compatibility**: DTEND always emitted, all-day DTEND defaults to the next day. **Mobile usability** improvements.
