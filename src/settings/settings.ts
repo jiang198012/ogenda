@@ -1,3 +1,5 @@
+import { TimeSegment, sanitizeSegment, defaultTimeSegments } from "../agenda-panel/time-segments";
+
 export interface OgendaSettings {
   storageFolder: string;
   syncOnStartup: boolean;
@@ -15,6 +17,12 @@ export interface OgendaSettings {
   language: "auto" | "zh" | "en";
   /** Default category for new events; empty means fall back to the language-aware default. */
   defaultCategory: string;
+  /** Master switch for in-Obsidian event reminders (a 30s timer only runs while enabled). */
+  remindersEnabled: boolean;
+  /** Default reminder offset in minutes for NEW events; -1 = no default reminder. */
+  defaultReminderMinutes: number;
+  /** 时间线分区(周/日视图背景时间段填充色);空数组 = 不显示。 */
+  timeSegments: TimeSegment[];
 }
 
 export const DEFAULT_SETTINGS: OgendaSettings = {
@@ -31,6 +39,9 @@ export const DEFAULT_SETTINGS: OgendaSettings = {
   timezone: "",
   language: "auto",
   defaultCategory: "",
+  remindersEnabled: false,
+  defaultReminderMinutes: -1,
+  timeSegments: defaultTimeSegments(),
 };
 
 export function sanitizeSettings(raw: unknown): OgendaSettings {
@@ -54,5 +65,18 @@ export function sanitizeSettings(raw: unknown): OgendaSettings {
     timezone: str(r.timezone, DEFAULT_SETTINGS.timezone),
     language: lang(r.language),
     defaultCategory: str(r.defaultCategory, DEFAULT_SETTINGS.defaultCategory),
+    remindersEnabled: bool(r.remindersEnabled, DEFAULT_SETTINGS.remindersEnabled),
+    defaultReminderMinutes:
+      typeof r.defaultReminderMinutes === "number" && r.defaultReminderMinutes >= -1
+        ? Math.round(r.defaultReminderMinutes)
+        : DEFAULT_SETTINGS.defaultReminderMinutes,
+    timeSegments: sanitizeTimeSegments(r.timeSegments),
   };
+}
+
+/** 数组式校验:非数组 → 默认 4 段;空数组 → 保持空(用户主动清空);逐条清理。 */
+function sanitizeTimeSegments(raw: unknown): TimeSegment[] {
+  if (!Array.isArray(raw)) return defaultTimeSegments();
+  if (raw.length === 0) return [];
+  return raw.map(sanitizeSegment);
 }

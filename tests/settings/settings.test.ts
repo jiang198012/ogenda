@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { sanitizeSettings, DEFAULT_SETTINGS } from "../../src/settings/settings";
+import { defaultTimeSegments } from "../../src/agenda-panel/time-segments";
+import { setLanguage } from "../../src/i18n";
 
 describe("sanitizeSettings", () => {
   it("keeps the known fields (incl. appPassword + iCloud) and drops unknown keys", () => {
@@ -25,10 +27,14 @@ describe("sanitizeSettings", () => {
       timezone: "",
       language: "auto",
       defaultCategory: "",
+      remindersEnabled: false,
+      defaultReminderMinutes: -1,
+      timeSegments: defaultTimeSegments(),
     });
     expect("bogus" in s).toBe(false);
   });
   it("falls back to defaults for missing/mistyped fields", () => {
+    setLanguage("en");
     expect(sanitizeSettings({})).toEqual(DEFAULT_SETTINGS);
     expect(sanitizeSettings(null)).toEqual(DEFAULT_SETTINGS);
   });
@@ -55,5 +61,13 @@ describe("sanitizeSettings", () => {
     expect(sanitizeSettings({ defaultCategory: 123 }).defaultCategory).toBe("");
     expect(sanitizeSettings({}).defaultCategory).toBe("");
     expect(DEFAULT_SETTINGS.defaultCategory).toBe("");
+  });
+  it("sanitizes timeSegments: array → per-row cleanup; empty → empty; garbage → defaults", () => {
+    expect(sanitizeSettings({ timeSegments: [] }).timeSegments).toEqual([]);
+    const cleaned = sanitizeSettings({
+      timeSegments: [{ name: "自定义", start: "08:00", end: "10:00", color: "#112233", enabled: false }],
+    }).timeSegments;
+    expect(cleaned).toEqual([{ name: "自定义", start: "08:00", end: "10:00", color: "#112233", enabled: false }]);
+    expect(sanitizeSettings({ timeSegments: "nope" }).timeSegments.length).toBeGreaterThan(0);
   });
 });

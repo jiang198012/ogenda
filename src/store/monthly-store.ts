@@ -9,7 +9,7 @@ export function monthOf(startIso: string): string {
 }
 
 /** Optional fields the panel edit form owns — blanking one should delete it. Metadata is never here. */
-const PANEL_CLEARABLE_FIELDS = ["end", "location", "organizer", "attendees", "status", "rsvp", "category", "description"];
+const PANEL_CLEARABLE_FIELDS = ["end", "location", "organizer", "attendees", "status", "rsvp", "category", "description", "reminder"];
 
 /**
  * Server-authoritative optional fields: when a synced server event no longer carries one,
@@ -17,7 +17,7 @@ const PANEL_CLEARABLE_FIELDS = ["end", "location", "organizer", "attendees", "st
  * the server-based base_hash and ogenda would "push the ghost back", fighting other devices).
  * Local-only fields (rsvp) and ALL sync metadata (etag/href/base_hash/...) are never here.
  */
-const SYNC_CLEARABLE_FIELDS = ["end", "location", "organizer", "attendees", "status", "category", "description", "rrule"];
+const SYNC_CLEARABLE_FIELDS = ["end", "location", "organizer", "attendees", "status", "category", "description", "rrule", "exdates", "reminder"];
 
 export interface SyncSummary {
   added: number;

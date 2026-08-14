@@ -12,6 +12,10 @@ import { syncBidirectional, CalDavSource } from "./sync/bidirectional";
 import { resolveSyncProvider } from "./sync/resolve-provider";
 import { davRequest, hrefInside } from "./net/dav-request";
 import { AgendaPanelView, AGENDA_PANEL_VIEW_TYPE } from "./agenda-panel/agenda-panel-view";
+import { QuickAddModal } from "./agenda-panel/quick-add-modal";
+import { todayInTimezone } from "./agenda-panel/timezone";
+import { localToEvent } from "./agenda-panel/local-to-event";
+import { nextDueReminder } from "./agenda-panel/reminders";
 import { setLanguage, resolveLanguage, t } from "./i18n";
 import { getDefaultCategory } from "./agenda-panel/event-form-fields";
 
@@ -25,6 +29,15 @@ export default class OgendaPlugin extends Plugin {
     // commands and no ribbon icon, which reads as "the plugin has no commands"
     // rather than as a failure. Fall back to defaults and carry on instead.
     try {
+      // 先定语言再加载设置:sanitizeSettings 会用当前语言生成默认时间线分区名。
+      // 优先用已存设置的 language(data.json),其次 Obsidian locale——
+      // localStorage.getItem("language") 在部分 Obsidian 版本里是 null。
+      const raw = (await this.loadData()) as { language?: string } | null;
+      const preferred =
+        raw?.language === "zh" || raw?.language === "en"
+          ? raw.language
+          : resolveLanguage("auto", getObsidianLocale());
+      setLanguage(preferred);
       await this.loadSettings();
       setLanguage(resolveLanguage(this.settings.language, getObsidianLocale()));
       if (!this.settings.defaultCategory) {
@@ -48,6 +61,23 @@ export default class OgendaPlugin extends Plugin {
       name: t("command.discovery"),
       callback: () => void this.caldavDiscover(),
     });
+    this.addCommand({
+      id: "ogenda-quick-add",
+      name: t("command.quickAdd"),
+      callback: () => {
+        new QuickAddModal(
+          this.app,
+          todayInTimezone(this.settings.timezone),
+          this.settings.defaultCategory || getDefaultCategory(),
+          async (event) => {
+            await this.store().savePanelEvent(event);
+            this.refreshOpenPanels();
+            void this.syncCalendarNow();
+          },
+          this.settings.defaultReminderMinutes,
+        ).open();
+      },
+    });
 
     this.registerView(
       AGENDA_PANEL_VIEW_TYPE,
@@ -62,6 +92,8 @@ export default class OgendaPlugin extends Plugin {
           () => this.syncCalendarNow(),
           () => this.settings.syncProvider,
           () => this.settings.defaultCategory,
+          () => this.settings.defaultReminderMinutes,
+          () => this.settings.timeSegments,
         ),
     );
     this.addCommand({
@@ -73,6 +105,36 @@ export default class OgendaPlugin extends Plugin {
 
     if (this.settings.syncOnStartup) {
       this.app.workspace.onLayoutReady(() => void this.syncCalendarNow());
+    }
+
+    // 提醒:定时器常驻,但只在设置开启时干活(README「不偷跑后台任务」原则)。
+    this.registerInterval(window.setInterval(() => void this.checkReminders(), 30_000));
+    this.app.workspace.onLayoutReady(() => void this.checkReminders());
+  }
+
+  /** 已触发的提醒(uid + occurrence 起始时间),避免同一条重复弹。 */
+  private firedReminders = new Set<string>();
+
+  async checkReminders(): Promise<void> {
+    if (!this.settings.remindersEnabled) return;
+    // 事件时间按「本地墙钟」存储(面板表单/quick-add 的输入即本地墙钟),
+    // now 必须用同一域——不能用 todayInTimezone(设置时区),否则时区 ≠ 系统时区时
+    // 两个墙钟错位(如 EDT 机器 + Asia/Shanghai 设置),提醒永远不会到点。
+    const now = new Date();
+    const p = (n: number) => String(n).padStart(2, "0");
+    const nowIso = `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}T${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`;
+    try {
+      const { events } = await this.store().readEvents();
+      const ag = events.map(localToEvent);
+      const due = nextDueReminder(ag, nowIso);
+      if (!due) return;
+      const key = `${due.uid}|${due.start}`;
+      if (this.firedReminders.has(key)) return;
+      if (this.firedReminders.size > 500) this.firedReminders.clear();
+      this.firedReminders.add(key);
+      new Notice(t("reminder.notice", { title: due.title, time: due.start.slice(11, 16) }), 10000);
+    } catch (e) {
+      console.error("[ogenda] reminder check failed", e);
     }
   }
 
@@ -99,6 +161,7 @@ export default class OgendaPlugin extends Plugin {
         console.error("[ogenda] ics import error", e);
       } finally {
         this.refreshOpenPanels();
+        void this.checkReminders();
       }
       return;
     }
@@ -118,6 +181,7 @@ export default class OgendaPlugin extends Plugin {
     } finally {
       // Sync rewrote the monthly files; open panels still hold the pre-sync read.
       this.refreshOpenPanels();
+      void this.checkReminders();
     }
   }
 

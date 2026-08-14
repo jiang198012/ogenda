@@ -2,12 +2,13 @@
 import { ItemView, WorkspaceLeaf, Modal, Notice, setIcon } from "obsidian";
 import { AgendaEvent } from "../core/event";
 import { MonthlyStore } from "../store/monthly-store";
-import { expandOccurrences } from "./occurrences";
+import { expandOccurrences, EventOccurrence, parseLocalDate } from "./occurrences";
 import { startOfWeek, startOfDay, addDays, monthGridWeeks, toDateKey } from "./date-grid";
 import { openEventSource } from "./navigate";
 import { todayInTimezone } from "./timezone";
 import { computeStats } from "./stats";
 import { EventFormModal } from "./event-form-modal";
+import { RecurrenceChoiceModal, RecurrenceChoice } from "./recurrence-choice-modal";
 import { renderListView } from "./views/list-view";
 import { renderDayView } from "./views/day-view";
 import { renderWeekView } from "./views/week-view";
@@ -19,6 +20,8 @@ import { createColorResolver } from "./colors";
 import { formatDate, formatWeek, formatMonth } from "./date-format";
 import { getLanguage, t } from "../i18n";
 import { isAtToday, shiftAnchorFor } from "./today-nav";
+import { minutesToIso, shiftEventTimes, shiftEventEnd, shiftEventToDay, shiftAllDayEvent } from "./day-grid";
+import { TimeSegment } from "./time-segments";
 
 export const AGENDA_PANEL_VIEW_TYPE = "ogenda-agenda-panel";
 
@@ -37,6 +40,8 @@ export class AgendaPanelView extends ItemView {
     private triggerSync: () => Promise<void>,
     private getSyncProvider: () => string,
     private getDefaultCategory: () => string,
+    private getDefaultReminder: () => number,
+    private getSegments: () => TimeSegment[],
   ) {
     super(leaf);
     this.anchor = this.safeToday();
@@ -99,6 +104,14 @@ export class AgendaPanelView extends ItemView {
     await this.render();
   }
 
+  /** 把两个事件(如重复事件 master + 单次覆盖)一起落盘并同步。 */
+  private async saveEvents(events: AgendaEvent[]): Promise<void> {
+    for (const ev of events) await this.getStore().savePanelEvent(ev);
+    this.maybeWarnIcsReadonly();
+    void this.triggerSync();
+    await this.render();
+  }
+
   private confirmDelete(event: AgendaEvent): void {
     // Plain Modal, not ConfirmationModal — that API needs Obsidian 1.13.0+ and
     // silently throws (no dialog, no error) on older installs.
@@ -119,6 +132,132 @@ export class AgendaPanelView extends ItemView {
       })();
     });
     modal.open();
+  }
+
+  // --- 重复事件(功能2)--- 
+
+  /** 编辑某个 occurrence:重复事件先问「仅本次/全部」,普通事件直接开表单。 */
+  private openOccurrenceEditor(occ: EventOccurrence): void {
+    if (!occ.event.rrule) {
+      this.openFormForEvent(occ.event);
+      return;
+    }
+    new RecurrenceChoiceModal(this.app, occ, (choice) => this.handleRecurrenceChoice(occ, choice)).open();
+  }
+
+  private handleRecurrenceChoice(occ: EventOccurrence, choice: RecurrenceChoice): void {
+    if (choice === "all") {
+      this.openFormForEvent(occ.event);
+      return;
+    }
+    if (choice === "deleteThisOccurrence") {
+      this.excludeOccurrence(occ);
+      return;
+    }
+    // 仅本次:表单预填本次时间,保存时生成独立覆盖事件 + 给 master 加 EXDATE
+    new EventFormModal(
+      this.app,
+      occ.event,
+      undefined,
+      false,
+      this.getDefaultCategory(),
+      (override) => void this.createOccurrenceOverride(occ, override),
+      undefined,
+      undefined,
+      this.getDefaultReminder(),
+      occ,
+    ).open();
+  }
+
+  /** 保存「仅本次」覆盖:master 增加 EXDATE,override 作为新本地事件落盘。 */
+  private async createOccurrenceOverride(occ: EventOccurrence, override: AgendaEvent): Promise<void> {
+    const master: AgendaEvent = {
+      ...occ.event,
+      exdates: [...(occ.event.exdates ?? []), occ.start],
+    };
+    await this.saveEvents([master, override]);
+    new Notice(t("recur.overrideCreated"));
+  }
+
+  /** 「跳过本次」:只给 master 加 EXDATE。 */
+  private async excludeOccurrence(occ: EventOccurrence): Promise<void> {
+    const master: AgendaEvent = {
+      ...occ.event,
+      exdates: [...(occ.event.exdates ?? []), occ.start],
+    };
+    await this.saveEvents([master]);
+    new Notice(t("recur.excluded"));
+  }
+
+  private openFormForEvent(event: AgendaEvent): void {
+    new EventFormModal(
+      this.app,
+      event,
+      undefined,
+      false,
+      this.getDefaultCategory(),
+      (updated) => void this.saveEvent(updated),
+      () => void openEventSource(this.app, this.getFolder(), event),
+      () => this.confirmDelete(event),
+      this.getDefaultReminder(),
+    ).open();
+  }
+
+  private openNewEventForm(day: Date, startMin?: number, endMin?: number): void {
+    const start = startMin !== undefined ? minutesToIso(day, startMin) : undefined;
+    const end = startMin !== undefined && endMin !== undefined ? minutesToIso(day, endMin) : undefined;
+    new EventFormModal(
+      this.app,
+      null,
+      start,
+      false,
+      this.getDefaultCategory(),
+      (created) => void this.saveEvent(created),
+      undefined,
+      undefined,
+      this.getDefaultReminder(),
+      null,
+      end,
+    ).open();
+  }
+
+  /** 拖动/改时长/跨日移动后的保存入口:重复事件先问「仅本次/全部」。 */
+  private applyTimeChange(
+    occ: EventOccurrence,
+    shifted: { start: string; end?: string },
+    mode: "move" | "resize",
+  ): void {
+    if (!occ.event.rrule) {
+      const updated: AgendaEvent = { ...occ.event, start: shifted.start, end: shifted.end };
+      void this.saveEvent(updated);
+      return;
+    }
+    new RecurrenceChoiceModal(this.app, occ, (choice) => {
+      if (choice === "all") {
+        const updated: AgendaEvent = { ...occ.event, start: shifted.start, end: shifted.end };
+        void this.saveEvent(updated);
+        return;
+      }
+      if (choice === "deleteThisOccurrence") {
+        this.excludeOccurrence(occ);
+        return;
+      }
+      // 仅本次:用平移后的 master 时间合成一个"假 occurrence"预填表单;
+      // EXDATE 排除的仍是原实例(occ.start),覆盖事件用表单里的新时间。
+      const syntheticOcc: EventOccurrence = { event: occ.event, start: shifted.start, end: shifted.end };
+      new EventFormModal(
+        this.app,
+        occ.event,
+        undefined,
+        false,
+        this.getDefaultCategory(),
+        (override) => void this.createOccurrenceOverride(occ, override),
+        undefined,
+        undefined,
+        this.getDefaultReminder(),
+        syntheticOcc,
+      ).open();
+    }).open();
   }
 
   private async render(): Promise<void> {
@@ -192,6 +331,7 @@ export class AgendaPanelView extends ItemView {
           (created) => void this.saveEvent(created),
           undefined,
           undefined,
+          this.getDefaultReminder(),
         ).open();
       });
 
@@ -204,18 +344,6 @@ export class AgendaPanelView extends ItemView {
         syncBtn.addEventListener("click", () => void this.triggerSync());
       }
 
-      const onEventClick = (event: AgendaEvent) => {
-        new EventFormModal(
-          this.app,
-          event,
-          undefined,
-          false,
-          this.getDefaultCategory(),
-          (updated) => void this.saveEvent(updated),
-          () => void openEventSource(this.app, this.getFolder(), event),
-          () => this.confirmDelete(event),
-        ).open();
-      };
       const onEmptyClick = (day: Date) => {
         new EventFormModal(
           this.app,
@@ -226,8 +354,24 @@ export class AgendaPanelView extends ItemView {
           (created) => void this.saveEvent(created),
           undefined,
           undefined,
+          this.getDefaultReminder(),
         ).open();
       };
+      const onMoveToDay = (occ: EventOccurrence, toDay: Date) => {
+        const fromDay = startOfDay(parseLocalDate(occ.event.start));
+        const shifted = occ.event.allDay
+          ? shiftAllDayEvent(occ.event, fromDay, toDay)
+          : shiftEventToDay(occ.event, fromDay, toDay);
+        this.applyTimeChange(occ, shifted, "move");
+      };
+      const timeGridHandlers = {
+        onSlotClick: (day: Date, minutes: number) => this.openNewEventForm(day, minutes),
+        onRangeCreate: (day: Date, startMin: number, endMin: number) => this.openNewEventForm(day, startMin, endMin),
+        onMoveEvent: (occ: EventOccurrence, delta: number) => this.applyTimeChange(occ, shiftEventTimes(occ.event, delta), "move"),
+        onResizeEvent: (occ: EventOccurrence, delta: number) => this.applyTimeChange(occ, shiftEventEnd(occ.event, delta), "resize"),
+      };
+      // 时间线分区(设置里配置;空 = 不显示)
+      const segments = this.getSegments();
 
       if (this.tab === "stats") {
         // Anchor stats on the shown month via this.anchor — NOT rangeForTab().start, which is
@@ -237,12 +381,20 @@ export class AgendaPanelView extends ItemView {
       } else {
         const { start, end } = this.rangeForTab();
         const occurrences = expandOccurrences(events, start, end);
-        if (this.tab === "list") renderListView(body, occurrences, onEventClick, colors);
+        if (this.tab === "list") renderListView(body, occurrences, (occ) => this.openOccurrenceEditor(occ), colors);
         else if (this.tab === "day") {
           const dayWrap = body.createDiv({ cls: "ogenda-day-layout" });
           const dayMain = dayWrap.createDiv({ cls: "ogenda-day-main" });
           const daySide = dayWrap.createDiv({ cls: "ogenda-day-side" });
-          renderDayView(dayMain, occurrences, onEventClick, colors);
+          renderDayView(
+            dayMain,
+            occurrences,
+            (occ) => this.openOccurrenceEditor(occ),
+            colors,
+            timeGridHandlers,
+            this.anchor,
+            segments,
+          );
           // Measure the panel's scroll viewport (.view-content = this.contentEl, height-constrained
           // by the leaf), NOT daySide — daySide sits in a stretch flex row and reports the day's
           // event-stack height, which would tie the month count to how many events the day has.
@@ -260,8 +412,27 @@ export class AgendaPanelView extends ItemView {
             },
             { monthCount, eventDays: daysWithEvents(miniOccs), today: this.safeToday() },
           );
-        } else if (this.tab === "week") renderWeekView(body, occurrences, this.anchor, onEventClick, onEmptyClick, colors);
-        else renderMonthView(body, occurrences, this.anchor, onEventClick, onEmptyClick, colors);
+        } else if (this.tab === "week")
+          renderWeekView(
+            body,
+            occurrences,
+            this.anchor,
+            (occ) => this.openOccurrenceEditor(occ),
+            timeGridHandlers,
+            colors,
+            onMoveToDay,
+            segments,
+          );
+        else
+          renderMonthView(
+            body,
+            occurrences,
+            this.anchor,
+            (occ) => this.openOccurrenceEditor(occ),
+            onEmptyClick,
+            colors,
+            onMoveToDay,
+          );
       }
     } catch (e) {
       new Notice(t("notice.panelLoadError", { msg: (e as Error).message }));

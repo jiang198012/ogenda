@@ -26,6 +26,10 @@ export interface AgendaEvent {
   seq?: number;
   lastSynced?: string;
   rrule?: string;
+  /** EXDATE 排除的重复实例(ISO datetime/date,与 start 同格式)。 */
+  exdates?: string[];
+  /** 提醒提前量(分钟,0 = 事件开始时);未设置 = 不提醒。写入服务器 VALARM。 */
+  reminder?: number;
 }
 
 export function eventToFields(ev: AgendaEvent): Record<string, string> {
@@ -58,6 +62,8 @@ export function eventToFields(ev: AgendaEvent): Record<string, string> {
   if (ev.seq !== undefined) set("seq", String(ev.seq));
   set("last_synced", ev.lastSynced);
   set("rrule", ev.rrule);
+  if (ev.exdates && ev.exdates.length) set("exdates", ev.exdates.join(", "));
+  if (ev.reminder !== undefined) set("reminder", String(ev.reminder));
   return f;
 }
 
@@ -87,6 +93,9 @@ export function hashEvent(ev: AgendaEvent): string {
   if (ev.attendees && ev.attendees.length) canon.push(`attendees\0${ev.attendees.join(", ")}`);
   if (ev.status) canon.push(`status\0${ev.status}`);
   if (ev.category) canon.push(`category\0${ev.category}`);
+  // 提醒与 EXDATE 都会写回服务器(VALARM / EXDATE),参与本地改动检测。
+  if (ev.reminder !== undefined) canon.push(`reminder\0${ev.reminder}`);
+  if (ev.exdates && ev.exdates.length) canon.push(`exdates\0${ev.exdates.join(",")}`);
   const joined = canon.join("\0");
   let h = 0x811c9dc5; // FNV-1a 32-bit
   for (let i = 0; i < joined.length; i++) {

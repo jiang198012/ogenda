@@ -36,6 +36,35 @@ function addOneDay(dateOnly: string): string {
   return `${next.getUTCFullYear()}-${pad(next.getUTCMonth() + 1)}-${pad(next.getUTCDate())}`;
 }
 
+/** 提前分钟数 → ISO-8601 持续时间(15 → "-PT15M";0 → "PT0S")。 */
+export function minutesToIsoDuration(minutes: number): string {
+  const m = Math.round(minutes);
+  if (m === 0) return "PT0S";
+  // reminder 语义是「提前」:正数 = 事件开始之前 → 负 duration
+  const sign = m > 0 ? "-" : "";
+  const abs = Math.abs(m);
+  const days = Math.floor(abs / 1440);
+  const hours = Math.floor((abs % 1440) / 60);
+  const mins = abs % 60;
+  let out = `${sign}P`;
+  if (days) out += `${days}D`;
+  if (hours || mins) {
+    out += "T";
+    if (hours) out += `${hours}H`;
+    if (mins) out += `${mins}M`;
+  }
+  return out;
+}
+
+/** ISO-8601 持续时间(如 -PT15M)→ 分钟数;无法解析返回 null。 */
+export function isoDurationToMinutes(dur: string): number | null {
+  const m = /^(-)?P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/.exec(dur.trim().toUpperCase());
+  if (!m) return null;
+  const d = Number(m[2] ?? 0), h = Number(m[3] ?? 0), mi = Number(m[4] ?? 0), s = Number(m[5] ?? 0);
+  const total = d * 1440 + h * 60 + mi + (s > 0 ? 1 : 0); // 秒向上取整到分钟
+  return m[1] ? -total : total;
+}
+
 /** Serialize an AgendaEvent to a minimal VCALENDAR (one VEVENT) for a CalDAV PUT. */
 export function eventToVCalendar(ev: AgendaEvent): string {
   const lines: string[] = [
@@ -73,7 +102,35 @@ export function eventToVCalendar(ev: AgendaEvent): string {
   if (ev.category) lines.push(`CATEGORIES:${escapeText(ev.category)}`);
   // RRULE is a structured value, not TEXT: no escapeText (BYDAY lists carry commas).
   if (ev.rrule) lines.push(`RRULE:${ev.rrule}`);
+  // EXDATE: 与 DTSTART 同时区;全天事件用 VALUE=DATE。合并为一条属性。
+  if (ev.exdates && ev.exdates.length) {
+    const param = ev.allDay ? ";VALUE=DATE" : zonedParam(ev);
+    const vals = ev.exdates
+      .map((x) => {
+        const v = normalizeSeparator(x);
+        return v.includes("T") ? toICalDateTime(v) : toICalDate(v);
+      })
+      .join(",");
+    lines.push(`EXDATE${param}:${vals}`);
+  }
+  // VALARM:提前 reminder 分钟;0 = 事件开始时。
+  if (ev.reminder !== undefined) {
+    lines.push(
+      "BEGIN:VALARM",
+      "ACTION:DISPLAY",
+      `TRIGGER:${minutesToIsoDuration(ev.reminder)}`,
+      `DESCRIPTION:${escapeText(ev.title)}`,
+      "END:VALARM",
+    );
+  }
 
   lines.push("END:VEVENT", "END:VCALENDAR");
   return lines.join("\r\n");
+}
+
+/** TZID 参数(与 eventToVCalendar 里 DTSTART 的判定一致)。 */
+function zonedParam(ev: AgendaEvent): string {
+  const dt = toICalDateTime(ev.start);
+  const zoned = ev.tz && ev.tz !== "floating" && ev.tz !== "UTC" && !dt.endsWith("Z");
+  return zoned ? `;TZID=${ev.tz}` : "";
 }

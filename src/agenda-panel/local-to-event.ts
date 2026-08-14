@@ -20,6 +20,8 @@ export function localToEvent(local: LocalEvent): AgendaEvent {
     rsvp: f.rsvp,
     category: f.category,
     rrule: f.rrule,
+    exdates: f.exdates ? f.exdates.split(",").map((s) => s.trim()).filter(Boolean) : undefined,
+    reminder: f.reminder !== undefined && /^-?\d+$/.test(f.reminder) ? Number(f.reminder) : undefined,
     description: f.description ? unescapeMultiline(f.description) : undefined,
     origin: f.origin === "local" ? "local" : "synced",
     href: f.href,

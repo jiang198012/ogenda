@@ -1,5 +1,6 @@
 import ICAL from "ical.js";
 import { AgendaEvent } from "./event";
+import { isoDurationToMinutes } from "./ical-gen";
 
 export function icalToEvents(ics: string, source: string, protocol = "imap"): AgendaEvent[] {
   const comp = new ICAL.Component(ICAL.parse(ics));
@@ -34,10 +35,45 @@ export function icalToEvents(ics: string, source: string, protocol = "imap"): Ag
       rrule: rrule ? String(rrule.toString()) : undefined,
       description: description ? String(description) : undefined,
       category: categories ? String(categories) : undefined,
+      exdates: parseExdates(ve),
+      reminder: parseReminderMinutes(ve, start),
       origin: "synced",
       source,
       protocol,
     });
   }
   return out;
+}
+
+/** EXDATE 属性 → ISO 字符串数组("2026-07-15" / "2026-07-15T15:00:00")。 */
+function parseExdates(ve: ICAL.Component): string[] | undefined {
+  const props = ve.getAllProperties("exdate");
+  if (!props.length) return undefined;
+  const out: string[] = [];
+  for (const p of props) {
+    const v = p.getFirstValue();
+    if (v instanceof ICAL.Time) out.push(v.toString());
+  }
+  return out.length ? out : undefined;
+}
+
+/** VALARM DISPLAY 的 TRIGGER → 提前分钟数(相对于 DTSTART);无有效提醒返回 undefined。 */
+function parseReminderMinutes(ve: ICAL.Component, start: ICAL.Time): number | undefined {
+  const alarm = ve.getAllSubcomponents("valarm")[0];
+  if (!alarm) return undefined;
+  const action = alarm.getFirstPropertyValue("action");
+  if (action && String(action).toUpperCase() !== "DISPLAY") return undefined;
+  const trigger = alarm.getFirstPropertyValue("trigger");
+  if (trigger === undefined || trigger === null) return undefined;
+  if (trigger instanceof ICAL.Time) {
+    // 绝对触发时间:相对 DTSTART 的提前量(可能为负 = 事后提醒,不采信 → undefined)
+    const before = Math.round((start.toUnixTime() - trigger.toUnixTime()) / 60);
+    return before >= 0 ? before : undefined;
+  }
+  const str = String(trigger);
+  if (!str.startsWith("P") && !str.startsWith("-P")) return undefined;
+  const minutes = isoDurationToMinutes(str);
+  if (minutes === null) return undefined;
+  // 只接受「提前」(负 duration);事后提醒(正 duration)不采信
+  return minutes < 0 ? -minutes : 0;
 }

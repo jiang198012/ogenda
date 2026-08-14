@@ -39,7 +39,7 @@ function formatTime(occ: EventOccurrence): string {
 export function renderListView(
   container: HTMLElement,
   occurrences: EventOccurrence[],
-  onEventClick: (event: AgendaEvent) => void,
+  onEventClick: (occ: EventOccurrence) => void,
   colors: ColorResolver = createColorResolver(),
 ): void {
   container.innerHTML = "";
@@ -62,7 +62,7 @@ export function renderListView(
       const row = document.createElement("div");
       row.className = "ogenda-event-row";
       row.style.borderLeftColor = colors.category(ev.category);
-      row.addEventListener("click", () => onEventClick(ev));
+      row.addEventListener("click", () => onEventClick(occ));
 
       const when = document.createElement("div");
       when.className = "ogenda-event-when";

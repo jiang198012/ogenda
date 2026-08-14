@@ -16,6 +16,11 @@ export function parseLocalDate(s: string): Date {
 
 const MAX_ITERATIONS = 10000;
 
+/** 去掉 ISO 末尾的 UTC "Z" 后缀(比较 EXDATE 时两侧统一)。 */
+function normIso(s: string): string {
+  return s.endsWith("Z") ? s.slice(0, -1) : s;
+}
+
 function toIcalTime(iso: string, allDay: boolean | undefined): ICAL.Time {
   return allDay ? ICAL.Time.fromDateString(iso) : ICAL.Time.fromDateTimeString(iso);
 }
@@ -97,6 +102,8 @@ export function expandOccurrences(
       continue;
     }
 
+    // EXDATE 排除的实例:两侧都去掉 UTC 后缀再比较(浮时区/本地时间为 wall-time)。
+    const excluded = new Set((ev.exdates ?? []).map(normIso));
     const dtstart = toIcalTime(ev.start, ev.allDay);
     const duration = ev.end ? toIcalTime(ev.end, ev.allDay).subtractDate(dtstart) : null;
     const recur = ICAL.Recur.fromString(ev.rrule);
@@ -109,13 +116,16 @@ export function expandOccurrences(
       const occStart = next.toJSDate();
       if (occStart >= rangeEnd) break;
       if (occStart >= rangeStart) {
-        let endStr: string | undefined;
-        if (duration) {
-          const occEnd = next.clone();
-          occEnd.addDuration(duration);
-          endStr = occEnd.toString();
+        const startStr = normIso(next.toString());
+        if (!excluded.has(startStr)) {
+          let endStr: string | undefined;
+          if (duration) {
+            const occEnd = next.clone();
+            occEnd.addDuration(duration);
+            endStr = occEnd.toString();
+          }
+          out.push({ event: ev, start: startStr, end: endStr });
         }
-        out.push({ event: ev, start: next.toString(), end: endStr });
       }
       next = iter.next();
     }

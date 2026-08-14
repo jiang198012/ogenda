@@ -28,6 +28,12 @@ export function fieldsToEvent(fields: Record<string, string>): AgendaEvent {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const exdates = (fields["exdates"] ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const reminderRaw = fields["reminder"];
+  const reminder = reminderRaw !== undefined && /^-?\d+$/.test(reminderRaw) ? Number(reminderRaw) : undefined;
   return {
     uid: fields["uid"] ?? "",
     title: fields["title"] ?? "",
@@ -41,6 +47,9 @@ export function fieldsToEvent(fields: Record<string, string>): AgendaEvent {
     attendees: attendees.length ? attendees : undefined,
     status: fields["status"],
     category: fields["category"],
+    rrule: fields["rrule"],
+    exdates: exdates.length ? exdates : undefined,
+    reminder,
     origin: fields["origin"] === "synced" ? "synced" : "local",
     href: fields["href"],
     etag: fields["etag"],

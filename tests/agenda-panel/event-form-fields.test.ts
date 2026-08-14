@@ -27,6 +27,7 @@ const blankFields = (): RawFormFields => ({
   title: "", start: "", end: "", allDay: false,
   location: "", organizer: "", attendees: "",
   status: "", rsvp: "", category: "", description: "",
+  reminder: "", rrulePreset: "none", rruleRaw: "",
 });
 
 describe("validateEventForm", () => {
@@ -70,7 +71,11 @@ describe("buildEventFromFields", () => {
       tz: "Asia/Shanghai", url: "https://x/event", busy: "BUSY", source: "iCloud",
       protocol: "caldav", serverDeleted: true, seq: 3, lastSynced: "2026-07-15T00:00:00Z",
     };
-    const fields = { ...blankFields(), title: "改过的标题", start: "2026-07-20T10:00:00" };
+    // 表单层会把已有 rrule 还原成 preset=custom + 原文,这里模拟还原后的字段
+    const fields = {
+      ...blankFields(), title: "改过的标题", start: "2026-07-20T10:00:00",
+      rrulePreset: "custom", rruleRaw: "FREQ=WEEKLY",
+    };
     const ev = buildEventFromFields(fields, existing, () => "should-not-be-used");
     expect(ev.uid).toBe("keep-me@ogenda");
     expect(ev.origin).toBe("synced");

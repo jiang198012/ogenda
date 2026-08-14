@@ -1,6 +1,7 @@
 import { App, Modal, Setting } from "obsidian";
 import { AgendaEvent } from "../core/event";
 import { generateUid } from "./uid";
+import { EventOccurrence } from "./occurrences";
 import {
   validateEventForm,
   buildEventFromFields,
@@ -17,8 +18,10 @@ import {
   shiftEndWithStart,
   defaultEndFor,
   RSVP_OPTIONS,
+  REMINDER_OPTIONS,
   shouldSaveOnEnter,
 } from "./event-form-fields";
+import { RRULE_PRESETS, presetForRrule, isValidRrule } from "./recurrence";
 import { t } from "../i18n";
 import { categoryColorFor } from "./colors";
 import { getPredefinedCategories } from "./event-form-fields";
@@ -32,6 +35,8 @@ export class EventFormModal extends Modal {
   private endTime!: HTMLInputElement;
   private titleInput!: HTMLInputElement;
   private saveBtn!: HTMLButtonElement;
+  private rruleCustomWrap: HTMLElement | null = null;
+  private rruleCustomInput: HTMLInputElement | null = null;
 
   constructor(
     app: App,
@@ -42,14 +47,25 @@ export class EventFormModal extends Modal {
     private onSubmit: (event: AgendaEvent) => void,
     private onViewInNote: (() => void) | undefined,
     private onDelete: (() => void) | undefined,
+    private defaultReminderMinutes = 0,
+    private overrideOccurrence: EventOccurrence | null = null,
+    private prefillEnd?: string,
+    private prefillTitle?: string,
   ) {
     super(app);
-    const allDay = existing?.allDay ?? defaultAllDay;
-    const start = existing?.start ?? initialStart(prefillStart ?? "", allDay);
+    const occ = overrideOccurrence;
+    const allDay = occ ? (occ.event.allDay ?? defaultAllDay) : existing?.allDay ?? defaultAllDay;
+    const start = occ ? occ.start : existing?.start ?? initialStart(prefillStart ?? "", allDay);
+    const rrulePreset = occ ? "none" : existing ? presetForRrule(existing.rrule) : "none";
+    const end = (occ
+      ? occ.end
+      : existing
+        ? (existing.end ?? "")
+        : prefillEnd ?? defaultEndFor(start, allDay)) ?? "";
     this.fields = {
-      title: existing?.title ?? "",
+      title: existing?.title ?? prefillTitle ?? "",
       start,
-      end: existing ? (existing.end ?? "") : defaultEndFor(start, allDay),
+      end,
       allDay,
       location: existing?.location ?? "",
       organizer: existing?.organizer ?? "",
@@ -58,6 +74,14 @@ export class EventFormModal extends Modal {
       rsvp: existing?.rsvp ?? "",
       category: existing?.category ?? defaultCategory,
       description: existing?.description ?? "",
+      reminder:
+        existing?.reminder !== undefined
+          ? String(existing.reminder)
+          : defaultReminderMinutes >= 0
+            ? String(defaultReminderMinutes)
+            : "",
+      rrulePreset,
+      rruleRaw: occ ? "" : existing?.rrule ?? "",
     };
   }
 
@@ -178,6 +202,42 @@ export class EventFormModal extends Modal {
       d.setValue(this.fields.rsvp).onChange((v) => (this.fields.rsvp = v));
     });
 
+    // 提醒
+    new Setting(advanced).setName(t("form.reminder.name")).addDropdown((d) => {
+      for (const opt of REMINDER_OPTIONS) d.addOption(opt.value, t(opt.labelKey));
+      const cur = this.fields.reminder.trim();
+      if (cur && !REMINDER_OPTIONS.some((o) => o.value === cur)) d.addOption(cur, t("reminder.custom", { m: cur }));
+      d.setValue(cur).onChange((v) => {
+        this.fields.reminder = v;
+        this.updateValidity();
+      });
+    });
+
+    // 重复
+    const rruleSetting = new Setting(advanced).setName(t("form.rrule.name"));
+    rruleSetting.addDropdown((d) => {
+      for (const p of RRULE_PRESETS) d.addOption(p.value, t(p.labelKey));
+      d.setValue(this.fields.rrulePreset);
+      d.onChange((v) => {
+        this.fields.rrulePreset = v;
+        if (this.rruleCustomWrap) this.rruleCustomWrap.style.display = v === "custom" ? "" : "none";
+        this.updateValidity();
+      });
+    });
+    this.rruleCustomWrap = advanced.createDiv({ cls: "ogenda-form-rrule-custom" });
+    this.rruleCustomWrap.createEl("label", { text: t("form.rrule.customLabel"), cls: "ogenda-form-rrule-label" });
+    this.rruleCustomInput = this.rruleCustomWrap.createEl("input", {
+      type: "text",
+      cls: "ogenda-form-rrule-input",
+      attr: { placeholder: "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE", spellcheck: "false", autocomplete: "off" },
+    });
+    this.rruleCustomInput.value = this.fields.rruleRaw;
+    this.rruleCustomInput.addEventListener("input", () => {
+      this.fields.rruleRaw = this.rruleCustomInput!.value;
+      this.updateValidity();
+    });
+    this.rruleCustomWrap.style.display = this.fields.rrulePreset === "custom" ? "" : "none";
+
     const setAdvanced = (open: boolean) => {
       advanced.style.display = open ? "" : "none";
       moreToggle.setText((open ? "▾ " : "▸ ") + t("form.moreOptions"));
@@ -257,6 +317,9 @@ export class EventFormModal extends Modal {
     const timeInvalid =
       !this.fields.allDay && this.startTime.value.trim() !== "" && !isValidTimeValue(normalizeTimeInput(this.startTime.value));
     const errors: string[] = [];
+    if (this.fields.rrulePreset === "custom" && !isValidRrule(this.fields.rruleRaw)) {
+      errors.push(t("validate.rruleInvalid"));
+    }
     if (timeInvalid) {
       errors.push(t("form.timeInvalid"));
     } else {
@@ -303,7 +366,9 @@ export class EventFormModal extends Modal {
       if (this.errorEl) this.errorEl.setText(result.errors.join("; "));
       return;
     }
-    const event = buildEventFromFields(this.fields, this.existing, generateUid);
+    const event = this.overrideOccurrence
+      ? buildEventFromFields(this.fields, null, generateUid)
+      : buildEventFromFields(this.fields, this.existing, generateUid);
     this.close();
     this.onSubmit(event);
   }

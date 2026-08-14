@@ -1,5 +1,6 @@
 import { AgendaEvent } from "../core/event";
 import { getLanguage, t } from "../i18n";
+import { buildRrule, RrulePreset } from "./recurrence";
 
 export interface RawFormFields {
   title: string;
@@ -13,6 +14,12 @@ export interface RawFormFields {
   rsvp: string;
   category: string;
   description: string;
+  /** 提醒下拉值:"" = 不提醒;否则为提前分钟数(字符串)。 */
+  reminder: string;
+  /** 重复下拉值:none/daily/weekdays/weekly/monthly/yearly/custom。 */
+  rrulePreset: string;
+  /** 自定义 RRULE 原文(仅 preset=custom 时使用)。 */
+  rruleRaw: string;
 }
 
 export interface ValidationResult {
@@ -159,6 +166,27 @@ export const RSVP_OPTIONS: { value: string; labelKey: string }[] = [
   { value: "TENTATIVE", labelKey: "rsvp.tentative" },
 ];
 
+/** 提醒下拉选项:"" = 不提醒;否则为提前分钟数。 */
+export const REMINDER_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: "", labelKey: "reminder.none" },
+  { value: "0", labelKey: "reminder.atStart" },
+  { value: "5", labelKey: "reminder.min5" },
+  { value: "10", labelKey: "reminder.min10" },
+  { value: "15", labelKey: "reminder.min15" },
+  { value: "30", labelKey: "reminder.min30" },
+  { value: "60", labelKey: "reminder.hour1" },
+  { value: "1440", labelKey: "reminder.day1" },
+];
+
+/** 提醒分钟数 → 展示文案(如 90 → "提前 1.5 小时")。 */
+export function reminderLabel(minutes: number): string {
+  if (minutes === 0) return t("reminder.atStart");
+  if (minutes % 1440 === 0) return t("reminder.days", { n: minutes / 1440 });
+  if (minutes % 60 === 0) return t("reminder.hours", { n: minutes / 60 });
+  if (minutes > 60) return t("reminder.hoursMinutes", { h: Math.floor(minutes / 60), m: minutes % 60 });
+  return t("reminder.minutes", { n: minutes });
+}
+
 const CATEGORY_KEYS = ["work", "personal", "study", "meeting", "travel", "health"] as const;
 
 /** Predefined category values, resolved to the current UI language. */
@@ -217,11 +245,13 @@ export function buildEventFromFields(
     rsvp: fields.rsvp.trim() || undefined,
     category,
     description: fields.description.trim() || undefined,
+    reminder: fields.reminder === "" ? undefined : Number(fields.reminder),
+    rrule: buildRruleForFields(fields),
     origin: existing?.origin ?? "local",
     href: existing?.href,
     etag: existing?.etag,
     baseHash: existing?.baseHash,
-    rrule: existing?.rrule,
+    exdates: existing?.exdates,
     tz: existing?.tz,
     url: existing?.url,
     busy: existing?.busy,
@@ -231,6 +261,17 @@ export function buildEventFromFields(
     seq: existing?.seq,
     lastSynced: existing?.lastSynced,
   };
+}
+
+/**
+ * 从表单字段合成 RRULE:
+ * - none → 不重复(undefined)
+ * - weekly → 按 start 的星期几补 BYDAY
+ * - custom → 原样使用(调用方已校验)
+ * 返回 undefined 表示清除重复。
+ */
+function buildRruleForFields(fields: RawFormFields): string | undefined {
+  return buildRrule(fields.rrulePreset as RrulePreset, fields.start, fields.rruleRaw);
 }
 
 /** Enter saves the form — except during IME composition, inside the multi-line textarea, or when save is disabled. */

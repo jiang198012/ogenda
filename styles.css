@@ -191,6 +191,18 @@
   font-weight: 600;
 }
 
+.ogenda-quickadd-input {
+  width: 100%;
+  min-height: 3.2em;
+  resize: vertical;
+  font-size: 1em;
+}
+.ogenda-quickadd-hint {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  margin-top: 0.4em;
+}
+
 /* ---------- Day view ---------- */
 .ogenda-day-layout {
   display: flex;
@@ -250,11 +262,213 @@
   color: var(--text-normal);
 }
 
+/* Shared time grid (day + week views) */
+.ogenda-day-grid-wrap {
+  position: relative;
+}
+.ogenda-day-allday,
+.ogenda-week-allday {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35em;
+  margin: 0 0 0.6em 3.2em;
+}
+.ogenda-week-allday {
+  margin-left: 0;
+}
+.ogenda-day-allday-chip,
+.ogenda-week-allday-chip {
+  border-radius: 6px;
+  background: var(--background-secondary);
+  border-left: 3px solid var(--interactive-accent);
+  padding: 0.25em 0.6em;
+  font-size: 0.8em;
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ogenda-day-allday-chip:hover,
+.ogenda-week-allday-chip:hover {
+  background: var(--background-modifier-hover);
+}
+.ogenda-timegrid {
+  position: relative;
+  border-top: 1px solid var(--background-modifier-border);
+  cursor: cell;
+  touch-action: pan-y;
+}
+.ogenda-timegrid-guttered {
+  margin-left: 3.2em;
+}
+.ogenda-timegrid-gutter {
+  position: absolute;
+  left: -3.2em;
+  top: 0;
+  bottom: 0;
+  width: 3em;
+  pointer-events: none;
+}
+.ogenda-timegrid-hourlabel {
+  position: absolute;
+  right: 0.4em;
+  transform: translateY(-50%);
+  font-size: 0.68em;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.ogenda-timegrid-hourline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--background-modifier-border);
+  pointer-events: none;
+}
+.ogenda-timegrid-nowline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 2px solid var(--interactive-accent);
+  pointer-events: none;
+  z-index: 3;
+}
+.ogenda-timegrid-nowline::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--interactive-accent);
+}
+/* 时间线分区色块:事件下方,不拦截鼠标 */
+.ogenda-time-segment {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.ogenda-day-block,
+.ogenda-week-block {
+  position: absolute;
+  border-radius: 6px;
+  background: var(--background-secondary);
+  border-left: 4px solid var(--interactive-accent);
+  padding: 0.25em 0.5em;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+  z-index: 1;
+}
+.ogenda-day-block:hover,
+.ogenda-week-block:hover {
+  background: var(--background-modifier-hover);
+}
+.ogenda-tblock-dragging {
+  opacity: 0.55;
+  cursor: grabbing;
+  z-index: 5;
+}
+.ogenda-tblock-title {
+  font-size: 0.8em;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 周视图块更窄:标题字号与月视图 mini chip 一致(0.68em),单行显示更多内容 */
+.ogenda-week-block .ogenda-tblock-title {
+  font-size: 0.68em;
+}
+.ogenda-tblock-resize {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 6px;
+  cursor: ns-resize;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+.ogenda-tblock-resize:hover {
+  background: var(--interactive-accent);
+  opacity: 0.6;
+}
+.ogenda-timegrid-ghost {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: var(--interactive-accent);
+  opacity: 0.25;
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 4;
+}
+.ogenda-timegrid-dragging {
+  cursor: ns-resize;
+}
+
 /* ---------- Week view ---------- */
 .ogenda-week-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 0.5em;
+  height: 100%;
+}
+.ogenda-week-wrap {
+  display: flex;
+  gap: 0.4em;
+}
+.ogenda-week-timelabels {
+  position: relative;
+  width: 2.6em;
+  flex-shrink: 0;
+}
+.ogenda-week-timelabel {
+  position: absolute;
+  right: 0;
+  transform: translateY(-50%);
+  font-size: 0.68em;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.ogenda-week-main {
+  flex: 1;
+  min-width: 0;
+}
+.ogenda-week-headrow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.4em;
+}
+.ogenda-week-alldayrow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.4em;
+  margin-bottom: 0.4em;
+}
+.ogenda-week-alldaycell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3em;
+  align-content: flex-start;
+  min-height: 0;
+}
+.ogenda-week-body {
+  position: relative;
+}
+/* 贯通时间线:整行一条,事件/色块之下;坐标原点与列内网格一致(列无 padding) */
+.ogenda-week-timeline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--background-modifier-border);
+  pointer-events: none;
+  z-index: 0;
 }
 .ogenda-week-col-head {
   text-align: center;
@@ -263,38 +477,90 @@
   padding-bottom: 0.4em;
 }
 .ogenda-week-col {
-  min-height: 14em;
-  background: var(--background-secondary);
   border-radius: 6px;
-  padding: 0.4em;
   display: flex;
   flex-direction: column;
-  gap: 0.4em;
+  height: 100%;
 }
-.ogenda-week-card {
+/* 周视图时间格:列内 24h 网格 */
+.ogenda-week-tgrid {
+  flex: 1;
+  min-height: 24em;
+}
+.ogenda-week-drop,
+.ogenda-month-drop {
+  outline: 2px dashed var(--interactive-accent);
+  outline-offset: -2px;
+}
+.ogenda-month-mini-dragging {
+  opacity: 0.45;
+}
+
+/* ---------- Recurrence / form extras ---------- */
+.ogenda-recur-buttons {
+  margin-top: 1em;
+  flex-wrap: wrap;
+}
+.ogenda-recur-desc {
+  color: var(--text-muted);
+  margin-bottom: 0.4em;
+}
+.ogenda-form-rrule-custom {
+  margin: 0.4em 0 0.8em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+}
+.ogenda-form-rrule-label {
+  font-size: 0.75em;
+  color: var(--text-muted);
+}
+.ogenda-form-rrule-input {
+  width: 100%;
+  font-family: var(--font-monospace);
+  font-size: 0.85em;
+}
+
+/* ---------- Settings: time-line segments ---------- */
+.ogenda-segments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45em;
+  margin-bottom: 0.8em;
+}
+.ogenda-segment-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.35em 0.5em;
+  border: 1px solid var(--background-modifier-border);
   border-radius: 6px;
-  background: var(--background-primary);
-  border-left: 3px solid var(--interactive-accent);
-  padding: 0.4em 0.5em;
+}
+.ogenda-segment-toggle {
+  flex-shrink: 0;
+}
+.ogenda-segment-name {
+  flex: 1;
+  min-width: 0;
+}
+.ogenda-segment-time {
+  width: 7em;
+  flex-shrink: 0;
+}
+.ogenda-segment-color {
+  width: 2.4em;
+  height: 1.8em;
+  padding: 0;
+  border: none;
+  background: none;
   cursor: pointer;
+  flex-shrink: 0;
 }
-.ogenda-week-card:hover {
-  background: var(--background-modifier-hover);
+.ogenda-segment-del {
+  flex-shrink: 0;
 }
-.ogenda-week-card-time {
-  font-size: 0.68em;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-.ogenda-week-card-title {
-  font-size: 0.8em;
-  font-weight: 600;
-  margin: 0.15em 0;
-  line-height: 1.25;
-}
-.ogenda-week-card-loc {
-  font-size: 0.68em;
-  color: var(--text-muted);
+.ogenda-segments-add {
+  align-self: flex-start;
 }
 
 /* ---------- Month view ---------- */
@@ -705,6 +971,16 @@ textarea.ogenda-form-desc {
   .ogenda-day-card {
     padding: 0.85em 0.9em;
   }
+  .ogenda-timegrid-guttered {
+    margin-left: 2.6em;
+  }
+  .ogenda-timegrid-gutter {
+    width: 2.4em;
+    left: -2.6em;
+  }
+  .ogenda-day-allday {
+    margin-left: 2.6em;
+  }
   .ogenda-mini-cal-cell {
     min-height: 44px;
     min-width: 44px;
@@ -726,19 +1002,24 @@ textarea.ogenda-form-desc {
     gap: 0.4em;
     grid-template-columns: repeat(7, minmax(0, 1fr));
   }
+  .ogenda-week-headrow {
+    gap: 0.4em;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+  .ogenda-week-timelabels {
+    width: 2.4em;
+  }
+  .ogenda-week-timelabel {
+    right: 0.3em;
+  }
   .ogenda-week-col {
-    min-height: 10em;
     padding: 0.35em;
   }
   .ogenda-week-col-head {
     padding: 0.5em 0;
   }
-  .ogenda-week-card {
-    padding: 0.5em 0.6em;
-    min-height: 44px;
-  }
-  .ogenda-week-card-title {
-    font-size: 0.85em;
+  .ogenda-week-allday-chip {
+    min-height: 30px;
   }
 
   /* Month view */

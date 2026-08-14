@@ -58,13 +58,13 @@ describe("renderListView", () => {
     expect(items.classList.contains("collapsed")).toBe(true);
   });
 
-  it("calls onEventClick with the underlying AgendaEvent when a row is clicked", () => {
+  it("calls onEventClick with the underlying occurrence when a row is clicked", () => {
     const container = document.createElement("div");
     const occ = mkOcc("a", "2026-07-18T14:00:00", "周会同步", "confirmed");
     const onClick = vi.fn();
     renderListView(container, [occ], onClick);
     (container.querySelector(".ogenda-event-row") as HTMLElement).click();
-    expect(onClick).toHaveBeenCalledWith(occ.event);
+    expect(onClick).toHaveBeenCalledWith(occ);
   });
 
   it("renders location when present", () => {

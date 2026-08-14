@@ -1,84 +1,57 @@
-import { AgendaEvent } from "../../core/event";
+// 日视图:全天事件横条 + 共享 24h 时间格(renderTimeGrid)。
+// 交互:点空白格 → 在该小时新建;拖拽空白格 → 划范围新建;
+// 拖事件卡片 → 移动;拖卡片底部把手 → 调整结束时间。鼠标拖拽,触屏走点击。
+// 可见范围跟随分区:没有设置分区的时段(如清晨之前)默认不展示;无分区时回退全天。
 import { EventOccurrence } from "../occurrences";
-import { ColorResolver, createColorResolver, statusStyle } from "../colors";
-import { RSVP_OPTIONS } from "../event-form-fields";
+import { ColorResolver, createColorResolver } from "../colors";
+import { TimeSegment, visibleRange } from "../time-segments";
+import { HOUR_PX, layoutDayGrid } from "../day-grid";
+import { startOfDay } from "../date-grid";
+import { renderTimeGrid, TimeGridHandlers } from "./time-grid";
 import { t } from "../../i18n";
 
-/** Localize an RSVP enum value (ACCEPTED → 已接受); unknown values pass through. */
-function rsvpLabel(value: string | undefined): string | undefined {
-  if (!value) return undefined;
-  const opt = RSVP_OPTIONS.find((o) => o.value === value);
-  return opt ? t(opt.labelKey) : value;
-}
-
-function addField(grid: HTMLElement, label: string, value: string | undefined): void {
-  if (!value) return;
-  const row = document.createElement("div");
-  row.className = "ogenda-field-row";
-  const k = document.createElement("span");
-  k.className = "ogenda-field-key";
-  k.textContent = label;
-  const v = document.createElement("span");
-  v.className = "ogenda-field-value";
-  v.textContent = value;
-  row.appendChild(k);
-  row.appendChild(v);
-  grid.appendChild(row);
-}
-
-function formatTime(occ: EventOccurrence): string {
-  if (occ.event.allDay) return t("view.allDay");
-  const hhmm = (iso?: string) => (iso ? iso.slice(11, 16) : "");
-  const e = hhmm(occ.end);
-  return e ? `${hhmm(occ.start)}–${e}` : hhmm(occ.start);
-}
+export type { TimeGridHandlers };
 
 export function renderDayView(
   container: HTMLElement,
   occurrences: EventOccurrence[],
-  onEventClick: (event: AgendaEvent) => void,
+  onEventClick: (occ: EventOccurrence) => void,
   colors: ColorResolver = createColorResolver(),
+  handlers: TimeGridHandlers = {},
+  anchorDay: Date = new Date(),
+  segments: TimeSegment[] = [],
 ): void {
   container.innerHTML = "";
-  for (const occ of occurrences) {
-    const ev = occ.event;
-    const card = document.createElement("div");
-    card.className = "ogenda-day-card";
-    card.style.borderLeftColor = colors.category(ev.category);
-    card.addEventListener("click", () => onEventClick(ev));
+  const day = startOfDay(anchorDay);
+  const layout = layoutDayGrid(occurrences, day);
 
-    const time = document.createElement("div");
-    time.className = "ogenda-day-time";
-    time.textContent = formatTime(occ);
-    card.appendChild(time);
+  const wrap = document.createElement("div");
+  wrap.className = "ogenda-day-grid-wrap";
 
-    const titleRow = document.createElement("div");
-    titleRow.className = "ogenda-day-titlerow";
-    const title = document.createElement("div");
-    title.className = "ogenda-day-title";
-    title.textContent = ev.title;
-    titleRow.appendChild(title);
-    if ((ev.status ?? "").trim() !== "") {
-      const st = statusStyle(ev.status);
-      const pill = document.createElement("span");
-      pill.className = "ogenda-status-pill";
-      pill.textContent = st.label;
-      pill.style.color = st.text;
-      pill.style.background = st.bg;
-      titleRow.appendChild(pill);
+  if (layout.allDay.length) {
+    const strip = document.createElement("div");
+    strip.className = "ogenda-day-allday";
+    for (const occ of layout.allDay) {
+      const chip = document.createElement("div");
+      chip.className = "ogenda-day-allday-chip";
+      chip.style.borderLeftColor = colors.category(occ.event.category);
+      // 紧凑标签:只显示标题
+      chip.textContent = occ.event.title;
+      chip.title = t("view.allDay");
+      chip.addEventListener("click", () => onEventClick(occ));
+      strip.appendChild(chip);
     }
-    card.appendChild(titleRow);
-
-    const grid = document.createElement("div");
-    grid.className = "ogenda-field-grid";
-    addField(grid, t("field.location"), ev.location);
-    addField(grid, t("field.organizer"), ev.organizer);
-    addField(grid, t("field.attendees"), ev.attendees?.length ? ev.attendees.join("、") : undefined);
-    addField(grid, t("rsvp.name"), rsvpLabel(ev.rsvp));
-    addField(grid, t("field.category"), ev.category);
-    addField(grid, t("field.rrule"), ev.rrule);
-    card.appendChild(grid);
-
-    container.appendChild(card);
+    wrap.appendChild(strip);
   }
+
+  renderTimeGrid(wrap, day, occurrences, onEventClick, colors, handlers, {
+    hourPx: HOUR_PX,
+    showGutter: true,
+    showNowLine: true,
+    segments,
+    visibleRange: visibleRange(segments),
+    blockClass: "ogenda-day-block",
+  });
+
+  container.appendChild(wrap);
 }

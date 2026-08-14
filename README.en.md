@@ -31,16 +31,22 @@
 | **Two-way sync** | Pull events from CalDAV / iCloud, push local edits back; server changes merge with your manual notes, never overwriting them |
 | **Local Markdown storage** | Events are stored in a monthly note per month; add your own prose under any event block |
 | **Five views** | List / Day / Week / Month / Stats dashboards |
-| **Event editor** | Category chips, status, location, organizer, attendees, recurrence |
+| **Event editor** | Category chips, status, location, organizer, attendees, recurrence, reminders |
+| **Recurring events** | Presets for daily/weekly/monthly… plus custom RRULE; per-occurrence edit ("this / all / skip") |
+| **Reminders** | 5 min to 1 day lead time, synced as VALARM, in-Obsidian notifications when enabled |
+| **Day view time grid** | 00:00–24:00 grid: click to create, drag a range, drag cards to move, drag the bottom edge to resize |
+| **Week view time grid** | 7 columns × 24 hours: events positioned by time, same drag & drop, cross-day drags |
+| **Time-line segments** | Colored time ranges from settings painted as translucent bands on day/week grids |
 | **24-hour time input** | No more `12:00 AM` ambiguity; `1423` / `900` format themselves as you type |
+| **Quick add (natural language)** | "Quick add event" command: one sentence → date/time/duration/title, e.g. `tomorrow 3pm standup 30min` |
 | **Mobile friendly** | Adapts to narrow panes and phones (below 480px) |
 | **Bilingual UI** | English / 简体中文 follows the Obsidian locale or the plugin setting |
 
 ## Security & permissions
 
 - **What it accesses**: the CalDAV / iCloud credentials you configure (stored locally in Obsidian settings), the monthly event notes you choose inside your vault, and direct connections to the CalDAV server you configure (iCloud, Nextcloud, Fastmail, …).
-- **When it runs**: only when you press **Sync**, use the panel, or have enabled sync-on-startup. No background activity otherwise.
-- **What you control**: credentials go **only** to the server you configure — no third party. Turn off sync-on-startup anytime.
+- **When it runs**: only when you press **Sync**, use the panel, or have enabled sync-on-startup. No background activity otherwise — except **reminders**: while "Enable event reminders" is on (off by default), Ogenda checks for due reminders every 30 seconds while Obsidian is open.
+- **What you control**: credentials go **only** to the server you configure — no third party. Turn off sync-on-startup or event reminders anytime.
 
 ## Installation
 
@@ -79,8 +85,12 @@ The first sync creates one Markdown file per month, e.g. `Agenda/2026-07.md`. Yo
 ## Usage
 
 - **Open the panel**: run the command **"Ogenda: Open agenda panel"** or click the calendar ribbon icon.
+- **Quick add**: run **"Ogenda: Quick add event"** and type one line, e.g. `tomorrow 3pm standup 30min`, `周五 10:00 周会 1小时`, `明天下午3点 和经理开会`. Date (今天/明天/周五/下周一/7-25/today/next monday…), time (15:00 / 下午3点 / 3pm / 晚上8点半), duration and title are parsed and the form is prefilled (defaults: today, 09:00, 1 hour).
 - **Views**: switch between List / Day / Week / Month / Stats tabs.
-- **Events**: click **New event** or an existing card to edit — categories, status, location, organizer, attendees, recurrence.
+- **Day view drag & drop**: click an empty slot to create at that hour; drag an empty area to create a time range; drag an event card to move it; drag the card's **bottom edge** to change the end time. All-day events sit in a strip above the grid with a red "now" line. In Week/Month views you can drag a card onto another day.
+- **Recurring events**: pick a repeat in the form (daily / weekdays / weekly / monthly / yearly / custom RRULE). Clicking an occurrence of a recurring event asks: **this occurrence only** (becomes a separate event, and the original time is excluded from the series via EXDATE), **all occurrences**, or **skip this occurrence** (EXDATE only).
+- **Reminders**: the form's "Reminder" dropdown sets a lead time (none / at start / 5–30 min / 1 hour / 1 day), written to the calendar as VALARM so phone calendars see it too. Turn on **Settings → Ogenda → Reminders → Enable event reminders** to get in-Obsidian notifications (checked every 30 s); a default lead time for new events is configurable.
+- **Events**: click **New event** or an existing card to edit — categories, status, location, organizer, attendees, recurrence, reminders.
 - **24-hour time input**: type `1423` → formats to `14:23` as you type; `900` → `09:00`; blur pads `9` → `09:00`. Midnight is `00:00`, noon is `12:00` — a morning meeting ending at noon is clearly `09:00 → 12:00`.
 - **Navigation**: use the **Today** button or the arrow buttons.
 - **Sync**: press **Sync** in the toolbar, or run **"Ogenda: Sync now"**.
@@ -98,6 +108,8 @@ The first sync creates one Markdown file per month, e.g. `Agenda/2026-07.md`. Yo
 | | Sync on startup | Sync once after Obsidian launches | Off |
 | Storage | Storage folder | Folder for the monthly event notes | `Agenda` |
 | | Timezone | Display timezone, defaults to system | System |
+| Reminders | Enable event reminders | Show a notification when a reminder is due (checked every 30 s) | Off |
+| | Default reminder | Lead time applied to new events (per-event override in the form) | No reminder |
 | Appearance | Language | Auto (Obsidian) / 简体中文 / English | Auto |
 | Category | Default category | Default category for new events | Work |
 
@@ -107,8 +119,11 @@ After entering your Apple ID and app-specific password in settings, click the **
 
 ## What's New
 
-**Latest: v1.0.1**
+**Latest: v1.3.0**
 
+- **v1.3.0** — **Views follow the segment window, adapting to content**: day/week grids show only the configured time ranges (default 06:00–23:00), but the timeline auto-extends whenever a night event exists. **Week-view time rulers**: through-running 06:00/12:00/18:00 lines plus per-column hourly lines. Event labels are compact title-only everywhere. New default palette (adjacent hues ≥44° apart). Fixes: event blocks no longer misalign with segment bands; through-lines align exactly with bands/blocks.
+- **v1.2.0** — **Time-line segments**: define colored time ranges in settings (name, 24h start/end — midnight-crossing allowed — and fill color); day/week grids paint them as translucent bands so you can see time ranges at a glance. Both views show **only the configured segment window** (default 06:00–23:00; unconfigured hours like before dawn don't take up space, events outside the window are hidden, crossing events are clipped; no segments → full 24h). The **week view is now a 7-column × 24h time grid** (events positioned by real time, overlap columns, all-day strip, same drag & drop as the day view). Defaults: 清晨 06:00–08:30 / 上午 08:30–12:00 / 中午 12:00–14:00 / 下午 14:00–17:00 / 傍晚 17:00–20:00 / 晚上 20:00–23:00 six segments, off when cleared.
+- **v1.1.0** — **Reminders**: per-event lead times (VALARM, CalDAV-synced) with optional in-Obsidian notifications; **recurrence editing**: form presets + custom RRULE, per-occurrence "this / all / skip" with EXDATE sync; **day-view time grid with drag & drop** (create by clicking/dragging, move cards, resize from the bottom edge; week/month views accept cross-day drags); **natural-language quick add**: `明天下午3点 和经理开会` or `tomorrow 3pm standup 30min` becomes an event in one command.
 - **v1.0.3** — **Dense month views stay usable**: days with more than 6 events fold into a "+N more" expander, and the month's last week always scrolls into view. The week view shows all 7 columns in a narrow side pane (weekend columns are no longer cut off). RSVP shows localized labels ("Accepted") instead of the raw enum.
 - **v1.0.2** — **Narrow side panes no longer overflow**: day/month views now use container queries and respond to the panel's own width. Drag an Obsidian side pane narrow and the day view stacks vertically, the month grid shows all 7 columns, and the tab bar wraps — no more clipped text.
 - **v1.0.1** — **24-hour time input**: the event form no longer follows the OS locale's 12-hour clock. Times are entered and shown as `09:00`–`23:59`; noon is clearly `12:00` (never `12:00 AM`). Shorthand like `1423` / `900` formats itself as you type.
@@ -134,7 +149,7 @@ After entering your Apple ID and app-specific password in settings, click the **
 npm install    # install dependencies
 npm run dev    # development build (esbuild watch)
 npm run build  # production build (tsc type-check + esbuild bundle)
-npm test       # run tests (vitest, 347 tests)
+npm test       # run tests (vitest, 438 tests)
 ```
 
 ## Related projects

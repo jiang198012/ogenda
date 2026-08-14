@@ -41,13 +41,13 @@ describe("renderMonthView", () => {
     expect([...minis].map((m) => m.textContent)).toEqual(["早会", "晚会"]);
   });
 
-  it("calls onEventClick with the underlying AgendaEvent", () => {
+  it("calls onEventClick with the underlying occurrence", () => {
     const container = document.createElement("div");
     const occ = mkOcc("2026-07-06T09:00:00", "早会");
     const onClick = vi.fn();
     renderMonthView(container, [occ], new Date(2026, 6, 15), onClick);
     (container.querySelector(".ogenda-month-mini") as HTMLElement).click();
-    expect(onClick).toHaveBeenCalledWith(occ.event);
+    expect(onClick).toHaveBeenCalledWith(occ);
   });
 
   it("renders a fixed 7-cell weekday header row (Mon-first)", () => {
