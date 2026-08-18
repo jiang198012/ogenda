@@ -256,7 +256,7 @@ describe("renderWeekView", () => {
     // 每列 6 段(7 列共 42)
     const segs = [...container.querySelectorAll(".ogenda-time-segment")];
     expect(segs).toHaveLength(42);
-    const col0Segs = [...container.querySelector(".ogenda-week-col")!.querySelectorAll(".ogenda-time-segment")];
+    const col0Segs = [...container.querySelector(".ogenda-week-col")!.querySelectorAll(".ogenda-time-segment")] as HTMLElement[];
     expect(col0Segs).toHaveLength(6);
     // 第一段 06:00 在窗口顶部,最后一段 20:00–23:00 贴窗口底
     expect(col0Segs[0].style.top).toBe("0px");
@@ -269,8 +269,8 @@ describe("renderWeekView", () => {
     const segments: TimeSegment[] = [
       { name: "上午", start: "06:00", end: "12:00", color: "#3B82F6", enabled: true },
     ];
-    const night = { event: { uid: "n", title: "夜班", start: "2026-07-13T04:00:00", end: "2026-07-13T05:00:00", origin: "synced" }, start: "2026-07-13T04:00:00" };
-    const morning = { event: { uid: "m", title: "早会", start: "2026-07-13T08:00:00", end: "2026-07-13T09:00:00", origin: "synced" }, start: "2026-07-13T08:00:00" };
+    const night: EventOccurrence = { event: { uid: "n", title: "夜班", start: "2026-07-13T04:00:00", end: "2026-07-13T05:00:00", origin: "synced" }, start: "2026-07-13T04:00:00" };
+    const morning: EventOccurrence = { event: { uid: "m", title: "早会", start: "2026-07-13T08:00:00", end: "2026-07-13T09:00:00", origin: "synced" }, start: "2026-07-13T08:00:00" };
     renderWeekView(container, [night, morning], new Date(2026, 6, 15), () => {}, {}, undefined, undefined, segments);
     const grid = container.querySelector(".ogenda-timegrid") as HTMLElement;
     // 时间轴扩展到 04:00–12:00(分区窗口 06:00 起,被深夜事件拉长)
@@ -293,13 +293,13 @@ describe("renderWeekView", () => {
   it("draws three through-running timeline labels/lines at 06:00/12:00/18:00", () => {
     const container = document.createElement("div");
     renderWeekView(container, [], new Date(2026, 6, 15), () => {});
-    const labels = [...container.querySelectorAll(".ogenda-week-timelabel")];
+    const labels = [...container.querySelectorAll(".ogenda-week-timelabel")] as HTMLElement[];
     expect(labels.map((l) => l.textContent)).toEqual(["06:00", "12:00", "18:00"]);
     // 数字在线下方 1 小时(28px)处,不与线重叠
     expect(labels[0].style.top).toBe("196px"); // 6h * 28px + 28px
     expect(labels[1].style.top).toBe("364px");
     expect(labels[2].style.top).toBe("532px");
-    const lines = [...container.querySelectorAll(".ogenda-week-timeline")];
+    const lines = [...container.querySelectorAll(".ogenda-week-timeline")] as HTMLElement[];
     expect(lines).toHaveLength(3);
     expect(lines[0].style.top).toBe("168px"); // 线本身仍在 6h * 28px
     // 贯通线在事件/色块下方(低 z-index),且不在任何列内部
@@ -314,14 +314,14 @@ describe("renderWeekView", () => {
     const segments: TimeSegment[] = [
       { name: "上午", start: "06:00", end: "12:00", color: "#3B82F6", enabled: true },
     ];
-    const night = { event: { uid: "n", title: "夜班", start: "2026-07-13T02:00:00", end: "2026-07-13T04:00:00", origin: "synced" }, start: "2026-07-13T02:00:00" };
+    const night: EventOccurrence = { event: { uid: "n", title: "夜班", start: "2026-07-13T02:00:00", end: "2026-07-13T04:00:00", origin: "synced" }, start: "2026-07-13T02:00:00" };
     renderWeekView(container, [night], new Date(2026, 6, 15), () => {}, {}, undefined, undefined, segments);
-    const labels = [...container.querySelectorAll(".ogenda-week-timelabel")];
+    const labels = [...container.querySelectorAll(".ogenda-week-timelabel")] as HTMLElement[];
     // 分区窗口 06:00 起,被 02:00 夜班拉到 02:00 → 06:00 线在 (6-2)h*28 = 112px,
     // 标签在其下方 1 小时(28px)处
     expect(labels[0].textContent).toBe("06:00");
     expect(labels[0].style.top).toBe("140px");
-    const lines = [...container.querySelectorAll(".ogenda-week-timeline")];
+    const lines = [...container.querySelectorAll(".ogenda-week-timeline")] as HTMLElement[];
     expect(lines[0].style.top).toBe("112px");
     // 所有列共用同一窗口(统一高度),贯通线跨整行
     const cols = [...container.querySelectorAll(".ogenda-week-col")];
