@@ -16,7 +16,7 @@ beforeEach(() => setLanguage("zh"));
 describe("renderWeekView", () => {
   it("renders 7 day columns, each with its own events", () => {
     const container = document.createElement("div");
-    const occs = [mkOcc("2026-07-13T14:00:00", "周一的会"), mkOcc("2026-07-18T09:00:00", "周六的会")];
+    const occs: EventOccurrence[] = [mkOcc("2026-07-13T14:00:00", "周一的会"), mkOcc("2026-07-18T09:00:00", "周六的会")];
     renderWeekView(container, occs, new Date(2026, 6, 15), () => {}); // anchor = Wed of that week
 
     const cols = container.querySelectorAll(".ogenda-week-col");
@@ -102,33 +102,127 @@ describe("renderWeekView", () => {
     expect(container.querySelectorAll(".ogenda-week-block").length).toBe(0);
   });
 
-  it("shows a multi-day all-day event in every day column it spans (T5.9)", () => {
+  it("renders a multi-day all-day event as one through-bar, not per-day chips (T5.9)", () => {
     const container = document.createElement("div");
-    const occs = [
-      { event: { uid: "a", title: "出差", start: "2026-07-13", end: "2026-07-15", allDay: true, origin: "synced" }, start: "2026-07-13" },
-      { event: { uid: "a", title: "出差", start: "2026-07-13", end: "2026-07-15", allDay: true, origin: "synced" }, start: "2026-07-14" },
+    // expandOccurrences 的真实切片:每天一片,end 为排他日期
+    const occs: EventOccurrence[] = [
+      { event: { uid: "a", title: "出差", start: "2026-07-13", end: "2026-07-15", allDay: true, origin: "synced" }, start: "2026-07-13", end: "2026-07-14" },
+      { event: { uid: "a", title: "出差", start: "2026-07-13", end: "2026-07-15", allDay: true, origin: "synced" }, start: "2026-07-14", end: "2026-07-15" },
     ];
     renderWeekView(container, occs, new Date(2026, 6, 15), () => {});
-    // 全天横条在独立横条行(与列宽对齐),不在列内
-    const cells = [...container.querySelectorAll(".ogenda-week-alldaycell")];
-    const chips = cells.map((c) => c.querySelectorAll(".ogenda-week-allday-chip").length);
-    // Mon 13 + Tue 14 each carry the all-day chip
-    expect(chips[0]).toBe(1);
-    expect(chips[1]).toBe(1);
+    // 顶部贯通横条区恰好一条横条,跨周一~周二两列(grid 列线 1/3)
+    const bars = container.querySelectorAll(".ogenda-week-span");
+    expect(bars.length).toBe(1);
+    const bar = bars[0] as HTMLElement;
+    expect(bar.textContent).toContain("出差");
+    expect(bar.style.gridColumn).toBe("1 / 3");
+    expect(bar.style.gridRow).toBe("1");
+    expect(bar.title).toBe("7月13日 周一 → 7月14日 周二");
+    // 横条在独立横条行内,不在任何天列里;列内也没有全天 chip
+    expect(container.querySelector(".ogenda-week-col .ogenda-week-span")).toBeNull();
+    expect(container.querySelectorAll(".ogenda-week-alldaycell").length).toBe(0);
     expect(container.querySelector(".ogenda-week-col .ogenda-week-allday-chip")).toBeNull();
   });
 
-  it("renders a cross-midnight event on the day it spans (T5.8)", () => {
+  it("renders a single-day all-day event as a one-column bar", () => {
     const container = document.createElement("div");
-    // 22:00 Mon Jul 13 → 01:00 Tue Jul 14: expandOccurrences yields an occurrence on Tue
-    const occs = [
-      { event: { uid: "a", title: "夜班", start: "2026-07-13T22:00:00", end: "2026-07-14T01:00:00", origin: "synced" }, start: "2026-07-13T22:00:00" },
-      { event: { uid: "a", title: "夜班", start: "2026-07-13T22:00:00", end: "2026-07-14T01:00:00", origin: "synced" }, start: "2026-07-14T00:00:00" },
+    const occs: EventOccurrence[] = [
+      { event: { uid: "a", title: "纪念日", start: "2026-07-14", allDay: true, origin: "synced" }, start: "2026-07-14" },
     ];
     renderWeekView(container, occs, new Date(2026, 6, 15), () => {});
-    const cols = container.querySelectorAll(".ogenda-week-col");
-    expect(cols[0].querySelectorAll(".ogenda-week-block").length).toBe(1); // Mon
-    expect(cols[1].querySelectorAll(".ogenda-week-block").length).toBe(1); // Tue
+    const bar = container.querySelector(".ogenda-week-span") as HTMLElement;
+    expect(bar).not.toBeNull();
+    expect(bar.style.gridColumn).toBe("2 / 3"); // 只在周二列
+    expect(bar.title).toBe("全天");
+  });
+
+  it("renders a cross-midnight event as a through-bar instead of filling both columns (T5.8)", () => {
+    const container = document.createElement("div");
+    // 22:00 周一 → 01:00 周二:expandOccurrences 切成两片,午夜相接
+    const occs: EventOccurrence[] = [
+      { event: { uid: "a", title: "夜班", start: "2026-07-13T22:00:00", end: "2026-07-14T01:00:00", origin: "synced" }, start: "2026-07-13T22:00:00", end: "2026-07-14T00:00:00" },
+      { event: { uid: "a", title: "夜班", start: "2026-07-13T22:00:00", end: "2026-07-14T01:00:00", origin: "synced" }, start: "2026-07-14T00:00:00", end: "2026-07-14T01:00:00" },
+    ];
+    renderWeekView(container, occs, new Date(2026, 6, 15), () => {});
+    const bars = container.querySelectorAll(".ogenda-week-span");
+    expect(bars.length).toBe(1);
+    expect((bars[0] as HTMLElement).style.gridColumn).toBe("1 / 3"); // 周一~周二
+    expect(bars[0].textContent).toContain("夜班");
+    // 两片都进了横条区,时间格里一个块都没有
+    expect(container.querySelectorAll(".ogenda-week-block").length).toBe(0);
+  });
+
+  it("keeps a multi-day timed event out of the grid and does not stretch the window to 24h", () => {
+    const container = document.createElement("div");
+    const trip: EventOccurrence[] = [
+      { event: { uid: "t", title: "团建", start: "2026-07-14T09:00:00", end: "2026-07-16T18:00:00", origin: "synced" }, start: "2026-07-14T09:00:00", end: "2026-07-15T00:00:00" },
+      { event: { uid: "t", title: "团建", start: "2026-07-14T09:00:00", end: "2026-07-16T18:00:00", origin: "synced" }, start: "2026-07-15T00:00:00", end: "2026-07-16T00:00:00" },
+      { event: { uid: "t", title: "团建", start: "2026-07-14T09:00:00", end: "2026-07-16T18:00:00", origin: "synced" }, start: "2026-07-16T00:00:00", end: "2026-07-16T18:00:00" },
+    ];
+    const segments: TimeSegment[] = [
+      { name: "上午", start: "06:00", end: "12:00", color: "#3B82F6", enabled: true },
+    ];
+    renderWeekView(container, trip, new Date(2026, 6, 15), () => {}, {}, undefined, undefined, segments);
+    const bar = container.querySelector(".ogenda-week-span") as HTMLElement;
+    expect(bar.style.gridColumn).toBe("2 / 5"); // 周二~周四
+    // 中间那天(周三)不再被 00:00–24:00 填满:三片都不在时间格
+    expect(container.querySelectorAll(".ogenda-week-block").length).toBe(0);
+    // 窗口仍是分区窗口 06:00–12:00,没被跨天事件撑成 24 小时
+    const grid = container.querySelector(".ogenda-timegrid") as HTMLElement;
+    expect(grid.style.height).toBe("168px"); // 6h * 28px
+  });
+
+  it("stacks overlapping through-bars into separate lanes and reuses a lane when disjoint", () => {
+    const container = document.createElement("div");
+    const ev = (uid: string, title: string, start: string, end: string): EventOccurrence => ({
+      event: { uid, title, start, end, allDay: true, origin: "synced" }, start, end,
+    });
+    const occs: EventOccurrence[] = [
+      ev("a", "A", "2026-07-13", "2026-07-16"), // 周一~周三
+      ev("b", "B", "2026-07-14", "2026-07-17"), // 周二~周四(与 A 重叠)
+      ev("c", "C", "2026-07-16", "2026-07-18"), // 周四~周五(与 A 不重叠 → 复用 lane 0)
+    ];
+    renderWeekView(container, occs, new Date(2026, 6, 15), () => {});
+    const bars = [...container.querySelectorAll(".ogenda-week-span")] as HTMLElement[];
+    const byTitle: Record<string, HTMLElement> = {};
+    for (const b of bars) byTitle[b.textContent ?? ""] = b;
+    expect(byTitle.A.style.gridRow).toBe("1");
+    expect(byTitle.B.style.gridRow).toBe("2");
+    expect(byTitle.C.style.gridRow).toBe("1");
+  });
+
+  it("squares off the bar edge that continues past the week boundary", () => {
+    const container = document.createElement("div");
+    const occs: EventOccurrence[] = [
+      // 上周日开始,拖到本周二:左端被周界截断
+      { event: { uid: "p", title: "上周来", start: "2026-07-12T10:00:00", end: "2026-07-14T17:00:00", origin: "synced" }, start: "2026-07-13T00:00:00", end: "2026-07-14T00:00:00" },
+      { event: { uid: "p", title: "上周来", start: "2026-07-12T10:00:00", end: "2026-07-14T17:00:00", origin: "synced" }, start: "2026-07-14T00:00:00", end: "2026-07-14T17:00:00" },
+      // 本周六开始,拖到下周一:右端被周界截断
+      { event: { uid: "n", title: "到下周", start: "2026-07-18T09:00:00", end: "2026-07-20T12:00:00", origin: "synced" }, start: "2026-07-18T09:00:00", end: "2026-07-19T00:00:00" },
+      { event: { uid: "n", title: "到下周", start: "2026-07-18T09:00:00", end: "2026-07-20T12:00:00", origin: "synced" }, start: "2026-07-19T00:00:00", end: "2026-07-20T00:00:00" },
+    ];
+    renderWeekView(container, occs, new Date(2026, 6, 15), () => {});
+    const bars = [...container.querySelectorAll(".ogenda-week-span")] as HTMLElement[];
+    const byTitle: Record<string, HTMLElement> = {};
+    for (const b of bars) byTitle[b.textContent ?? ""] = b;
+    expect(byTitle["上周来"].classList.contains("ogenda-week-span-prev")).toBe(true);
+    expect(byTitle["上周来"].classList.contains("ogenda-week-span-next")).toBe(false);
+    expect(byTitle["上周来"].style.gridColumn).toBe("1 / 3"); // 截断到周一~周二
+    expect(byTitle["到下周"].classList.contains("ogenda-week-span-next")).toBe(true);
+    expect(byTitle["到下周"].classList.contains("ogenda-week-span-prev")).toBe(false);
+    expect(byTitle["到下周"].style.gridColumn).toBe("6 / 8"); // 周六~周日(真实终点在下周一)
+  });
+
+  it("calls onEventClick when a through-bar is clicked", () => {
+    const container = document.createElement("div");
+    const occs: EventOccurrence[] = [
+      { event: { uid: "a", title: "出差", start: "2026-07-13", end: "2026-07-15", allDay: true, origin: "synced" }, start: "2026-07-13", end: "2026-07-14" },
+      { event: { uid: "a", title: "出差", start: "2026-07-13", end: "2026-07-15", allDay: true, origin: "synced" }, start: "2026-07-14", end: "2026-07-15" },
+    ];
+    const onClick = vi.fn();
+    renderWeekView(container, occs, new Date(2026, 6, 15), onClick);
+    (container.querySelector(".ogenda-week-span") as HTMLElement).click();
+    expect(onClick).toHaveBeenCalledWith(occs[0]);
   });
 
   it("paints configured time-line segments as translucent bands under events", () => {

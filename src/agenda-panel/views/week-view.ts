@@ -1,14 +1,17 @@
-// 周视图:7 列 × 24h 时间格(共享 renderTimeGrid)+ 全天事件横条 + 贯通时间线。
-// 整周使用统一可见窗口(分区范围 ∪ 整周事件范围),各列高度一致;
+// 周视图:7 列 × 24h 时间格(共享 renderTimeGrid)+ 顶部贯通横条区 + 贯通时间线。
+// 贯通横条区:全天事件与跨天 timed 事件统一渲染为跨列横条(重叠自动分车道),
+// 不再把多天的列填满;横条事件不参与时间格与可见窗口的计算。
+// 整周使用统一可见窗口(分区范围 ∪ 整周单日事件范围),各列高度一致;
 // 时间刻度用省略版:只画 06:00 / 12:00 / 18:00 三条从左到右贯通的线。
 // 交互:点空白 → 该时刻新建;拖拽划范围;拖卡片移动/改时长;跨列拖到另一天。
 import { EventOccurrence, parseLocalDate } from "../occurrences";
 import { startOfWeek, startOfDay, addDays, toDateKey } from "../date-grid";
 import { ColorResolver, createColorResolver } from "../colors";
 import { TimeSegment } from "../time-segments";
-import { weekWindowRange } from "../day-grid";
+import { weekWindowRange, layoutWeekSpans, WeekSpanItem } from "../day-grid";
+import { formatDayShort } from "../date-format";
 import { renderTimeGrid, TimeGridHandlers } from "./time-grid";
-import { t } from "../../i18n";
+import { t, getLanguage } from "../../i18n";
 
 // Mon..Sun: weekdays cool, weekend warm.
 const WEEK_COLORS = ["#3B82F6", "#22C55E", "#06B6D4", "#A855F7", "#64748B", "#F59E0B", "#EF4444"];
@@ -18,6 +21,25 @@ export const WEEK_HOUR_PX = 28;
 const TIMELINE_HOURS = [6, 12, 18];
 
 const DND_TYPE = "text/ogenda-uid";
+
+/** 横条 tooltip:全天单日 = “全天”;多天 = 日期范围;跨天 timed = 带时刻的范围。 */
+function spanTooltip(span: WeekSpanItem): string {
+  const lang = getLanguage();
+  const ev = span.occ.event;
+  if (ev.allDay) {
+    const single =
+      span.endTs <= span.startTs ||
+      startOfDay(new Date(span.endTs - 1)).getTime() === startOfDay(new Date(span.startTs)).getTime();
+    if (single) return t("view.allDay");
+    return `${formatDayShort(new Date(span.startTs), lang)} → ${formatDayShort(new Date(span.endTs - 1), lang)}`;
+  }
+  const fmtT = (ts: number): string => {
+    const d = new Date(ts);
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+  return `${formatDayShort(new Date(span.startTs), lang)} ${fmtT(span.startTs)} → ${formatDayShort(new Date(span.endTs), lang)} ${fmtT(span.endTs)}`;
+}
 
 export function renderWeekView(
   container: HTMLElement,
@@ -35,8 +57,13 @@ export function renderWeekView(
   const byUid = new Map<string, EventOccurrence>();
   for (const occ of occurrences) byUid.set(occ.event.uid, occ);
 
+  // 顶部贯通横条区:全天事件 + 跨天 timed 事件;它们从时间格与窗口计算中剔除,
+  // 否则一个跨天事件会把每一天的整列时间格填满,还会把可见窗口撑到 24 小时
+  const spanLayout = layoutWeekSpans(occurrences, weekStart);
+  const gridOccurrences = occurrences.filter((o) => !spanLayout.consumed.has(o));
+
   // 统一可见窗口:分区范围 ∪ 整周 timed 事件范围 → 所有列同高,贯通线对齐
-  const range = weekWindowRange(segments, occurrences);
+  const range = weekWindowRange(segments, gridOccurrences);
   const spanMin = range.endMin - range.startMin;
 
   const wrap = document.createElement("div");
@@ -73,34 +100,26 @@ export function renderWeekView(
   }
   main.appendChild(headrow);
 
-  // 全天事件横条行:独立于时间格区,每列一个 cell(与列宽对齐)。
-  // 横条不参与列的垂直布局,贯通线的坐标原点才能与色块/事件完全一致。
-  const alldayRow = document.createElement("div");
-  alldayRow.className = "ogenda-week-alldayrow";
-  const alldayCells = days.map((day) => {
-    const cell = document.createElement("div");
-    cell.className = "ogenda-week-alldaycell";
-    cell.dataset.day = toDateKey(day);
-    alldayRow.appendChild(cell);
-    return cell;
-  });
-  for (const occ of occurrences) {
-    if (!occ.event.allDay) continue;
-    const day = startOfDay(parseLocalDate(occ.start));
-    const idx = days.findIndex((d) => startOfDay(d).getTime() === day.getTime());
-    if (idx === -1) continue;
-    const cell = alldayCells[idx];
-    const chip = document.createElement("div");
-    chip.className = "ogenda-week-allday-chip";
-    chip.style.borderLeftColor = colors.category(occ.event.category);
-    // 紧凑标签:只显示标题
-    chip.textContent = occ.event.title;
-    chip.title = t("view.allDay");
-    chip.addEventListener("click", () => onEventClick(occ));
-    cell.appendChild(chip);
-  }
-  if (alldayRow.querySelector(".ogenda-week-allday-chip")) {
-    main.appendChild(alldayRow);
+  // 顶部贯通横条区:独立于时间格区,用 CSS grid 的跨列(grid-column)渲染,
+  // 与列头行共用同一套 7 列轨道,横条与列精确对齐;重叠的横条按车道分行。
+  if (spanLayout.spans.length) {
+    const spanrow = document.createElement("div");
+    spanrow.className = "ogenda-week-spanrow";
+    for (const span of spanLayout.spans) {
+      const bar = document.createElement("div");
+      bar.className = "ogenda-week-allday-chip ogenda-week-span";
+      if (span.continuesBefore) bar.classList.add("ogenda-week-span-prev");
+      if (span.continuesAfter) bar.classList.add("ogenda-week-span-next");
+      bar.style.gridColumn = `${span.startCol + 1} / ${span.endCol + 2}`;
+      bar.style.gridRow = `${span.lane + 1}`;
+      bar.style.borderLeftColor = colors.category(span.occ.event.category);
+      // 紧凑标签:只显示标题(时间范围放 tooltip)
+      bar.textContent = span.occ.event.title;
+      bar.title = spanTooltip(span);
+      bar.addEventListener("click", () => onEventClick(span.occ));
+      spanrow.appendChild(bar);
+    }
+    main.appendChild(spanrow);
   }
 
   const body = document.createElement("div");
@@ -141,9 +160,9 @@ export function renderWeekView(
       });
     }
 
-    // 时间格(统一窗口;只放 timed 事件;全天事件已在上方横条行;
+    // 时间格(统一窗口;只放单日 timed 事件;全天/跨天事件已在上方横条区;
     // 列内保留整点小时线,贯通线(06/12/18)叠加其上提供全局参考)
-    const dayOccs = occurrences.filter((occ) => startOfDay(parseLocalDate(occ.start)).getTime() === day.getTime());
+    const dayOccs = gridOccurrences.filter((occ) => startOfDay(parseLocalDate(occ.start)).getTime() === day.getTime());
     const timedOccs = dayOccs.filter((occ) => !occ.event.allDay);
     const gridEl = renderTimeGrid(col, day, timedOccs, onEventClick, colors, handlers, {
       hourPx: WEEK_HOUR_PX,

@@ -194,3 +194,114 @@ export function weekWindowRange(
   if (hi - lo < 60) return { startMin: 0, endMin: 1440 };
   return { startMin: lo, endMin: hi };
 }
+
+const DAY_MS = 86400_000;
+
+export interface WeekSpanItem {
+  /** 链上第一片(点击与配色用它)。 */
+  occ: EventOccurrence;
+  /** 起始列(0=周一 .. 6=周日,已按周界裁剪)。 */
+  startCol: number;
+  /** 结束列(含,已按周界裁剪)。 */
+  endCol: number;
+  /** 纵向车道(重叠的横条各占一行)。 */
+  lane: number;
+  /** 真实起点在本周之前(横条左端被周界截断)。 */
+  continuesBefore: boolean;
+  /** 真实终点在本周之后(横条右端被周界截断)。 */
+  continuesAfter: boolean;
+  /** 真实开始时间戳(非重复事件取事件级起点,而非周界裁剪后的片头)。 */
+  startTs: number;
+  /** 真实结束时间戳(全天事件为排他日期当天 0 点;无 end 时 = startTs)。 */
+  endTs: number;
+}
+
+export interface WeekSpanLayout {
+  spans: WeekSpanItem[];
+  /** 进了横条区的 occurrence:视图据此把它们从时间格与窗口计算中剔除。 */
+  consumed: Set<EventOccurrence>;
+}
+
+/**
+ * 周视图顶部「贯通横条区」布局:全天事件(单日占 1 列)与跨天 timed 事件
+ * 统一渲染为跨列横条,不再把多天的列填满。
+ * 跨天事件被 expandOccurrences 切成每天一片,这里按「同 uid 且午夜相接/重叠」
+ * 合并回完整跨度;重复事件的实例本身不切片,实例间有空隙自然不会误合并。
+ * timed 事件恰好午夜 0 点结束不算跨天(-1ms 后仍落在当天)。
+ */
+export function layoutWeekSpans(occurrences: EventOccurrence[], weekStart: Date): WeekSpanLayout {
+  const wk0 = startOfDay(weekStart).getTime();
+  const dayIndex = (ts: number): number => Math.round((startOfDay(new Date(ts)).getTime() - wk0) / DAY_MS);
+
+  // 1) 同事件(同 uid)的片按开始排序,相接/重叠的合并为一条链
+  const byUid = new Map<string, EventOccurrence[]>();
+  for (const o of occurrences) {
+    const list = byUid.get(o.event.uid);
+    if (list) list.push(o);
+    else byUid.set(o.event.uid, [o]);
+  }
+  interface Chain {
+    occs: EventOccurrence[];
+    start: number;
+    end: number;
+  }
+  const chains: Chain[] = [];
+  for (const list of byUid.values()) {
+    list.sort((a, b) => parseLocalDate(a.start).getTime() - parseLocalDate(b.start).getTime());
+    let cur: Chain | null = null;
+    for (const o of list) {
+      const s = parseLocalDate(o.start).getTime();
+      const e = o.end ? parseLocalDate(o.end).getTime() : s;
+      if (cur && s <= cur.end) {
+        cur.occs.push(o);
+        cur.end = Math.max(cur.end, e);
+      } else {
+        cur = { occs: [o], start: s, end: e };
+        chains.push(cur);
+      }
+    }
+  }
+
+  // 2) 链 → 横条项(全天全部进;timed 仅跨天进)
+  const spans: WeekSpanItem[] = [];
+  const consumed = new Set<EventOccurrence>();
+  for (const c of chains) {
+    const ev = c.occs[0].event;
+    const hasEnd = c.end > c.start;
+    // 链可能被周界裁短:非重复事件用事件级起止还原真实跨度;
+    // 重复事件的 occurrence 已是实例级完整跨度,事件级 DTSTART 反而是序列起点,不能取
+    const realStart = ev.rrule ? c.start : Math.min(c.start, parseLocalDate(ev.start).getTime());
+    const realEnd = ev.rrule ? c.end : Math.max(c.end, ev.end ? parseLocalDate(ev.end).getTime() : c.start);
+    const firstDay = startOfDay(new Date(realStart)).getTime();
+    const lastDay = hasEnd ? Math.max(firstDay, startOfDay(new Date(realEnd - 1)).getTime()) : firstDay;
+    if (!ev.allDay && lastDay === firstDay) continue; // 单日 timed 留在时间格
+    const startCol = Math.max(0, dayIndex(firstDay));
+    const endCol = Math.min(6, dayIndex(lastDay));
+    if (startCol > 6 || endCol < 0) continue; // 完全在本周外(如下周的重复实例)
+    for (const o of c.occs) consumed.add(o);
+    spans.push({
+      occ: c.occs[0],
+      startCol,
+      endCol,
+      lane: 0,
+      continuesBefore: firstDay < wk0,
+      continuesAfter: dayIndex(lastDay) > 6,
+      startTs: realStart,
+      endTs: realEnd,
+    });
+  }
+
+  // 3) 车道分配:按起始列排序,贪心放入第一条不冲突的车道
+  spans.sort((a, b) => a.startCol - b.startCol || b.endCol - a.endCol || a.startTs - b.startTs);
+  const laneEnd: number[] = [];
+  for (const s of spans) {
+    let lane = laneEnd.findIndex((end) => end < s.startCol);
+    if (lane === -1) {
+      lane = laneEnd.length;
+      laneEnd.push(-1);
+    }
+    laneEnd[lane] = s.endCol;
+    s.lane = lane;
+  }
+  return { spans, consumed };
+}

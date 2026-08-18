@@ -416,7 +416,8 @@
 .ogenda-week-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0.5em;
+  /* 与列头行/横条区同一 gap:跨列横条才能与列精确对齐 */
+  gap: 0.4em;
   height: 100%;
 }
 .ogenda-week-wrap {
@@ -445,18 +446,25 @@
   grid-template-columns: repeat(7, 1fr);
   gap: 0.4em;
 }
-.ogenda-week-alldayrow {
+/* 贯通横条区:全天事件与跨天 timed 事件的跨列横条;
+   与列头行/时间格共用 7 列轨道与 0.4em gap,横条与列精确对齐 */
+.ogenda-week-spanrow {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.4em;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px 0.4em;
   margin-bottom: 0.4em;
 }
-.ogenda-week-alldaycell {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3em;
-  align-content: flex-start;
-  min-height: 0;
+.ogenda-week-span {
+  min-width: 0; /* grid 轨道内允许标题省略 */
+}
+/* 横条被周界截断的一端去掉圆角,示意“还在延伸” */
+.ogenda-week-span-prev {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.ogenda-week-span-next {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 }
 .ogenda-week-body {
   position: relative;
