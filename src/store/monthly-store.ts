@@ -11,6 +11,15 @@ export function monthOf(startIso: string): string {
 /** Optional fields the panel edit form owns — blanking one should delete it. Metadata is never here. */
 const PANEL_CLEARABLE_FIELDS = ["end", "location", "organizer", "attendees", "status", "rsvp", "category", "description", "reminder"];
 
+/** 月度文件名契约:只有 YYYY-MM.md 是月度日程笔记。同目录的备份(.bak)、杂散笔记、
+ *  同步状态文件等一律不参与解析/删改——否则旧快照里的事件会被当成新日程重复显示。 */
+const MONTHLY_FILE_RE = /^\d{4}-\d{2}\.md$/;
+
+/** 从目录 listing 中筛出月度笔记文件(按文件名,与 pathFor 的写入侧对应)。 */
+function monthlyPaths(paths: string[]): string[] {
+  return paths.filter((p) => MONTHLY_FILE_RE.test(p.slice(p.lastIndexOf("/") + 1)));
+}
+
 /**
  * Server-authoritative optional fields: when a synced server event no longer carries one,
  * the local md field is deleted on apply (otherwise the stale value's hash would differ from
@@ -76,7 +85,7 @@ export class MonthlyStore {
   }
 
   async readEvents(): Promise<ReadEventsResult> {
-    const paths = await this.store.list(this.folder);
+    const paths = monthlyPaths(await this.store.list(this.folder));
     const out: LocalEvent[] = [];
     let skipped = 0;
     for (const path of paths) {
@@ -127,7 +136,7 @@ export class MonthlyStore {
   async removeByUid(uids: string[]): Promise<void> {
     if (uids.length === 0) return;
     const uidSet = new Set(uids);
-    const paths = await this.store.list(this.folder);
+    const paths = monthlyPaths(await this.store.list(this.folder));
     for (const path of paths) {
       const text = await this.store.read(path);
       if (!text) continue;

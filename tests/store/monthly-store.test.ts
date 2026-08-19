@@ -125,6 +125,36 @@ describe("MonthlyStore.readEvents", () => {
   });
 });
 
+describe("MonthlyStore — 文件夹过滤:只认 YYYY-MM.md 月度文件", () => {
+  it("readEvents ignores backups / stray notes / sync-state files in the folder", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    await store.sync([mk("a@x", "2026-07-14T15:00:00", "会")]);
+    // 备份快照(旧事件的完整副本):若被解析,每个事件都会重复显示
+    await fs.write("Agenda/2026-07.md.bak", (await fs.read("Agenda/2026-07.md"))!);
+    // 杂散笔记:即便里面有长得像事件块的内容,也不属于月度日程
+    await fs.write("Agenda/随手记.md", "## 10:00–11:00 杂事\n- uid:: stray@x\n- start:: 2026-07-15T10:00:00\n- end:: 2026-07-15T11:00:00\n");
+    // 同步状态文件
+    await fs.write("Agenda/.ogenda-sync-state.json", "{}");
+
+    const r = await store.readEvents();
+    expect(r.events.map((e) => e.uid)).toEqual(["a@x"]); // 只有月度文件里的一份,不重复、不混入
+    expect(r.skipped).toBe(0);
+  });
+
+  it("removeByUid removes from monthly files but leaves backups untouched", async () => {
+    const fs = new InMemoryFileStore();
+    const store = new MonthlyStore(fs, "Agenda");
+    await store.sync([mk("a@x", "2026-07-14T15:00:00", "会")]);
+    const bak = (await fs.read("Agenda/2026-07.md"))!;
+    await fs.write("Agenda/2026-07.md.bak", bak);
+
+    await store.removeByUid(["a@x"]);
+    expect(await fs.read("Agenda/2026-07.md")).not.toContain("a@x");
+    expect(await fs.read("Agenda/2026-07.md.bak")).toBe(bak); // 备份不是月度笔记,原样保留
+  });
+});
+
 describe("MonthlyStore.savePanelEvent (#53)", () => {
   it("clears a blanked optional field but preserves sync metadata (href)", async () => {
     const fs = new InMemoryFileStore();
