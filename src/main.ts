@@ -1,4 +1,4 @@
-import { Plugin, Notice } from "obsidian";
+import { Plugin, Notice, Editor } from "obsidian";
 import { OgendaSettings, sanitizeSettings } from "./settings/settings";
 import { OgendaSettingTab, getObsidianLocale } from "./settings/settings-tab";
 import { ObsidianFileStore } from "./store/obsidian-file-store";
@@ -18,6 +18,8 @@ import { localToEvent } from "./agenda-panel/local-to-event";
 import { nextDueReminder } from "./agenda-panel/reminders";
 import { setLanguage, resolveLanguage, t } from "./i18n";
 import { getDefaultCategory } from "./agenda-panel/event-form-fields";
+import { startOfDay, startOfWeek, addDays } from "./agenda-panel/date-grid";
+import { buildAgendaText, AgendaText, AgendaTextStyle } from "./agenda-panel/agenda-text";
 
 const XML_CT = "application/xml; charset=utf-8";
 
@@ -77,6 +79,27 @@ export default class OgendaPlugin extends Plugin {
           this.settings.defaultReminderMinutes,
         ).open();
       },
+    });
+
+    this.addCommand({
+      id: "ogenda-copy-day-agenda",
+      name: t("command.copyDayAgenda"),
+      callback: () => void this.copyAgendaAsText("day"),
+    });
+    this.addCommand({
+      id: "ogenda-copy-week-agenda",
+      name: t("command.copyWeekAgenda"),
+      callback: () => void this.copyAgendaAsText("week"),
+    });
+    this.addCommand({
+      id: "ogenda-insert-day-agenda",
+      name: t("command.insertDayAgenda"),
+      editorCallback: (editor) => void this.insertAgendaIntoNote(editor, "day"),
+    });
+    this.addCommand({
+      id: "ogenda-insert-week-agenda",
+      name: t("command.insertWeekAgenda"),
+      editorCallback: (editor) => void this.insertAgendaIntoNote(editor, "week"),
     });
 
     this.registerView(
@@ -140,6 +163,54 @@ export default class OgendaPlugin extends Plugin {
 
   private store(): MonthlyStore {
     return new MonthlyStore(new ObsidianFileStore(this.app.vault), this.settings.storageFolder);
+  }
+
+  // --- 日程文本导出 / 笔记插入(与面板同一条事件管线,保证导出即所见)---
+
+  private agendaScopeRange(scope: "day" | "week"): { start: Date; end: Date } {
+    const today = startOfDay(todayInTimezone(this.settings.timezone));
+    if (scope === "day") return { start: today, end: addDays(today, 1) };
+    const weekStart = startOfWeek(today);
+    return { start: weekStart, end: addDays(weekStart, 7) };
+  }
+
+  private async buildAgenda(scope: "day" | "week", style: AgendaTextStyle): Promise<AgendaText> {
+    const { start, end } = this.agendaScopeRange(scope);
+    const { events, skipped } = await this.store().readEvents();
+    if (skipped > 0) new Notice(t("notice.unreadableBlocks", { count: skipped }), 10000);
+    return buildAgendaText(events.map(localToEvent), start, end, style);
+  }
+
+  private async copyAgendaAsText(scope: "day" | "week"): Promise<void> {
+    try {
+      const r = await this.buildAgenda(scope, "plain");
+      if (r.count === 0) {
+        new Notice(t("notice.agendaEmpty"));
+        return;
+      }
+      await navigator.clipboard.writeText(r.text);
+      new Notice(t("notice.agendaCopied", { count: r.count }));
+    } catch (e) {
+      new Notice(t("notice.agendaExportError", { msg: (e as Error).message }), 10000);
+      console.error("[ogenda] copy agenda failed", e);
+    }
+  }
+
+  private async insertAgendaIntoNote(editor: Editor, scope: "day" | "week"): Promise<void> {
+    // 先快照选区:await 读事件期间用户可能移动光标,replaceSelection 会落在调用时刻的选区上。
+    const from = editor.getCursor("from");
+    const to = editor.getCursor("to");
+    try {
+      const r = await this.buildAgenda(scope, "markdown");
+      if (r.count === 0) {
+        new Notice(t("notice.agendaEmpty"));
+        return;
+      }
+      editor.replaceRange(r.text + "\n", from, to);
+    } catch (e) {
+      new Notice(t("notice.agendaExportError", { msg: (e as Error).message }), 10000);
+      console.error("[ogenda] insert agenda failed", e);
+    }
   }
 
   async syncCalendarNow(): Promise<void> {
