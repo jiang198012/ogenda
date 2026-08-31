@@ -1,4 +1,4 @@
-import { AgendaEvent, unescapeMultiline } from "../core/event";
+import { AgendaEvent, parseReminderMinutes, unescapeMultiline } from "../core/event";
 import { LocalEvent } from "../store/monthly-store";
 
 // MonthlyStore.readEvents() 返回原始字段(LocalEvent, snake_case),不是 AgendaEvent。
@@ -21,11 +21,17 @@ export function localToEvent(local: LocalEvent): AgendaEvent {
     category: f.category,
     rrule: f.rrule,
     exdates: f.exdates ? f.exdates.split(",").map((s) => s.trim()).filter(Boolean) : undefined,
-    reminder: f.reminder !== undefined && /^-?\d+$/.test(f.reminder) ? Number(f.reminder) : undefined,
+    ...reminderFields(f),
     description: f.description ? unescapeMultiline(f.description) : undefined,
     origin: f.origin === "local" ? "local" : "synced",
     href: f.href,
     etag: f.etag,
     baseHash: f.base_hash,
   };
+}
+
+function reminderFields(fields: Record<string, string>): { reminders?: number[]; reminder?: number } {
+  const raw = Object.prototype.hasOwnProperty.call(fields, "reminders") ? fields.reminders : fields.reminder;
+  const reminders = parseReminderMinutes(raw);
+  return { ...(reminders ? { reminders } : {}), reminder: reminders?.[0] };
 }

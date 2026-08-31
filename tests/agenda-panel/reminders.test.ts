@@ -22,6 +22,13 @@ describe("nextDueReminder", () => {
     });
   });
 
+  it("considers every reminder on an event", () => {
+    const ev = mk({ start: "2026-07-14T15:00:00", reminders: [1440, 60] });
+    expect(nextDueReminder([ev], NOW)).toEqual({
+      uid: "e1", title: "会议", start: "2026-07-14T15:00:00", due: "2026-07-14T14:00:00",
+    });
+  });
+
   it("skips reminders whose trigger point already passed", () => {
     const past = mk({ title: "过去的会", start: "2026-07-14T09:05:00", reminder: 15 }); // due 08:50 < now
     const ok = mk({ uid: "b", title: "下一个", start: "2026-07-14T10:00:00", reminder: 5 });

@@ -151,7 +151,9 @@ export default class OgendaPlugin extends Plugin {
       const ag = events.map(localToEvent);
       const due = nextDueReminder(ag, nowIso);
       if (!due) return;
-      const key = `${due.uid}|${due.start}`;
+      // Include the trigger time so separate reminders on one occurrence can
+      // each fire once (the old uid|start key suppressed the later one).
+      const key = `${due.uid}|${due.start}|${due.due}`;
       if (this.firedReminders.has(key)) return;
       if (this.firedReminders.size > 500) this.firedReminders.clear();
       this.firedReminders.add(key);

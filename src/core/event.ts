@@ -28,8 +28,56 @@ export interface AgendaEvent {
   rrule?: string;
   /** EXDATE 排除的重复实例(ISO datetime/date,与 start 同格式)。 */
   exdates?: string[];
-  /** 提醒提前量(分钟,0 = 事件开始时);未设置 = 不提醒。写入服务器 VALARM。 */
+  /** 提醒提前量(分钟,0 = 事件开始时);可同时设置多个,写入多个服务器 VALARM。 */
+  reminders?: number[];
+  /** @deprecated 单提醒旧字段;读取时会兼容并映射为 reminders。 */
   reminder?: number;
+}
+
+/** Returns the event's reminder offsets, accepting the legacy single-value field. */
+export function getReminderMinutes(ev: Pick<AgendaEvent, "reminders" | "reminder">): number[] {
+  const values = ev.reminders !== undefined ? ev.reminders : ev.reminder === undefined ? [] : [ev.reminder];
+  return values.filter((value) => Number.isFinite(value)).map((value) => Math.round(value));
+}
+
+const REMINDER_UNIT_RE = /(-?\d+)(分钟|分|minutes?|mins?|min|m|小时|时|hours?|hrs?|hr|h|天|日|days?|day|d)/gi;
+
+function reminderUnitMinutes(unit: string): number {
+  const normalized = unit.toLowerCase();
+  if (["天", "日", "day", "days", "d"].includes(normalized)) return 1440;
+  if (["小时", "时", "hour", "hours", "hr", "hrs", "h"].includes(normalized)) return 60;
+  return 1;
+}
+
+function parseReminderPart(raw: string): number | undefined {
+  const compact = raw.trim().replace(/\s+/g, "");
+  if (!compact) return undefined;
+  if (/^-?\d+$/.test(compact)) {
+    const minutes = Number(compact);
+    return Number.isFinite(minutes) ? minutes : undefined;
+  }
+
+  let cursor = 0;
+  let total = 0;
+  let matched = false;
+  for (const match of compact.matchAll(REMINDER_UNIT_RE)) {
+    if (match.index !== cursor) return undefined;
+    const amount = Number(match[1]);
+    const minutes = amount * reminderUnitMinutes(match[2]);
+    if (!Number.isFinite(amount) || !Number.isFinite(minutes)) return undefined;
+    total += minutes;
+    if (!Number.isFinite(total)) return undefined;
+    cursor += match[0].length;
+    matched = true;
+  }
+  return matched && cursor === compact.length ? total : undefined;
+}
+
+/** Parses comma-separated reminder values; bare integers remain minute-compatible. */
+export function parseReminderMinutes(raw: string | undefined): number[] | undefined {
+  if (raw === undefined || raw.trim() === "") return undefined;
+  const values = raw.split(",").map(parseReminderPart);
+  return values.every((value): value is number => value !== undefined) ? values : undefined;
 }
 
 export function eventToFields(ev: AgendaEvent): Record<string, string> {
@@ -63,7 +111,14 @@ export function eventToFields(ev: AgendaEvent): Record<string, string> {
   set("last_synced", ev.lastSynced);
   set("rrule", ev.rrule);
   if (ev.exdates && ev.exdates.length) set("exdates", ev.exdates.join(", "));
-  if (ev.reminder !== undefined) set("reminder", String(ev.reminder));
+  const reminderMinutes = getReminderMinutes(ev);
+  if (ev.reminders !== undefined) {
+    if (reminderMinutes.length) set("reminders", reminderMinutes.join(", "));
+  } else if (ev.reminder !== undefined) {
+    // Keep the old field for legacy single-reminder events until they are edited
+    // or otherwise represented with the new array field.
+    set("reminder", String(ev.reminder));
+  }
   return f;
 }
 
@@ -94,7 +149,13 @@ export function hashEvent(ev: AgendaEvent): string {
   if (ev.status) canon.push(`status\0${ev.status}`);
   if (ev.category) canon.push(`category\0${ev.category}`);
   // 提醒与 EXDATE 都会写回服务器(VALARM / EXDATE),参与本地改动检测。
-  if (ev.reminder !== undefined) canon.push(`reminder\0${ev.reminder}`);
+  const reminderMinutes = getReminderMinutes(ev);
+  if (reminderMinutes.length) {
+    // A single reminder keeps the old hash namespace so upgrading an existing
+    // one-reminder event does not look like a content edit.
+    const canonical = reminderMinutes.length === 1 ? reminderMinutes : [...reminderMinutes].sort((a, b) => a - b);
+    canon.push(`${canonical.length === 1 ? "reminder" : "reminders"}\0${canonical.join(",")}`);
+  }
   if (ev.exdates && ev.exdates.length) canon.push(`exdates\0${ev.exdates.join(",")}`);
   const joined = canon.join("\0");
   let h = 0x811c9dc5; // FNV-1a 32-bit

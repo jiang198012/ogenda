@@ -36,7 +36,7 @@ export function icalToEvents(ics: string, source: string, protocol = "imap"): Ag
       description: description ? String(description) : undefined,
       category: categories ? String(categories) : undefined,
       exdates: parseExdates(ve),
-      reminder: parseReminderMinutes(ve, start),
+      ...reminderFields(ve, start),
       origin: "synced",
       source,
       protocol,
@@ -57,10 +57,16 @@ function parseExdates(ve: ICAL.Component): string[] | undefined {
   return out.length ? out : undefined;
 }
 
-/** VALARM DISPLAY 的 TRIGGER → 提前分钟数(相对于 DTSTART);无有效提醒返回 undefined。 */
-function parseReminderMinutes(ve: ICAL.Component, start: ICAL.Time): number | undefined {
-  const alarm = ve.getAllSubcomponents("valarm")[0];
-  if (!alarm) return undefined;
+function reminderFields(ve: ICAL.Component, start: ICAL.Time): { reminders?: number[]; reminder?: number } {
+  const reminders = ve
+    .getAllSubcomponents("valarm")
+    .map((alarm) => parseAlarmReminderMinutes(alarm, start))
+    .filter((minutes): minutes is number => minutes !== undefined);
+  return { ...(reminders.length ? { reminders } : {}), reminder: reminders[0] };
+}
+
+/** VALARM DISPLAY 的 TRIGGER → 提前分钟数(相对于 DTSTART)。 */
+function parseAlarmReminderMinutes(alarm: ICAL.Component, start: ICAL.Time): number | undefined {
   const action = alarm.getFirstPropertyValue("action");
   if (action && String(action).toUpperCase() !== "DISPLAY") return undefined;
   const trigger = alarm.getFirstPropertyValue("trigger");
@@ -71,9 +77,9 @@ function parseReminderMinutes(ve: ICAL.Component, start: ICAL.Time): number | un
     return before >= 0 ? before : undefined;
   }
   const str = String(trigger);
-  if (!str.startsWith("P") && !str.startsWith("-P")) return undefined;
+  if (!/^-?P/i.test(str)) return undefined;
   const minutes = isoDurationToMinutes(str);
   if (minutes === null) return undefined;
-  // 只接受「提前」(负 duration);事后提醒(正 duration)不采信
-  return minutes < 0 ? -minutes : 0;
+  // 只接受「提前」(负 duration)或准点(PT0S);事后提醒(正 duration)不采信。
+  return minutes < 0 ? -minutes : minutes === 0 ? 0 : undefined;
 }

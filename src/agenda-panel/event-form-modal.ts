@@ -1,5 +1,5 @@
 import { App, Modal, Setting } from "obsidian";
-import { AgendaEvent } from "../core/event";
+import { AgendaEvent, getReminderMinutes } from "../core/event";
 import { generateUid } from "./uid";
 import { EventOccurrence } from "./occurrences";
 import {
@@ -19,6 +19,9 @@ import {
   defaultEndFor,
   RSVP_OPTIONS,
   REMINDER_OPTIONS,
+  formatReminderInput,
+  splitReminderInput,
+  joinReminderInputs,
   shouldSaveOnEnter,
 } from "./event-form-fields";
 import { RRULE_PRESETS, presetForRrule, isValidRrule } from "./recurrence";
@@ -74,12 +77,11 @@ export class EventFormModal extends Modal {
       rsvp: existing?.rsvp ?? "",
       category: existing?.category ?? defaultCategory,
       description: existing?.description ?? "",
-      reminder:
-        existing?.reminder !== undefined
-          ? String(existing.reminder)
-          : defaultReminderMinutes >= 0
-            ? String(defaultReminderMinutes)
-            : "",
+      reminder: (() => {
+        const reminderEvent = occ?.event ?? existing;
+        if (reminderEvent) return getReminderMinutes(reminderEvent).map(formatReminderInput).join(", ");
+        return defaultReminderMinutes >= 0 ? formatReminderInput(defaultReminderMinutes) : "";
+      })(),
       rrulePreset,
       rruleRaw: occ ? "" : existing?.rrule ?? "",
     };
@@ -202,16 +204,81 @@ export class EventFormModal extends Modal {
       d.setValue(this.fields.rsvp).onChange((v) => (this.fields.rsvp = v));
     });
 
-    // 提醒
-    new Setting(advanced).setName(t("form.reminder.name")).addDropdown((d) => {
-      for (const opt of REMINDER_OPTIONS) d.addOption(opt.value, t(opt.labelKey));
-      const cur = this.fields.reminder.trim();
-      if (cur && !REMINDER_OPTIONS.some((o) => o.value === cur)) d.addOption(cur, t("reminder.custom", { m: cur }));
-      d.setValue(cur).onChange((v) => {
-        this.fields.reminder = v;
-        this.updateValidity();
+    // 提醒: one unit-bearing value per row makes multiple VALARM entries editable.
+    const reminderSetting = new Setting(advanced)
+      .setName(t("form.reminder.name"))
+      .setDesc(t("form.reminder.desc"));
+    const reminderEditor = reminderSetting.controlEl.createDiv({ cls: "ogenda-form-reminder-editor" });
+    const reminderList = reminderEditor.createDiv({ cls: "ogenda-form-reminder-list" });
+    const reminderRows = splitReminderInput(this.fields.reminder);
+    const reminderOptionsId = "ogenda-reminder-options";
+    const reminderOptions = reminderEditor.createEl("datalist", { attr: { id: reminderOptionsId } });
+    for (const opt of REMINDER_OPTIONS.filter((o) => o.value !== "")) {
+      reminderOptions.createEl("option", {
+        value: formatReminderInput(Number(opt.value)),
+        text: t(opt.labelKey),
+        attr: { label: t(opt.labelKey) },
       });
+    }
+    const syncReminderField = () => {
+      this.fields.reminder = joinReminderInputs(reminderRows);
+      this.updateValidity();
+    };
+    const renderReminderRows = (focusLast = false) => {
+      reminderList.empty();
+      reminderRows.forEach((value, index) => {
+        const row = reminderList.createDiv({ cls: "ogenda-form-reminder-row" });
+        const reminderInput = row.createEl("input", {
+          type: "text",
+          cls: "ogenda-form-reminders-input",
+          attr: {
+            inputmode: "text",
+            autocomplete: "off",
+            spellcheck: "false",
+            placeholder: t("form.reminder.placeholderSingle"),
+            list: reminderOptionsId,
+          },
+        });
+        reminderInput.value = value;
+        reminderInput.addEventListener("input", () => {
+          reminderRows[index] = reminderInput.value;
+          syncReminderField();
+        });
+        // Keep Enter in a reminder row from triggering the form-level Save handler.
+        reminderInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") event.stopPropagation();
+        });
+        const removeButton = row.createEl("button", {
+          text: "×",
+          cls: "ogenda-form-reminder-remove",
+          attr: {
+            type: "button",
+            title: t("form.reminder.remove"),
+            "aria-label": t("form.reminder.remove"),
+          },
+        });
+        removeButton.addEventListener("click", () => {
+          reminderRows.splice(index, 1);
+          renderReminderRows();
+          syncReminderField();
+        });
+      });
+      if (focusLast) {
+        const inputs = reminderList.querySelectorAll<HTMLInputElement>(".ogenda-form-reminders-input");
+        inputs.item(inputs.length - 1)?.focus();
+      }
+    };
+    const addReminderButton = reminderEditor.createEl("button", {
+      text: t("form.reminder.add"),
+      cls: "ogenda-form-reminder-add",
+      attr: { type: "button" },
     });
+    addReminderButton.addEventListener("click", () => {
+      reminderRows.push("");
+      renderReminderRows(true);
+      syncReminderField();
+    });
+    renderReminderRows();
 
     // 重复
     const rruleSetting = new Setting(advanced).setName(t("form.rrule.name"));
@@ -328,6 +395,7 @@ export class EventFormModal extends Modal {
         start: this.readStartIso(),
         end: this.readEndIso(),
         allDay: this.fields.allDay,
+        reminder: this.fields.reminder,
       });
       errors.push(...result.errors);
     }

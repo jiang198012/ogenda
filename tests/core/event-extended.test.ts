@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { AgendaEvent, eventToFields, hashEvent } from "../../src/core/event";
+import { AgendaEvent, eventToFields, hashEvent, parseReminderMinutes } from "../../src/core/event";
 import { fieldsToEvent } from "../../src/sync/plan";
 import { localToEvent } from "../../src/agenda-panel/local-to-event";
 
@@ -8,6 +8,12 @@ const base = (o: Partial<AgendaEvent>): AgendaEvent => ({
 });
 
 describe("eventToFields / fieldsToEvent — reminder & exdates", () => {
+  it("parses reminder values with Chinese units and keeps bare minutes compatible", () => {
+    expect(parseReminderMinutes("5分钟, 15分钟, 30分钟, 1天")).toEqual([5, 15, 30, 1440]);
+    expect(parseReminderMinutes("1小时, 90")).toEqual([60, 90]);
+    expect(parseReminderMinutes("5 minutes, 1 day")).toEqual([5, 1440]);
+  });
+
   it("round-trips reminder and exdates through the md field layer", () => {
     const ev = base({ reminder: 15, exdates: ["2026-07-24T10:00:00", "2026-07-31T10:00:00"] });
     const back = fieldsToEvent(eventToFields(ev));
@@ -24,6 +30,20 @@ describe("eventToFields / fieldsToEvent — reminder & exdates", () => {
   it("tolerates a malformed reminder value", () => {
     const back = fieldsToEvent({ uid: "u", title: "x", start: "2026-07-17", reminder: "abc" });
     expect(back.reminder).toBeUndefined();
+  });
+
+  it("round-trips multiple reminders through the new md field", () => {
+    const ev = base({ reminders: [1440, 60] });
+    const fields = eventToFields(ev);
+    expect(fields.reminders).toBe("1440, 60");
+    expect(fields.reminder).toBeUndefined();
+    expect(fieldsToEvent(fields).reminders).toEqual([1440, 60]);
+  });
+
+  it("reads the legacy single reminder field into the array too", () => {
+    const back = fieldsToEvent({ uid: "u", title: "x", start: "2026-07-17", reminder: "15" });
+    expect(back.reminders).toEqual([15]);
+    expect(back.reminder).toBe(15);
   });
 
   it("localToEvent maps reminder and exdates too", () => {

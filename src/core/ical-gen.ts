@@ -1,4 +1,4 @@
-import { AgendaEvent } from "./event";
+import { AgendaEvent, getReminderMinutes } from "./event";
 
 function escapeText(s: string): string {
   return s
@@ -113,12 +113,12 @@ export function eventToVCalendar(ev: AgendaEvent): string {
       .join(",");
     lines.push(`EXDATE${param}:${vals}`);
   }
-  // VALARM:提前 reminder 分钟;0 = 事件开始时。
-  if (ev.reminder !== undefined) {
+  // VALARM:提前 reminder 分钟;0 = 事件开始时。一个事件可以有多个提醒。
+  for (const reminder of getReminderMinutes(ev)) {
     lines.push(
       "BEGIN:VALARM",
       "ACTION:DISPLAY",
-      `TRIGGER:${minutesToIsoDuration(ev.reminder)}`,
+      `TRIGGER:${minutesToIsoDuration(reminder)}`,
       `DESCRIPTION:${escapeText(ev.title)}`,
       "END:VALARM",
     );

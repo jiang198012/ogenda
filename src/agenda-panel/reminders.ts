@@ -1,7 +1,7 @@
 // 提醒调度(纯逻辑):从事件里挑出「下一个到点该提醒」的提醒。
 // 只读事件列表 + 当前时间,不碰 Obsidian API,便于单测。
 // 重复事件按下一个即将到来的实例计算提醒时刻。
-import { AgendaEvent } from "../core/event";
+import { AgendaEvent, getReminderMinutes } from "../core/event";
 import { expandOccurrences } from "./occurrences";
 
 export interface DueReminder {
@@ -15,7 +15,7 @@ export interface DueReminder {
 
 /**
  * 找出当前时刻之后最近一条到点的提醒。
- * - 只看有 reminder 字段的事件;
+ * - 只看有 reminder(s) 字段的事件;
  * - 重复事件取未来 60 天窗口内第一个实例;
  * - nowIso 为本地时间 ISO。
  * 返回 null 表示没有待触发提醒。
@@ -34,7 +34,8 @@ export function nextDueReminder(events: AgendaEvent[], nowIso: string): DueRemin
   };
 
   for (const ev of events) {
-    if (ev.reminder === undefined) continue;
+    const reminderMinutes = getReminderMinutes(ev);
+    if (!reminderMinutes.length) continue;
     if (!ev.start) continue;
 
     if (ev.rrule) {
@@ -43,16 +44,22 @@ export function nextDueReminder(events: AgendaEvent[], nowIso: string): DueRemin
       const rangeEnd = new Date(now.getTime() + 60 * 24 * 3600_000);
       const occs = expandOccurrences([ev], now, rangeEnd);
       for (const occ of occs) {
-        const due = new Date(new Date(occ.start).getTime() - ev.reminder * 60_000);
-        if (due.getTime() > now.getTime()) {
-          consider(ev.uid, ev.title, occ.start, due);
-          break;
+        let hasFutureReminder = false;
+        for (const minutes of reminderMinutes) {
+          const due = new Date(new Date(occ.start).getTime() - minutes * 60_000);
+          if (due.getTime() > now.getTime()) {
+            hasFutureReminder = true;
+            consider(ev.uid, ev.title, occ.start, due);
+          }
         }
+        if (hasFutureReminder) break;
       }
       continue;
     }
 
-    consider(ev.uid, ev.title, ev.start, new Date(new Date(ev.start).getTime() - ev.reminder * 60_000));
+    for (const minutes of reminderMinutes) {
+      consider(ev.uid, ev.title, ev.start, new Date(new Date(ev.start).getTime() - minutes * 60_000));
+    }
   }
 
   return best;

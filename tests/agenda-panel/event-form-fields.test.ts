@@ -20,6 +20,10 @@ import {
   shouldSaveOnEnter,
   getPredefinedCategories,
   getDefaultCategory,
+  isValidReminderInput,
+  formatReminderInput,
+  splitReminderInput,
+  joinReminderInputs,
 } from "../../src/agenda-panel/event-form-fields";
 import { setLanguage } from "../../src/i18n";
 
@@ -123,6 +127,41 @@ describe("buildEventFromFields", () => {
     expect(ev.organizer).toBeUndefined();
     expect(ev.rsvp).toBeUndefined();
     expect(ev.status).toBeUndefined();
+  });
+
+  it("builds multiple reminder offsets from comma-separated form input", () => {
+    const fields = { ...blankFields(), title: "新事件", start: "2026-07-20T10:00:00", reminder: "1440, 60" };
+    const ev = buildEventFromFields(fields, null, () => "u@ogenda");
+    expect(ev.reminders).toEqual([1440, 60]);
+    expect(ev.reminder).toBe(1440); // legacy alias
+  });
+
+  it("builds reminder offsets from values with units", () => {
+    const fields = { ...blankFields(), title: "新事件", start: "2026-07-20T10:00:00", reminder: "1天, 1小时, 15分钟" };
+    const ev = buildEventFromFields(fields, null, () => "u@ogenda");
+    expect(ev.reminders).toEqual([1440, 60, 15]);
+  });
+
+  it("validates comma-separated reminder input", () => {
+    expect(isValidReminderInput("1440, 60")).toBe(true);
+    expect(isValidReminderInput("1天, 1小时")).toBe(true);
+    expect(isValidReminderInput("1440, nope")).toBe(false);
+    expect(validateEventForm({ title: "x", start: "2026-07-20", reminder: "1440, nope" }).valid).toBe(false);
+  });
+
+  it("formats reminder values with compact units for the form", () => {
+    setLanguage("zh");
+    expect(formatReminderInput(0)).toBe("0分钟");
+    expect(formatReminderInput(15)).toBe("15分钟");
+    expect(formatReminderInput(60)).toBe("1小时");
+    expect(formatReminderInput(1440)).toBe("1天");
+    setLanguage("en");
+  });
+
+  it("keeps reminder rows independently editable before joining them for storage", () => {
+    expect(splitReminderInput("5分钟, 15分钟, 1天")).toEqual(["5分钟", "15分钟", "1天"]);
+    expect(joinReminderInputs(["5分钟", "", " 15分钟 "])).toBe("5分钟, 15分钟");
+    expect(splitReminderInput("   ")).toEqual([]);
   });
 });
 

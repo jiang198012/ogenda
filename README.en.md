@@ -33,7 +33,7 @@
 | **Five views** | List / Day / Week / Month / Stats dashboards |
 | **Event editor** | Category chips, status, location, organizer, attendees, recurrence, reminders |
 | **Recurring events** | Presets for daily/weekly/monthly… plus custom RRULE; per-occurrence edit ("this / all / skip") |
-| **Reminders** | 5 min to 1 day lead time, synced as VALARM, in-Obsidian notifications when enabled |
+| **Reminders** | Multiple lead times, synced as separate VALARM components, in-Obsidian notifications when enabled |
 | **Day view time grid** | 00:00–24:00 grid: click to create, drag a range, drag cards to move, drag the bottom edge to resize |
 | **Week view time grid** | 7 columns × 24 hours: events positioned by time, same drag & drop, cross-day drags |
 | **Time-line segments** | Colored time ranges from settings painted as translucent bands on day/week grids |
@@ -89,7 +89,7 @@ The first sync creates one Markdown file per month, e.g. `Agenda/2026-07.md`. Yo
 - **Views**: switch between List / Day / Week / Month / Stats tabs.
 - **Day view drag & drop**: click an empty slot to create at that hour; drag an empty area to create a time range; drag an event card to move it; drag the card's **bottom edge** to change the end time. All-day events sit in a strip above the grid with a red "now" line. In Week/Month views you can drag a card onto another day.
 - **Recurring events**: pick a repeat in the form (daily / weekdays / weekly / monthly / yearly / custom RRULE). Clicking an occurrence of a recurring event asks: **this occurrence only** (becomes a separate event, and the original time is excluded from the series via EXDATE), **all occurrences**, or **skip this occurrence** (EXDATE only).
-- **Reminders**: the form's "Reminder" dropdown sets a lead time (none / at start / 5–30 min / 1 hour / 1 day), written to the calendar as VALARM so phone calendars see it too. Turn on **Settings → Ogenda → Reminders → Enable event reminders** to get in-Obsidian notifications (checked every 30 s); a default lead time for new events is configurable.
+- **Reminders**: the form's "Reminder" field has one unit-bearing lead time per row; click **Add reminder** to add more (for example, `1 day`, `1 hour`, `30 minutes`). Comma-separated values are also accepted for compatibility. They are written to the calendar as separate VALARM components so phone calendars see them too. Legacy bare minute values are still accepted. Turn on **Settings → Ogenda → Reminders → Enable event reminders** to get in-Obsidian notifications (checked every 30 s); a default lead time for new events is configurable.
 - **Events**: click **New event** or an existing card to edit — categories, status, location, organizer, attendees, recurrence, reminders.
 - **24-hour time input**: type `1423` → formats to `14:23` as you type; `900` → `09:00`; blur pads `9` → `09:00`. Midnight is `00:00`, noon is `12:00` — a morning meeting ending at noon is clearly `09:00 → 12:00`.
 - **Navigation**: use the **Today** button or the arrow buttons.

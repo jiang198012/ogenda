@@ -1,4 +1,4 @@
-import { AgendaEvent, hashEvent, unescapeMultiline } from "../core/event";
+import { AgendaEvent, hashEvent, parseReminderMinutes, unescapeMultiline } from "../core/event";
 import { LocalEvent } from "../store/monthly-store";
 
 export interface SyncConflict {
@@ -32,8 +32,8 @@ export function fieldsToEvent(fields: Record<string, string>): AgendaEvent {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  const reminderRaw = fields["reminder"];
-  const reminder = reminderRaw !== undefined && /^-?\d+$/.test(reminderRaw) ? Number(reminderRaw) : undefined;
+  const reminderRaw = Object.prototype.hasOwnProperty.call(fields, "reminders") ? fields["reminders"] : fields["reminder"];
+  const reminders = parseReminderMinutes(reminderRaw);
   return {
     uid: fields["uid"] ?? "",
     title: fields["title"] ?? "",
@@ -49,7 +49,8 @@ export function fieldsToEvent(fields: Record<string, string>): AgendaEvent {
     category: fields["category"],
     rrule: fields["rrule"],
     exdates: exdates.length ? exdates : undefined,
-    reminder,
+    ...(reminders ? { reminders } : {}),
+    reminder: reminders?.[0],
     origin: fields["origin"] === "synced" ? "synced" : "local",
     href: fields["href"],
     etag: fields["etag"],

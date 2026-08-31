@@ -44,6 +44,13 @@ describe("eventToVCalendar — VALARM", () => {
     expect(eventToVCalendar(base({ reminder: 1440 }))).toContain("TRIGGER:-P1D");
   });
 
+  it("emits one VALARM for every reminder in the array", () => {
+    const ics = eventToVCalendar(base({ reminders: [1440, 60] }));
+    expect((ics.match(/BEGIN:VALARM/g) ?? []).length).toBe(2);
+    expect(ics).toContain("TRIGGER:-P1D");
+    expect(ics).toContain("TRIGGER:-PT1H");
+  });
+
   it("omits VALARM when no reminder is set (byte-compatible output)", () => {
     expect(eventToVCalendar(base({}))).not.toContain("VALARM");
   });
@@ -58,6 +65,12 @@ describe("icalToEvents — VALARM parsing", () => {
   it("parses an at-start reminder as 0", () => {
     const back = icalToEvents(eventToVCalendar(base({ reminder: 0 })), "test")[0];
     expect(back.reminder).toBe(0);
+  });
+
+  it("parses all DISPLAY VALARM components", () => {
+    const back = icalToEvents(eventToVCalendar(base({ reminders: [1440, 60] })), "test")[0];
+    expect(back.reminders).toEqual([1440, 60]);
+    expect(back.reminder).toBe(1440); // legacy alias remains readable
   });
 
   it("leaves reminder undefined when there is no VALARM", () => {

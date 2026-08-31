@@ -894,6 +894,43 @@ textarea.ogenda-form-desc {
 .ogenda-form-cat-input {
   width: 100%;
 }
+.ogenda-form-reminders-input {
+  width: 100%;
+  min-width: 12em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ogenda-form-reminder-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  width: 100%;
+}
+.ogenda-form-reminder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+  width: 100%;
+}
+.ogenda-form-reminder-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  width: 100%;
+}
+.ogenda-form-reminder-row .ogenda-form-reminders-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ogenda-form-reminder-remove {
+  flex: 0 0 auto;
+  min-width: 1.8em;
+  padding: 0.1em 0.35em;
+  line-height: 1.2;
+}
+.ogenda-form-reminder-add {
+  align-self: flex-start;
+}
 
 /* ---------- Narrow-pane responsive adaptation ----------
    Container query: keys off the PANEL's own width, so dragging an Obsidian
@@ -959,8 +996,11 @@ textarea.ogenda-form-desc {
     padding: 0.75em 0.8em;
   }
   .ogenda-event-when {
-    flex-direction: row;
-    gap: 0.4em;
+    /* Keep the compact date/time stack used by the wide list.  A single-line
+       date + time consumes the horizontal space that the title needs most. */
+    flex-direction: column;
+    gap: 0;
+    flex-shrink: 0;
   }
   .ogenda-status-pill,
   .ogenda-cat-pill {

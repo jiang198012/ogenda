@@ -1,4 +1,4 @@
-import { AgendaEvent } from "../core/event";
+import { AgendaEvent, parseReminderMinutes } from "../core/event";
 import { getLanguage, t } from "../i18n";
 import { buildRrule, RrulePreset } from "./recurrence";
 
@@ -14,7 +14,7 @@ export interface RawFormFields {
   rsvp: string;
   category: string;
   description: string;
-  /** 提醒下拉值:"" = 不提醒;否则为提前分钟数(字符串)。 */
+  /** 提醒提前量,多个值用逗号分隔(如 30分钟, 1天);空字符串 = 不提醒。 */
   reminder: string;
   /** 重复下拉值:none/daily/weekdays/weekly/monthly/yearly/custom。 */
   rrulePreset: string;
@@ -166,7 +166,7 @@ export const RSVP_OPTIONS: { value: string; labelKey: string }[] = [
   { value: "TENTATIVE", labelKey: "rsvp.tentative" },
 ];
 
-/** 提醒下拉选项:"" = 不提醒;否则为提前分钟数。 */
+/** 提醒输入的常用选项:"" = 不提醒;否则为提前分钟数(展示时会带单位)。 */
 export const REMINDER_OPTIONS: { value: string; labelKey: string }[] = [
   { value: "", labelKey: "reminder.none" },
   { value: "0", labelKey: "reminder.atStart" },
@@ -177,6 +177,31 @@ export const REMINDER_OPTIONS: { value: string; labelKey: string }[] = [
   { value: "60", labelKey: "reminder.hour1" },
   { value: "1440", labelKey: "reminder.day1" },
 ];
+
+/** True when the comma-separated reminder input contains valid minute/unit values. */
+export function isValidReminderInput(raw: string): boolean {
+  return raw.trim() === "" || parseReminderMinutes(raw) !== undefined;
+}
+
+/** Split the form's comma-separated reminder text into independently editable rows. */
+export function splitReminderInput(raw: string): string[] {
+  return raw.split(",").map((part) => part.trim()).filter(Boolean);
+}
+
+/** Join reminder rows back into the storage-facing comma-separated form value. */
+export function joinReminderInputs(parts: readonly string[]): string {
+  return parts.map((part) => part.trim()).filter(Boolean).join(", ");
+}
+
+/** Minutes → a compact, editable value such as "5分钟", "1小时" or "1天". */
+export function formatReminderInput(minutes: number): string {
+  const value = Math.round(minutes);
+  if (!Number.isFinite(value)) return "";
+  if (value === 0) return t("reminder.input.minutes", { n: 0 });
+  if (value % 1440 === 0) return t("reminder.input.days", { n: value / 1440 });
+  if (value % 60 === 0) return t("reminder.input.hours", { n: value / 60 });
+  return t("reminder.input.minutes", { n: value });
+}
 
 /** 提醒分钟数 → 展示文案(如 90 → "提前 1.5 小时")。 */
 export function reminderLabel(minutes: number): string {
@@ -204,6 +229,7 @@ export function validateEventForm(fields: {
   start: string;
   end?: string;
   allDay?: boolean;
+  reminder?: string;
 }): ValidationResult {
   const errors: string[] = [];
   if (!fields.title.trim()) errors.push(t("validate.titleRequired"));
@@ -217,6 +243,9 @@ export function validateEventForm(fields: {
     const s = normSep(fields.start.trim());
     const e = normSep(fields.end.trim());
     if (e <= s) errors.push(t("validate.timedEnd"));
+  }
+  if (fields.reminder !== undefined && !isValidReminderInput(fields.reminder)) {
+    errors.push(t("validate.reminderInvalid"));
   }
   return { valid: errors.length === 0, errors };
 }
@@ -232,6 +261,7 @@ export function buildEventFromFields(
   generateUid: () => string,
 ): AgendaEvent {
   const category = fields.category.trim() || undefined;
+  const reminders = parseReminderMinutes(fields.reminder);
   return {
     uid: existing?.uid ?? generateUid(),
     title: fields.title.trim(),
@@ -245,7 +275,7 @@ export function buildEventFromFields(
     rsvp: fields.rsvp.trim() || undefined,
     category,
     description: fields.description.trim() || undefined,
-    reminder: fields.reminder === "" ? undefined : Number(fields.reminder),
+    ...(reminders ? { reminders, reminder: reminders[0] } : {}),
     rrule: buildRruleForFields(fields),
     origin: existing?.origin ?? "local",
     href: existing?.href,

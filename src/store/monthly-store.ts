@@ -9,7 +9,9 @@ export function monthOf(startIso: string): string {
 }
 
 /** Optional fields the panel edit form owns — blanking one should delete it. Metadata is never here. */
-const PANEL_CLEARABLE_FIELDS = ["end", "location", "organizer", "attendees", "status", "rsvp", "category", "description", "reminder"];
+const PANEL_CLEARABLE_FIELDS = [
+  "end", "location", "organizer", "attendees", "status", "rsvp", "category", "description", "reminder", "reminders",
+];
 
 /** 月度文件名契约:只有 YYYY-MM.md 是月度日程笔记。同目录的备份(.bak)、杂散笔记、
  *  同步状态文件等一律不参与解析/删改——否则旧快照里的事件会被当成新日程重复显示。 */
@@ -26,7 +28,9 @@ function monthlyPaths(paths: string[]): string[] {
  * the server-based base_hash and ogenda would "push the ghost back", fighting other devices).
  * Local-only fields (rsvp) and ALL sync metadata (etag/href/base_hash/...) are never here.
  */
-const SYNC_CLEARABLE_FIELDS = ["end", "location", "organizer", "attendees", "status", "category", "description", "rrule", "exdates", "reminder"];
+const SYNC_CLEARABLE_FIELDS = [
+  "end", "location", "organizer", "attendees", "status", "category", "description", "rrule", "exdates", "reminder", "reminders",
+];
 
 export interface SyncSummary {
   added: number;
