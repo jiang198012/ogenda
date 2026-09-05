@@ -26,6 +26,7 @@ import { TimeSegment } from "./time-segments";
 export const AGENDA_PANEL_VIEW_TYPE = "ogenda-agenda-panel";
 
 type Tab = "list" | "day" | "week" | "month" | "stats";
+export type SyncStatus = "idle" | "syncing" | "success" | "error";
 
 export class AgendaPanelView extends ItemView {
   private tab: Tab = "list";
@@ -42,6 +43,7 @@ export class AgendaPanelView extends ItemView {
     private getDefaultCategory: () => string,
     private getDefaultReminder: () => number,
     private getSegments: () => TimeSegment[],
+    private getSyncStatus: () => SyncStatus = () => "idle",
   ) {
     super(leaf);
     this.anchor = this.safeToday();
@@ -337,7 +339,17 @@ export class AgendaPanelView extends ItemView {
 
       const syncBtn = head.createDiv({ cls: "ogenda-panel-syncbtn" });
       setIcon(syncBtn, "refresh-cw");
-      syncBtn.createSpan({ text: t("panel.sync") });
+      const syncStatus = this.getSyncStatus();
+      const syncLabel =
+        syncStatus === "syncing"
+          ? t("panel.syncing")
+          : syncStatus === "success"
+            ? t("panel.syncSuccess")
+            : syncStatus === "error"
+              ? t("panel.syncError")
+              : t("panel.sync");
+      syncBtn.createSpan({ text: syncLabel });
+      syncBtn.setAttr("aria-label", syncLabel);
       if (this.getSyncProvider() === "none") {
         syncBtn.addClass("ogenda-disabled");
       } else {

@@ -44,6 +44,8 @@ describe("parseQuickAddDate", () => {
     expect(parseQuickAddDate("2026-08-01", ANCHOR)).toBe("2026-08-01");
     expect(parseQuickAddDate("8-01", ANCHOR)).toBe("2026-08-01");
     expect(parseQuickAddDate("2026/12/31", ANCHOR)).toBe("2026-12-31");
+    expect(parseQuickAddDate("2026年9月6日", ANCHOR)).toBe("2026-09-06");
+    expect(parseQuickAddDate("2026年2月30日", ANCHOR)).toBeNull();
   });
 
   it("无法识别返回 null", () => {
@@ -156,6 +158,17 @@ describe("parseQuickAdd", () => {
       title: "团建",
       start: "2026-08-01T15:00:00",
       end: "2026-08-01T16:00:00",
+      allDay: false,
+    });
+  });
+
+  it("中文显式日期紧接时间时不残留在标题", () => {
+    const r = parseQuickAdd("2026年9月6日15:00 GUI快速测试 1小时", ANCHOR);
+    expect(r).toEqual({
+      ok: true,
+      title: "GUI快速测试",
+      start: "2026-09-06T15:00:00",
+      end: "2026-09-06T16:00:00",
       allDay: false,
     });
   });

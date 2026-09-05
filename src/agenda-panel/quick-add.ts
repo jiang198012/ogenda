@@ -41,7 +41,11 @@ function parseIsoDate(s: string): Date | null {
   const m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s);
   if (!m) return null;
   const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  return isNaN(d.getTime()) ? null : d;
+  return isValidCalendarDate(d, Number(m[1]), Number(m[2]), Number(m[3])) ? d : null;
+}
+
+function isValidCalendarDate(d: Date, year: number, month: number, day: number): boolean {
+  return !isNaN(d.getTime()) && d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day;
 }
 
 /** Date → "YYYY-MM-DD"(本地)。 */
@@ -116,9 +120,21 @@ export function parseQuickAddDate(token: string, anchor: Date): string | null {
   const md = /^(?:(\d{4})[-/])?(\d{1,2})[-/](\d{1,2})$/.exec(t);
   if (md) {
     const year = md[1] ? Number(md[1]) : anchor.getFullYear();
-    const d = new Date(year, Number(md[2]) - 1, Number(md[3]));
-    if (isNaN(d.getTime())) return null;
+    const month = Number(md[2]);
+    const day = Number(md[3]);
+    const d = new Date(year, month - 1, day);
+    if (!isValidCalendarDate(d, year, month, day)) return null;
     return fmtDate(d);
+  }
+
+  // 2026年9月6日 / 2026年9月6日(中文输入常紧接时间)
+  const cn = /^(\d{4})年(\d{1,2})月(\d{1,2})日?$/.exec(t);
+  if (cn) {
+    const year = Number(cn[1]);
+    const month = Number(cn[2]);
+    const day = Number(cn[3]);
+    const d = new Date(year, month - 1, day);
+    return isValidCalendarDate(d, year, month, day) ? fmtDate(d) : null;
   }
 
   return null;
@@ -284,6 +300,12 @@ interface DateToken {
 
 /** 按优先级扫描整句,返回第一个能识别的日期词(避免「周五」出现在标题里被误判)。 */
 function findFirstDateToken(text: string, anchor: Date): DateToken | null {
+  // 中文显式日期需先于其它数字词剔除,否则后续时间解析会把日期留在标题中。
+  const cn = /(?:^|[^\d])(\d{4}年\d{1,2}月\d{1,2}日?)/.exec(text);
+  if (cn) {
+    const d = parseQuickAddDate(cn[1], anchor);
+    if (d) return { raw: cn[1], date: d };
+  }
   // 显式日期(2026-07-25 / 7-25)优先
   const iso = /(?:^|[^\d])((\d{4})[-/](\d{1,2})[-/](\d{1,2}))(?!\d)/.exec(text);
   if (iso) {

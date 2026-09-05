@@ -11,7 +11,7 @@ import { SyncService } from "./sync/sync-service";
 import { syncBidirectional, CalDavSource } from "./sync/bidirectional";
 import { resolveSyncProvider } from "./sync/resolve-provider";
 import { davRequest, hrefInside } from "./net/dav-request";
-import { AgendaPanelView, AGENDA_PANEL_VIEW_TYPE } from "./agenda-panel/agenda-panel-view";
+import { AgendaPanelView, AGENDA_PANEL_VIEW_TYPE, SyncStatus } from "./agenda-panel/agenda-panel-view";
 import { QuickAddModal } from "./agenda-panel/quick-add-modal";
 import { todayInTimezone } from "./agenda-panel/timezone";
 import { localToEvent } from "./agenda-panel/local-to-event";
@@ -20,11 +20,13 @@ import { setLanguage, resolveLanguage, t } from "./i18n";
 import { getDefaultCategory } from "./agenda-panel/event-form-fields";
 import { startOfDay, startOfWeek, addDays } from "./agenda-panel/date-grid";
 import { buildAgendaText, AgendaText, AgendaTextStyle } from "./agenda-panel/agenda-text";
+import { withRetry } from "./sync/retry";
 
 const XML_CT = "application/xml; charset=utf-8";
 
 export default class OgendaPlugin extends Plugin {
   settings!: OgendaSettings;
+  private syncStatus: SyncStatus = "idle";
 
   async onload() {
     // Anything here that throws would abort onload and leave the plugin with no
@@ -117,6 +119,7 @@ export default class OgendaPlugin extends Plugin {
           () => this.settings.defaultCategory,
           () => this.settings.defaultReminderMinutes,
           () => this.settings.timeSegments,
+          () => this.syncStatus,
         ),
     );
     this.addCommand({
@@ -226,10 +229,14 @@ export default class OgendaPlugin extends Plugin {
       return;
     }
     if (r.provider === "ics") {
+      this.syncStatus = "syncing";
+      this.refreshOpenPanels();
       try {
         const svc = new SyncService([new IcsConnector(r.url)], this.store(), (m) => new Notice(m, 10000));
         await svc.syncNow();
+        this.syncStatus = "success";
       } catch (e) {
+        this.syncStatus = "error";
         new Notice(t("notice.icsImportError", { msg: (e as Error).message }));
         console.error("[ogenda] ics import error", e);
       } finally {
@@ -246,9 +253,18 @@ export default class OgendaPlugin extends Plugin {
       putEvent: (url, ics, ifMatch) => writer.putEvent(url, ics, ifMatch),
       deleteEvent: (url, ifMatch) => writer.deleteEvent(url, ifMatch),
     };
+    this.syncStatus = "syncing";
+    this.refreshOpenPanels();
     try {
-      await syncBidirectional(source, r.calUrl, this.store(), (m) => new Notice(m, 10000));
+      await withRetry(
+        () => syncBidirectional(source, r.calUrl, this.store(), (m) => new Notice(m, 10000)),
+        {
+          onRetry: (attempt, delay) => new Notice(t("notice.syncRetry", { attempt, seconds: Math.ceil(delay / 1000) }), 10000),
+        },
+      );
+      this.syncStatus = "success";
     } catch (e) {
+      this.syncStatus = "error";
       new Notice(t("notice.twoWaySyncError", { msg: (e as Error).message }));
       console.error("[ogenda] bidirectional sync error", e);
     } finally {
