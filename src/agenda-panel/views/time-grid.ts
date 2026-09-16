@@ -1,6 +1,7 @@
 // 共享时间格渲染:日视图与周视图共用的「24 小时纵向网格」。
 // 包含:小时线、时间线分区色块、当前时刻红线、事件块(点击/移动/改时长)、
 // 空白区点击与拖拽划范围。分区色块画在事件块下方。
+// 触屏空白区轻触新建,事件卡片长按后移动/调时长;鼠标仍可直接拖拽。
 // visibleRange 可选:只渲染窗口内的时段(周视图跟随分区范围,清晨之前不展示);
 // 未提供或窗口非法时回退全天 0..1440。
 import { EventOccurrence, parseLocalDate } from "../occurrences";
@@ -9,6 +10,9 @@ import { TimeSegment, segmentRects, hexWithAlpha, VisibleRange } from "../time-s
 import { HOUR_PX, SNAP_MIN, layoutDayGrid, isoToMinutes, snapMinutes } from "../day-grid";
 import { startOfDay, toDateKey } from "../date-grid";
 import { t } from "../../i18n";
+
+const TOUCH_LONG_PRESS_MS = 450;
+const TOUCH_MOVE_TOLERANCE_PX = 8;
 
 export interface TimeGridHandlers {
   /** 点击空白格(无拖动)→ 在该时刻新建。 */
@@ -222,10 +226,42 @@ function attachEmptyDrag(
   };
 
   grid.addEventListener("pointerdown", (e) => {
-    if (e.pointerType !== "mouse" && e.pointerType !== "pen") return;
     const target = e.target as HTMLElement;
     if (target.closest(".ogenda-tblock, .ogenda-day-block, .ogenda-week-block")) return;
     if (target.closest(".ogenda-timegrid-gutter")) return;
+
+    if (e.pointerType === "touch") {
+      const startMin = toMinutes(e.clientY);
+      const startX = e.clientX;
+      const startY = e.clientY;
+      let moved = false;
+      const cleanup = (): void => {
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
+        document.removeEventListener("pointercancel", onCancel);
+      };
+      const onMove = (ev: PointerEvent): void => {
+        if (ev.pointerId !== e.pointerId) return;
+        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) > TOUCH_MOVE_TOLERANCE_PX) {
+          moved = true;
+          cleanup();
+        }
+      };
+      const onUp = (ev: PointerEvent): void => {
+        if (ev.pointerId !== e.pointerId) return;
+        cleanup();
+        if (!moved) handlers.onSlotClick?.(day, startMin);
+      };
+      const onCancel = (ev: PointerEvent): void => {
+        if (ev.pointerId === e.pointerId) cleanup();
+      };
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+      document.addEventListener("pointercancel", onCancel);
+      return;
+    }
+
+    if (e.pointerType !== "mouse" && e.pointerType !== "pen") return;
     e.preventDefault();
     const startMin = toMinutes(e.clientY);
     let moved = false;
@@ -284,14 +320,33 @@ function attachMoveDrag(
 ): void {
   const resizeHandle = block.querySelector(".ogenda-tblock-resize") as HTMLElement | null;
   block.addEventListener("pointerdown", (e) => {
-    if (e.pointerType !== "mouse" && e.pointerType !== "pen") return;
+    const isTouch = e.pointerType === "touch";
+    if (!isTouch && e.pointerType !== "mouse" && e.pointerType !== "pen") return;
     if (resizeHandle && resizeHandle.contains(e.target as Node)) return; // 交给改时长
-    e.preventDefault();
     const startY = e.clientY;
     let moved = false;
     let lastDelta = 0;
+    let dragging = !isTouch;
+    let longPressTimer: number | undefined;
+
+    const cleanup = (): void => {
+      if (longPressTimer !== undefined) window.clearTimeout(longPressTimer);
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointercancel", onCancel);
+    };
+    const beginTouchDrag = (): void => {
+      dragging = true;
+      e.preventDefault();
+      block.setPointerCapture?.(e.pointerId);
+    };
 
     const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== e.pointerId) return;
+      if (!dragging) {
+        if (Math.abs(ev.clientY - startY) > TOUCH_MOVE_TOLERANCE_PX) cleanup();
+        return;
+      }
       ev.preventDefault();
       const delta = Math.round(((ev.clientY - startY) / hourPx) * 60 / SNAP_MIN) * SNAP_MIN;
       if (delta !== 0) moved = true;
@@ -302,20 +357,27 @@ function attachMoveDrag(
       block.style.height = `${((bottom - top) / 60) * hourPx}px`;
       block.classList.add("ogenda-tblock-dragging");
     };
-    const onUp = () => {
-      document.removeEventListener("pointermove", onMove);
-      document.removeEventListener("pointerup", onUp);
-      document.removeEventListener("pointercancel", onUp);
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerId !== e.pointerId) return;
+      cleanup();
       block.classList.remove("ogenda-tblock-dragging");
       if (moved) {
         markDragged();
         handlers.onMoveEvent?.(occ, lastDelta);
       }
     };
+    const onCancel = (ev: PointerEvent) => {
+      if (ev.pointerId === e.pointerId) {
+        cleanup();
+        block.classList.remove("ogenda-tblock-dragging");
+      }
+    };
 
+    if (isTouch) longPressTimer = window.setTimeout(beginTouchDrag, TOUCH_LONG_PRESS_MS);
+    else e.preventDefault();
     document.addEventListener("pointermove", onMove);
     document.addEventListener("pointerup", onUp);
-    document.addEventListener("pointercancel", onUp);
+    document.addEventListener("pointercancel", onCancel);
   });
 }
 
@@ -328,19 +390,38 @@ function attachResizeDrag(
   markDragged: () => void,
 ): void {
   handle.addEventListener("pointerdown", (e) => {
-    if (e.pointerType !== "mouse" && e.pointerType !== "pen") return;
+    const isTouch = e.pointerType === "touch";
+    if (!isTouch && e.pointerType !== "mouse" && e.pointerType !== "pen") return;
     // 绑定发生在块挂载到 grid 之前,closest 必须在事件触发时再查
     const grid = handle.closest(".ogenda-timegrid") as HTMLElement | null;
     if (!grid) return;
-    e.preventDefault();
     e.stopPropagation();
     const startY = e.clientY;
     const spanMin = range.endMin - range.startMin;
     const origBottom = isoToMinutes(occ.end ?? occ.start, parseOccDay(occ)) - range.startMin;
     let moved = false;
     let lastDelta = 0;
+    let dragging = !isTouch;
+    let longPressTimer: number | undefined;
+
+    const cleanup = (): void => {
+      if (longPressTimer !== undefined) window.clearTimeout(longPressTimer);
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointercancel", onCancel);
+    };
+    const beginTouchDrag = (): void => {
+      dragging = true;
+      e.preventDefault();
+      handle.setPointerCapture?.(e.pointerId);
+    };
 
     const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== e.pointerId) return;
+      if (!dragging) {
+        if (Math.abs(ev.clientY - startY) > TOUCH_MOVE_TOLERANCE_PX) cleanup();
+        return;
+      }
       ev.preventDefault();
       const delta = Math.round(((ev.clientY - startY) / hourPx) * 60 / SNAP_MIN) * SNAP_MIN;
       if (delta !== 0) moved = true;
@@ -351,18 +432,22 @@ function attachResizeDrag(
       block.style.top = `${(top / 60) * hourPx}px`;
       block.style.height = `${((bottom - top) / 60) * hourPx}px`;
     };
-    const onUp = () => {
-      document.removeEventListener("pointermove", onMove);
-      document.removeEventListener("pointerup", onUp);
-      document.removeEventListener("pointercancel", onUp);
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerId !== e.pointerId) return;
+      cleanup();
       if (moved) {
         markDragged();
         handlers.onResizeEvent?.(occ, lastDelta);
       }
     };
+    const onCancel = (ev: PointerEvent) => {
+      if (ev.pointerId === e.pointerId) cleanup();
+    };
 
+    if (isTouch) longPressTimer = window.setTimeout(beginTouchDrag, TOUCH_LONG_PRESS_MS);
+    else e.preventDefault();
     document.addEventListener("pointermove", onMove);
     document.addEventListener("pointerup", onUp);
-    document.addEventListener("pointercancel", onUp);
+    document.addEventListener("pointercancel", onCancel);
   });
 }

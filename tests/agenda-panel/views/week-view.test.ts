@@ -25,6 +25,32 @@ describe("renderWeekView", () => {
     expect(container.textContent).toContain("周六的会");
   });
 
+  it("provides a narrow-screen day switcher with the anchor day selected", () => {
+    const container = document.createElement("div");
+    renderWeekView(container, [], new Date(2026, 6, 15), () => {}); // 周三
+    const buttons = [...container.querySelectorAll<HTMLButtonElement>(".ogenda-week-daybtn")];
+    expect(buttons).toHaveLength(7);
+    expect(buttons.filter((button) => button.classList.contains("active"))).toHaveLength(1);
+    expect(buttons[2].classList.contains("active")).toBe(true);
+    expect(buttons[2].getAttribute("aria-pressed")).toBe("true");
+
+    buttons[5].click(); // 切到周六
+    const cols = [...container.querySelectorAll<HTMLElement>(".ogenda-week-col")];
+    expect(cols.filter((col) => !col.classList.contains("ogenda-week-mobile-hidden"))).toHaveLength(1);
+    expect(cols[5].classList.contains("ogenda-week-mobile-hidden")).toBe(false);
+    expect(buttons[5].classList.contains("active")).toBe(true);
+    expect(buttons[2].getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("keeps the week header, through-bars, and timeline in one scroll container", () => {
+    const container = document.createElement("div");
+    renderWeekView(container, [], new Date(2026, 6, 15), () => {});
+    const scroll = container.querySelector(".ogenda-week-scroll");
+    expect(scroll).not.toBeNull();
+    expect(scroll?.querySelector(".ogenda-week-headrow")).not.toBeNull();
+    expect(scroll?.querySelector(".ogenda-week-body")).not.toBeNull();
+  });
+
   it("puts events in the correct column by day, not just anywhere", () => {
     const container = document.createElement("div");
     renderWeekView(container, [mkOcc("2026-07-18T09:00:00", "周六的会")], new Date(2026, 6, 15), () => {});
@@ -39,7 +65,7 @@ describe("renderWeekView", () => {
     renderWeekView(container, [mkOcc("2026-07-13T14:00:00", "周一的会")], new Date(2026, 6, 15), () => {});
     const block = container.querySelector(".ogenda-week-block") as HTMLElement;
     expect(block).not.toBeNull();
-    expect(block.style.top).toBe("392px"); // 14h * 28px
+    expect(block.style.top).toBe("560px"); // 14h * 40px
   });
 
   it("calls onEventClick with the underlying occurrence", () => {
@@ -61,6 +87,42 @@ describe("renderWeekView", () => {
     grid.dispatchEvent(down);
     document.dispatchEvent(up);
     expect(onSlot).toHaveBeenCalled();
+  });
+
+  it("routes a touch tap on an empty slot to onSlotClick without requiring a mouse", () => {
+    const container = document.createElement("div");
+    const onSlot = vi.fn();
+    renderWeekView(container, [], new Date(2026, 6, 15), () => {}, { onSlotClick: onSlot });
+    const grid = container.querySelector(".ogenda-timegrid") as HTMLElement;
+    grid.dispatchEvent(new PointerEvent("pointerdown", { pointerType: "touch", pointerId: 2, clientY: 120, bubbles: true }));
+    document.dispatchEvent(new PointerEvent("pointerup", { pointerType: "touch", pointerId: 2, clientY: 120, bubbles: true }));
+    expect(onSlot).toHaveBeenCalled();
+  });
+
+  it("supports long-press touch dragging and resizing of event blocks", () => {
+    const container = document.createElement("div");
+    const occ = { event: { uid: "touch", title: "触控事件", start: "2026-07-13T14:00:00", end: "2026-07-13T15:00:00", origin: "synced" as const }, start: "2026-07-13T14:00:00", end: "2026-07-13T15:00:00" };
+    const onMove = vi.fn();
+    const onResize = vi.fn();
+    renderWeekView(container, [occ], new Date(2026, 6, 15), () => {}, { onMoveEvent: onMove, onResizeEvent: onResize });
+    const block = container.querySelector(".ogenda-week-block") as HTMLElement;
+    const handle = block.querySelector(".ogenda-tblock-resize") as HTMLElement;
+    vi.useFakeTimers();
+    try {
+      block.dispatchEvent(new PointerEvent("pointerdown", { pointerType: "touch", pointerId: 3, clientY: 100, bubbles: true }));
+      vi.advanceTimersByTime(450);
+      document.dispatchEvent(new PointerEvent("pointermove", { pointerType: "touch", pointerId: 3, clientY: 140, bubbles: true }));
+      document.dispatchEvent(new PointerEvent("pointerup", { pointerType: "touch", pointerId: 3, clientY: 140, bubbles: true }));
+      expect(onMove).toHaveBeenCalledWith(occ, 60);
+
+      handle.dispatchEvent(new PointerEvent("pointerdown", { pointerType: "touch", pointerId: 4, clientY: 100, bubbles: true }));
+      vi.advanceTimersByTime(450);
+      document.dispatchEvent(new PointerEvent("pointermove", { pointerType: "touch", pointerId: 4, clientY: 140, bubbles: true }));
+      document.dispatchEvent(new PointerEvent("pointerup", { pointerType: "touch", pointerId: 4, clientY: 140, bubbles: true }));
+      expect(onResize).toHaveBeenCalledWith(occ, 60);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("does NOT call onSlotClick when a block inside the column is clicked", () => {
@@ -169,7 +231,7 @@ describe("renderWeekView", () => {
     expect(container.querySelectorAll(".ogenda-week-block").length).toBe(0);
     // 窗口仍是分区窗口 06:00–12:00,没被跨天事件撑成 24 小时
     const grid = container.querySelector(".ogenda-timegrid") as HTMLElement;
-    expect(grid.style.height).toBe("168px"); // 6h * 28px
+    expect(grid.style.height).toBe("240px"); // 6h * 40px
   });
 
   it("stacks overlapping through-bars into separate lanes and reuses a lane when disjoint", () => {
@@ -235,7 +297,7 @@ describe("renderWeekView", () => {
     expect(seg).not.toBeNull();
     // 窗口 = 06:00–12:00:色块铺满窗口,top 从 0 开始
     expect(seg.style.top).toBe("0px");
-    expect(seg.style.height).toBe("168px"); // 6h * 28px
+    expect(seg.style.height).toBe("240px"); // 6h * 40px
     expect(seg.style.background).toContain("rgba(59, 130, 246");
   });
 
@@ -251,8 +313,8 @@ describe("renderWeekView", () => {
     ];
     renderWeekView(container, [], new Date(2026, 6, 15), () => {}, {}, undefined, undefined, segments);
     const grid = container.querySelector(".ogenda-timegrid") as HTMLElement;
-    // 窗口 06:00–23:00 = 17h × 28px = 476px(深夜不占空间)
-    expect(grid.style.height).toBe("476px");
+    // 窗口 06:00–23:00 = 17h × 40px = 680px(深夜不占空间)
+    expect(grid.style.height).toBe("680px");
     // 每列 6 段(7 列共 42)
     const segs = [...container.querySelectorAll(".ogenda-time-segment")];
     expect(segs).toHaveLength(42);
@@ -260,8 +322,8 @@ describe("renderWeekView", () => {
     expect(col0Segs).toHaveLength(6);
     // 第一段 06:00 在窗口顶部,最后一段 20:00–23:00 贴窗口底
     expect(col0Segs[0].style.top).toBe("0px");
-    expect(col0Segs[5].style.top).toBe("392px"); // (20h - 6h) * 28px
-    expect(col0Segs[5].style.height).toBe("84px"); // 3h * 28px
+    expect(col0Segs[5].style.top).toBe("560px"); // (20h - 6h) * 40px
+    expect(col0Segs[5].style.height).toBe("120px"); // 3h * 40px
   });
 
   it("expands the window to show timed events outside the segment range (e.g. before 06:00)", () => {
@@ -274,20 +336,20 @@ describe("renderWeekView", () => {
     renderWeekView(container, [night, morning], new Date(2026, 6, 15), () => {}, {}, undefined, undefined, segments);
     const grid = container.querySelector(".ogenda-timegrid") as HTMLElement;
     // 时间轴扩展到 04:00–12:00(分区窗口 06:00 起,被深夜事件拉长)
-    expect(grid.style.height).toBe("224px"); // 8h * 28px
+    expect(grid.style.height).toBe("320px"); // 8h * 40px
     const blocks = [...container.querySelectorAll(".ogenda-week-block")];
     expect(blocks.length).toBe(2);
     const nightBlock = blocks.find((b) => b.textContent.includes("夜班")) as HTMLElement;
     expect(nightBlock.style.top).toBe("0px");
     const morningBlock = blocks.find((b) => b.textContent.includes("早会")) as HTMLElement;
-    expect(morningBlock.style.top).toBe("112px"); // (8h - 4h) * 28px
+    expect(morningBlock.style.top).toBe("160px"); // (8h - 4h) * 40px
   });
 
   it("keeps the full 24h grid when no segments are configured", () => {
     const container = document.createElement("div");
     renderWeekView(container, [], new Date(2026, 6, 15), () => {});
     const grid = container.querySelector(".ogenda-timegrid") as HTMLElement;
-    expect(grid.style.height).toBe("672px"); // 24h * 28px
+    expect(grid.style.height).toBe("960px"); // 24h * 40px
   });
 
   it("draws three through-running timeline labels/lines at 06:00/12:00/18:00", () => {
@@ -295,13 +357,13 @@ describe("renderWeekView", () => {
     renderWeekView(container, [], new Date(2026, 6, 15), () => {});
     const labels = [...container.querySelectorAll(".ogenda-week-timelabel")] as HTMLElement[];
     expect(labels.map((l) => l.textContent)).toEqual(["06:00", "12:00", "18:00"]);
-    // 数字在线下方 1 小时(28px)处,不与线重叠
-    expect(labels[0].style.top).toBe("196px"); // 6h * 28px + 28px
-    expect(labels[1].style.top).toBe("364px");
-    expect(labels[2].style.top).toBe("532px");
+    // 数字在线下方 1 小时(40px)处,不与线重叠
+    expect(labels[0].style.top).toBe("280px"); // 6h * 40px + 40px
+    expect(labels[1].style.top).toBe("520px");
+    expect(labels[2].style.top).toBe("760px");
     const lines = [...container.querySelectorAll(".ogenda-week-timeline")] as HTMLElement[];
     expect(lines).toHaveLength(3);
-    expect(lines[0].style.top).toBe("168px"); // 线本身仍在 6h * 28px
+    expect(lines[0].style.top).toBe("240px"); // 线本身仍在 6h * 40px
     // 贯通线在事件/色块下方(低 z-index),且不在任何列内部
     expect(container.querySelectorAll(".ogenda-week-col .ogenda-week-timeline").length).toBe(0);
     // 列内保留整点小时线(每小时都有,窗口 24h 时单列 23 条)
@@ -317,12 +379,12 @@ describe("renderWeekView", () => {
     const night: EventOccurrence = { event: { uid: "n", title: "夜班", start: "2026-07-13T02:00:00", end: "2026-07-13T04:00:00", origin: "synced" }, start: "2026-07-13T02:00:00" };
     renderWeekView(container, [night], new Date(2026, 6, 15), () => {}, {}, undefined, undefined, segments);
     const labels = [...container.querySelectorAll(".ogenda-week-timelabel")] as HTMLElement[];
-    // 分区窗口 06:00 起,被 02:00 夜班拉到 02:00 → 06:00 线在 (6-2)h*28 = 112px,
-    // 标签在其下方 1 小时(28px)处
+    // 分区窗口 06:00 起,被 02:00 夜班拉到 02:00 → 06:00 线在 (6-2)h*40 = 160px,
+    // 标签在其下方 1 小时(40px)处
     expect(labels[0].textContent).toBe("06:00");
-    expect(labels[0].style.top).toBe("140px");
+    expect(labels[0].style.top).toBe("200px");
     const lines = [...container.querySelectorAll(".ogenda-week-timeline")] as HTMLElement[];
-    expect(lines[0].style.top).toBe("112px");
+    expect(lines[0].style.top).toBe("160px");
     // 所有列共用同一窗口(统一高度),贯通线跨整行
     const cols = [...container.querySelectorAll(".ogenda-week-col")];
     const heights = [...new Set(cols.map((c) => (c.querySelector(".ogenda-timegrid") as HTMLElement).style.height))];

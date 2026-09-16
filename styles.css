@@ -420,6 +420,12 @@
   gap: 0.4em;
   height: 100%;
 }
+.ogenda-week-scroll {
+  min-width: 0;
+}
+.ogenda-week-daystrip {
+  display: none;
+}
 .ogenda-week-wrap {
   display: flex;
   gap: 0.4em;
@@ -494,6 +500,13 @@
 .ogenda-week-tgrid {
   flex: 1;
   min-height: 24em;
+}
+/* 周视图桌面端使用左侧贯通刻度;列内 gutter 仅留给窄屏单列模式。 */
+.ogenda-week-tgrid.ogenda-timegrid-guttered {
+  margin-left: 0;
+}
+.ogenda-week-col .ogenda-timegrid-gutter {
+  display: none;
 }
 .ogenda-week-drop,
 .ogenda-month-drop {
@@ -937,9 +950,37 @@ textarea.ogenda-form-desc {
    side pane narrow (while the window stays wide) triggers the same compact
    layout as a phone screen. A plain @media would miss that because it only
    measures the window.
-   560px: a side pane is commonly dragged to ~400-500px; below that the day
-   view's fixed 230px mini-calendar plus the event column would squeeze the
-   text. Stack the day view there instead. */
+   Week view uses 1/3/7 lanes; other views retain their 560px breakpoint. */
+@container (min-width: 361px) and (max-width: 720px) {
+  /* Three lanes are visible at a time; the remaining days stay reachable via
+     one shared horizontal scroller so columns never drift apart. */
+  .ogenda-week-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    touch-action: pan-x pan-y;
+  }
+  .ogenda-week-headrow,
+  .ogenda-week-spanrow,
+  .ogenda-week-grid {
+    grid-template-columns: repeat(7, minmax(calc((100cqw - 3.4em) / 3), 1fr));
+  }
+  .ogenda-week-block .ogenda-tblock-title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+  .ogenda-week-block,
+  .ogenda-week-block .ogenda-tblock-resize {
+    touch-action: none;
+  }
+  .ogenda-week-block .ogenda-tblock-resize {
+    height: 12px;
+  }
+}
+
 @container (max-width: 560px) {
   .ogenda-panel {
     padding: 0.4em 0.6em 0.8em;
@@ -1041,35 +1082,114 @@ textarea.ogenda-form-desc {
     padding: 0.2em 0;
   }
 
+}
+
+@container (max-width: 360px) {
   /* Week view */
-  .ogenda-week-grid {
-    /* No min column floor: the 90px floor used to force ~668px of content into
-       a ≤560px pane, clipping the weekend columns behind a hidden horizontal
-       scrollbar. Matching the month grid's minmax(0,1fr) fits all 7 columns. */
+  .ogenda-week-daystrip {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(3.6em, 1fr));
+    gap: 0.3em;
     overflow-x: auto;
-    gap: 0.4em;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    margin-bottom: 0.55em;
+    padding-bottom: 0.15em;
+    scrollbar-width: thin;
+  }
+  .ogenda-week-daybtn {
+    min-width: 3.6em;
+    min-height: 44px;
+    padding: 0.4em 0.35em;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    background: var(--background-secondary);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.8em;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    touch-action: manipulation;
+  }
+  .ogenda-week-daybtn:hover,
+  .ogenda-week-daybtn:focus-visible {
+    background: var(--background-modifier-hover);
+  }
+  .ogenda-week-daybtn.active {
+    border-color: var(--interactive-accent);
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+    box-shadow: inset 0 -2px 0 var(--interactive-accent);
+  }
+  .ogenda-week-grid {
+    display: block;
+    overflow-x: visible;
+  }
+  .ogenda-week-scroll {
+    overflow: visible;
   }
   .ogenda-week-headrow {
-    gap: 0.4em;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    display: none;
   }
   .ogenda-week-timelabels {
-    width: 2.4em;
+    display: none;
   }
-  .ogenda-week-timelabel {
-    right: 0.3em;
+  .ogenda-week-main {
+    width: 100%;
   }
   .ogenda-week-col {
-    padding: 0.35em;
+    display: none;
+    padding: 0;
   }
-  .ogenda-week-col-head {
-    padding: 0.5em 0;
+  .ogenda-week-mobile-hidden {
+    display: none !important;
+  }
+  .ogenda-week-col:not(.ogenda-week-mobile-hidden) {
+    display: flex;
+  }
+  .ogenda-week-col:not(.ogenda-week-mobile-hidden) .ogenda-week-tgrid.ogenda-timegrid-guttered {
+    margin-left: 2.8em;
+  }
+  .ogenda-week-col:not(.ogenda-week-mobile-hidden) .ogenda-timegrid-gutter {
+    display: block;
+    left: -2.8em;
+    width: 2.6em;
+  }
+  .ogenda-week-spanrow {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3em;
+    margin-bottom: 0.55em;
+  }
+  .ogenda-week-span {
+    width: 100%;
+    min-height: 36px;
+    display: block;
+  }
+  .ogenda-week-block .ogenda-tblock-title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+    font-size: 0.82em;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+  .ogenda-week-block {
+    /* 两行标题 + 紧凑留白;放大字体时也不裁掉第二行。 */
+    min-height: max(40px, 2.4em);
+    padding: 2px 5px 4px;
+    touch-action: none;
+  }
+  .ogenda-week-block .ogenda-tblock-resize {
+    height: 12px;
   }
   .ogenda-week-allday-chip {
-    min-height: 30px;
+    min-height: 36px;
   }
 
+}
+
+@container (max-width: 560px) {
   /* Month view */
   .ogenda-month-grid {
     /* Same as the week grid: no min-width on the grid box itself. */

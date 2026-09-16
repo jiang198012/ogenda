@@ -8,15 +8,15 @@ import { EventOccurrence, parseLocalDate } from "../occurrences";
 import { startOfWeek, startOfDay, addDays, toDateKey } from "../date-grid";
 import { ColorResolver, createColorResolver } from "../colors";
 import { TimeSegment } from "../time-segments";
-import { weekWindowRange, layoutWeekSpans, WeekSpanItem } from "../day-grid";
+import { HOUR_PX, weekWindowRange, layoutWeekSpans, WeekSpanItem } from "../day-grid";
 import { formatDayShort } from "../date-format";
 import { renderTimeGrid, TimeGridHandlers } from "./time-grid";
 import { t, getLanguage } from "../../i18n";
 
 // Mon..Sun: weekdays cool, weekend warm.
 const WEEK_COLORS = ["#3B82F6", "#22C55E", "#06B6D4", "#A855F7", "#64748B", "#F59E0B", "#EF4444"];
-/** 每小时像素高度(周视图比日视图紧凑)。 */
-export const WEEK_HOUR_PX = 28;
+/** 每小时像素高度:与日视图共用同一基准,避免两种视图高度不一致。 */
+export const WEEK_HOUR_PX = HOUR_PX;
 /** 省略版时间刻度:每 6 小时一条贯通线。 */
 const TIMELINE_HOURS = [6, 12, 18];
 
@@ -87,18 +87,51 @@ export function renderWeekView(
   const main = document.createElement("div");
   main.className = "ogenda-week-main";
 
+  // 窄屏使用顶部选日条切换到单列时间轴;桌面端由 CSS 隐藏此控件。
+  const daystrip = document.createElement("div");
+  daystrip.className = "ogenda-week-daystrip";
+  const dayButtons: HTMLButtonElement[] = [];
+  const dayColumns: HTMLElement[] = [];
+  const spanBars: Array<{ bar: HTMLElement; startCol: number; endCol: number }> = [];
+  const defaultDayIndex = (anchor.getDay() + 6) % 7; // 周一为 0;默认选中 anchor 所在日。
+  const setSelectedDay = (index: number): void => {
+    dayButtons.forEach((button, i) => {
+      const active = i === index;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    dayColumns.forEach((column, i) => column.classList.toggle("ogenda-week-mobile-hidden", i !== index));
+    spanBars.forEach(({ bar, startCol, endCol }) => {
+      bar.classList.toggle("ogenda-week-mobile-hidden", index < startCol || index > endCol);
+    });
+  };
+
   // 列头行(与列宽对齐,移出时间格区域,避免贯通线压到文字)
   const headrow = document.createElement("div");
   headrow.className = "ogenda-week-headrow";
   const weekdayLabels = t("weekday.long").split(",");
   for (let i = 0; i < days.length; i++) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ogenda-week-daybtn";
+    button.textContent = `${weekdayLabels[i]} ${days[i].getDate()}`;
+    button.style.color = WEEK_COLORS[i];
+    button.setAttribute("aria-pressed", "false");
+    button.addEventListener("click", () => setSelectedDay(i));
+    dayButtons.push(button);
+    daystrip.appendChild(button);
+
     const head = document.createElement("div");
     head.className = "ogenda-week-col-head";
     head.textContent = `${weekdayLabels[i]} ${days[i].getDate()}`;
     head.style.color = WEEK_COLORS[i];
     headrow.appendChild(head);
   }
-  main.appendChild(headrow);
+  const weekScroll = document.createElement("div");
+  weekScroll.className = "ogenda-week-scroll";
+  main.appendChild(daystrip);
+  main.appendChild(weekScroll);
+  weekScroll.appendChild(headrow);
 
   // 顶部贯通横条区:独立于时间格区,用 CSS grid 的跨列(grid-column)渲染,
   // 与列头行共用同一套 7 列轨道,横条与列精确对齐;重叠的横条按车道分行。
@@ -113,13 +146,16 @@ export function renderWeekView(
       bar.style.gridColumn = `${span.startCol + 1} / ${span.endCol + 2}`;
       bar.style.gridRow = `${span.lane + 1}`;
       bar.style.borderLeftColor = colors.category(span.occ.event.category);
+      bar.dataset.startCol = String(span.startCol);
+      bar.dataset.endCol = String(span.endCol);
+      spanBars.push({ bar, startCol: span.startCol, endCol: span.endCol });
       // 紧凑标签:只显示标题(时间范围放 tooltip)
       bar.textContent = span.occ.event.title;
       bar.title = spanTooltip(span);
       bar.addEventListener("click", () => onEventClick(span.occ));
       spanrow.appendChild(bar);
     }
-    main.appendChild(spanrow);
+    weekScroll.appendChild(spanrow);
   }
 
   const body = document.createElement("div");
@@ -143,6 +179,7 @@ export function renderWeekView(
     const col = document.createElement("div");
     col.className = "ogenda-week-col";
     col.dataset.day = toDateKey(day);
+    dayColumns.push(col);
 
     if (onMoveToDay) {
       col.addEventListener("dragover", (e) => {
@@ -166,7 +203,8 @@ export function renderWeekView(
     const timedOccs = dayOccs.filter((occ) => !occ.event.allDay);
     const gridEl = renderTimeGrid(col, day, timedOccs, onEventClick, colors, handlers, {
       hourPx: WEEK_HOUR_PX,
-      showGutter: false,
+      // 桌面端通过 CSS 隐藏列内 gutter;窄屏选中的单列显示完整小时刻度。
+      showGutter: true,
       showNowLine: false,
       segments,
       visibleRange: range,
@@ -187,7 +225,8 @@ export function renderWeekView(
     grid.appendChild(col);
   }
   body.appendChild(grid);
-  main.appendChild(body);
+  weekScroll.appendChild(body);
   wrap.appendChild(main);
   container.appendChild(wrap);
+  setSelectedDay(defaultDayIndex);
 }
