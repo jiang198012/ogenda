@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventOccurrence } from "../../../src/agenda-panel/occurrences";
-import { renderWeekView } from "../../../src/agenda-panel/views/week-view";
+import { renderWeekView, weekLaneCountForWidth, WEEK_HOUR_PX } from "../../../src/agenda-panel/views/week-view";
+import { HOUR_PX } from "../../../src/agenda-panel/day-grid";
 import { createColorResolver } from "../../../src/agenda-panel/colors";
 import { setLanguage } from "../../../src/i18n";
 import { TimeSegment } from "../../../src/agenda-panel/time-segments";
@@ -14,6 +15,18 @@ const mkOcc = (start: string, title: string): EventOccurrence => ({
 beforeEach(() => setLanguage("zh"));
 
 describe("renderWeekView", () => {
+  it("maps the manual viewport boundaries to 1/3/7 lanes", () => {
+    expect([360, 361, 390, 720, 721].map(weekLaneCountForWidth)).toEqual([1, 3, 3, 3, 7]);
+  });
+
+  it("keeps week hour height aligned with day view and exposes two-line titles", () => {
+    expect(WEEK_HOUR_PX).toBe(HOUR_PX);
+    const container = document.createElement("div");
+    renderWeekView(container, [mkOcc("2026-07-13T14:00:00", "一段较长的事件标题，用于验证窄屏两行排版")], new Date(2026, 6, 15), () => {});
+    const title = container.querySelector(".ogenda-week-block .ogenda-tblock-title");
+    expect(title?.textContent).toContain("窄屏两行");
+  });
+
   it("renders 7 day columns, each with its own events", () => {
     const container = document.createElement("div");
     const occs: EventOccurrence[] = [mkOcc("2026-07-13T14:00:00", "周一的会"), mkOcc("2026-07-18T09:00:00", "周六的会")];

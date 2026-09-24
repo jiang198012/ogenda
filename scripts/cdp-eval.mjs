@@ -6,7 +6,8 @@ if (!expr) {
   process.exit(1);
 }
 
-const targets = await (await fetch("http://127.0.0.1:9333/json")).json();
+const cdpPort = Number(process.env.OGENDA_CDP_PORT ?? 9333);
+const targets = await (await fetch(`http://127.0.0.1:${cdpPort}/json`)).json();
 const page = targets.find((t) => t.type === "page" && t.title.includes("demo-vault")) ?? targets.find((t) => t.type === "page");
 if (!page) {
   console.error("no obsidian page found");

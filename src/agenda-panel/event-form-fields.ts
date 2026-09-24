@@ -110,12 +110,34 @@ export function datetimeLocalValueToIso(v: string): string {
 
 /** ISO (date or datetime) → <input type="date"> value "YYYY-MM-DD". */
 export function isoToDateValue(iso: string): string {
-  return normSep(iso.trim()).slice(0, 10);
+  return normalizeDateInput(normSep(iso.trim()).slice(0, 10));
 }
 
 /** <input type="date"> value → date-only ISO. */
 export function dateValueToIso(v: string): string {
-  return v.trim().slice(0, 10);
+  return normalizeDateInput(v);
+}
+
+/**
+ * Normalize the single-value date field used by the event form.
+ * Native date controls expose locale-specific segments to automation and
+ * assistive technology, so the text entry deliberately accepts only the
+ * unambiguous ISO spelling and rejects impossible calendar dates.
+ */
+export function normalizeDateInput(raw: string): string {
+  const value = raw.trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return "";
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) return "";
+  return value;
 }
 
 /**

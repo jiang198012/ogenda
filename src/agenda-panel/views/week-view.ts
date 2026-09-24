@@ -17,6 +17,15 @@ import { t, getLanguage } from "../../i18n";
 const WEEK_COLORS = ["#3B82F6", "#22C55E", "#06B6D4", "#A855F7", "#64748B", "#F59E0B", "#EF4444"];
 /** 每小时像素高度:与日视图共用同一基准,避免两种视图高度不一致。 */
 export const WEEK_HOUR_PX = HOUR_PX;
+export type WeekLaneCount = 1 | 3 | 7;
+
+/** Container-query breakpoints used by the narrow-week manual acceptance matrix. */
+export function weekLaneCountForWidth(width: number): WeekLaneCount {
+  if (!Number.isFinite(width) || width <= 360) return 1;
+  if (width <= 720) return 3;
+  return 7;
+}
+
 /** 省略版时间刻度:每 6 小时一条贯通线。 */
 const TIMELINE_HOURS = [6, 12, 18];
 

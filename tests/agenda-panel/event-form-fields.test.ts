@@ -7,6 +7,7 @@ import {
   datetimeLocalValueToIso,
   isoToDateValue,
   dateValueToIso,
+  normalizeDateInput,
   isoToTimeValue,
   formatTimeTyping,
   normalizeTimeInput,
@@ -166,6 +167,18 @@ describe("buildEventFromFields", () => {
 });
 
 describe("datetime field conversions (#51)", () => {
+  it("normalizeDateInput: accepts a canonical date and rejects impossible or split values", () => {
+    expect(normalizeDateInput("2026-07-14")).toBe("2026-07-14");
+    expect(normalizeDateInput("2026-02-29")).toBe("");
+    expect(normalizeDateInput("2026-2-9")).toBe("");
+    expect(normalizeDateInput("07/14/2026")).toBe("");
+  });
+
+  it("normalizeDateInput: round-trips leap-day values without timezone shifts", () => {
+    expect(normalizeDateInput("2028-02-29")).toBe("2028-02-29");
+    expect(dateValueToIso(normalizeDateInput("2028-02-29"))).toBe("2028-02-29");
+  });
+
   it("datetimeLocalValueToIso: local value → ISO datetime with seconds", () => {
     expect(datetimeLocalValueToIso("2026-07-14T15:00")).toBe("2026-07-14T15:00:00");
   });

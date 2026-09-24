@@ -380,9 +380,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* 周视图块更窄:标题字号与月视图 mini chip 一致(0.68em),单行显示更多内容 */
+/* 周视图块更窄:标题字号与月视图 mini chip 一致(0.68em),最多显示两行 */
 .ogenda-week-block .ogenda-tblock-title {
   font-size: 0.68em;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 .ogenda-tblock-resize {
   position: absolute;
@@ -839,9 +844,35 @@
   justify-content: flex-end;
   margin-top: 0.8em;
 }
-.ogenda-form-date {
+.ogenda-form-date-controls {
+  display: flex;
+  align-items: center;
   flex: 1 1 auto;
   min-width: 0;
+  gap: 0.35em;
+}
+.ogenda-form-date-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ogenda-form-native-date {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.ogenda-form-date-picker {
+  flex: 0 0 auto;
+  min-width: 2.1em;
+  min-height: 2.1em;
+  padding: 0.15em 0.35em;
 }
 .ogenda-form-time {
   flex: 0 0 auto;

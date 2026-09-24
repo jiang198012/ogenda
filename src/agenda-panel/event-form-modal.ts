@@ -14,6 +14,7 @@ import {
   isValidTimeValue,
   combineDateAndTime,
   dateValueToIso,
+  normalizeDateInput,
   withTimeFrom,
   shiftEndWithStart,
   defaultEndFor,
@@ -28,13 +29,18 @@ import { RRULE_PRESETS, presetForRrule, isValidRrule } from "./recurrence";
 import { t } from "../i18n";
 import { categoryColorFor } from "./colors";
 import { getPredefinedCategories } from "./event-form-fields";
+import { createDateInputControls } from "./event-date-input";
+
+export { createDateInputControls } from "./event-date-input";
 
 export class EventFormModal extends Modal {
   private fields: RawFormFields;
   private errorEl: HTMLElement | null = null;
   private startDate!: HTMLInputElement;
+  private startDateText!: HTMLInputElement;
   private startTime!: HTMLInputElement;
   private endDate!: HTMLInputElement;
+  private endDateText!: HTMLInputElement;
   private endTime!: HTMLInputElement;
   private titleInput!: HTMLInputElement;
   private saveBtn!: HTMLButtonElement;
@@ -121,14 +127,36 @@ export class EventFormModal extends Modal {
     );
 
     const startRow = new Setting(contentEl).setName(t("form.start.name") + " *");
-    this.startDate = startRow.controlEl.createEl("input", { type: "date", cls: "ogenda-form-date" });
+    const startDateControls = createDateInputControls(startRow.controlEl, {
+      label: t("form.start.dateLabel"),
+      calendarLabel: t("form.datePicker", { value: t("form.start.name") }),
+      testId: "ogenda-start-date",
+      onInput: () => this.updateValidity(),
+      onCommit: () => {
+        if (this.isDateInputValid(this.startDateText, true)) this.commitStart();
+        else this.updateValidity();
+      },
+    });
+    this.startDate = startDateControls.nativeInput;
+    this.startDateText = startDateControls.textInput;
     this.startTime = startRow.controlEl.createEl("input", {
       type: "text",
       cls: "ogenda-form-time",
       attr: { inputmode: "numeric", autocomplete: "off", placeholder: "HH:MM" },
     });
     const endRow = new Setting(contentEl).setName(t("form.end.name")).setDesc(t("form.end.desc"));
-    this.endDate = endRow.controlEl.createEl("input", { type: "date", cls: "ogenda-form-date" });
+    const endDateControls = createDateInputControls(endRow.controlEl, {
+      label: t("form.end.dateLabel"),
+      calendarLabel: t("form.datePicker", { value: t("form.end.name") }),
+      testId: "ogenda-end-date",
+      onInput: () => this.updateValidity(),
+      onCommit: () => {
+        if (this.isDateInputValid(this.endDateText, false)) this.commitEnd();
+        else this.updateValidity();
+      },
+    });
+    this.endDate = endDateControls.nativeInput;
+    this.endDateText = endDateControls.textInput;
     this.endTime = endRow.controlEl.createEl("input", {
       type: "text",
       cls: "ogenda-form-time",
@@ -136,9 +164,8 @@ export class EventFormModal extends Modal {
     });
     this.applyDateInputs();
 
-    // The date inputs and the clock-time inputs both commit a field value.
-    this.startDate.addEventListener("change", () => this.commitStart());
-    this.endDate.addEventListener("change", () => this.commitEnd());
+    // The date controls commit through createDateInputControls; clock-time
+    // inputs keep their own change handlers below.
     this.bindTimeField(this.startTime, true);
     this.bindTimeField(this.endTime, false);
 
@@ -384,6 +411,9 @@ export class EventFormModal extends Modal {
     const timeInvalid =
       !this.fields.allDay && this.startTime.value.trim() !== "" && !isValidTimeValue(normalizeTimeInput(this.startTime.value));
     const errors: string[] = [];
+    if (!this.isDateInputValid(this.startDateText, true) || !this.isDateInputValid(this.endDateText, false)) {
+      errors.push(t("form.dateInvalid"));
+    }
     if (this.fields.rrulePreset === "custom" && !isValidRrule(this.fields.rruleRaw)) {
       errors.push(t("validate.rruleInvalid"));
     }
@@ -404,8 +434,12 @@ export class EventFormModal extends Modal {
   }
 
   private applyDateInputs(): void {
-    this.startDate.value = isoToDateValue(this.fields.start);
-    this.endDate.value = this.fields.end ? isoToDateValue(this.fields.end) : "";
+    const startDate = isoToDateValue(this.fields.start);
+    const endDate = this.fields.end ? isoToDateValue(this.fields.end) : "";
+    this.startDate.value = startDate;
+    this.startDateText.value = startDate;
+    this.endDate.value = endDate;
+    this.endDateText.value = endDate;
     if (!this.fields.allDay) {
       this.startTime.value = isoToTimeValue(this.fields.start);
       this.endTime.value = this.fields.end ? isoToTimeValue(this.fields.end) : "";
@@ -417,13 +451,18 @@ export class EventFormModal extends Modal {
   }
 
   private readStartIso(): string {
-    if (this.fields.allDay) return dateValueToIso(this.startDate.value);
-    return combineDateAndTime(this.startDate.value, this.startTime.value);
+    if (this.fields.allDay) return dateValueToIso(this.startDateText.value);
+    return combineDateAndTime(this.startDateText.value, this.startTime.value);
   }
 
   private readEndIso(): string {
-    if (this.fields.allDay) return this.endDate.value ? dateValueToIso(this.endDate.value) : "";
-    return combineDateAndTime(this.endDate.value, this.endTime.value);
+    if (this.fields.allDay) return this.endDateText.value ? dateValueToIso(this.endDateText.value) : "";
+    return combineDateAndTime(this.endDateText.value, this.endTime.value);
+  }
+
+  private isDateInputValid(input: HTMLInputElement, required: boolean): boolean {
+    const value = input.value.trim();
+    return value === "" ? !required : normalizeDateInput(value) !== "";
   }
 
   private handleSave(): void {
