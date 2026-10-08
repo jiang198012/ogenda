@@ -99,23 +99,29 @@ export function layoutDayGrid(
     timedRaw.push({ occ, topMin: t, bottomMin: b });
   }
 
-  // 按开始时间排序,贪心分列:维护每列的当前结束时间。
+  // 按开始时间排序,各重叠组独立贪心分列。
   timedRaw.sort((a, b) => a.topMin - b.topMin || b.bottomMin - a.bottomMin);
   const colEnd: number[] = [];
-  const withCol: { occ: EventOccurrence; topMin: number; bottomMin: number; column: number }[] = [];
+  const withCol: DayEventLayout[] = [];
+  let groupStart = 0;
   for (const t of timedRaw) {
+    if (colEnd.every((end) => end <= t.topMin)) {
+      for (let i = groupStart; i < withCol.length; i++) withCol[i].columns = colEnd.length;
+      groupStart = withCol.length;
+      colEnd.length = 0;
+    }
     let col = colEnd.findIndex((end) => end <= t.topMin);
     if (col === -1) {
       col = colEnd.length;
       colEnd.push(0);
     }
     colEnd[col] = t.bottomMin;
-    withCol.push({ ...t, column: col });
+    withCol.push({ ...t, column: col, columns: 1 });
   }
-  const columns = Math.max(1, colEnd.length);
+  for (let i = groupStart; i < withCol.length; i++) withCol[i].columns = colEnd.length;
   return {
     allDay,
-    timed: withCol.map((t) => ({ ...t, columns })),
+    timed: withCol,
   };
 }
 

@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventOccurrence } from "../../../src/agenda-panel/occurrences";
 import { renderWeekView, weekLaneCountForWidth, WEEK_HOUR_PX } from "../../../src/agenda-panel/views/week-view";
+import { renderDayView } from "../../../src/agenda-panel/views/day-view";
 import { HOUR_PX } from "../../../src/agenda-panel/day-grid";
 import { createColorResolver } from "../../../src/agenda-panel/colors";
 import { setLanguage } from "../../../src/i18n";
@@ -17,6 +18,17 @@ beforeEach(() => setLanguage("zh"));
 describe("renderWeekView", () => {
   it("maps the manual viewport boundaries to 1/3/7 lanes", () => {
     expect([360, 361, 390, 720, 721].map(weekLaneCountForWidth)).toEqual([1, 3, 3, 3, 7]);
+  });
+
+  it.each(["day", "week"])("fills isolated events across the %s column despite morning overlaps", (view) => {
+    const container = document.createElement("div");
+    const occurrences = [["09:00", "10:00"], ["09:30", "10:30"], ["11:00", "12:00"], ["14:00", "15:00"]]
+      .map(([start, end]) => ({ ...mkOcc(`2026-07-13T${start}:00`, start), end: `2026-07-13T${end}:00` }));
+    if (view === "week") renderWeekView(container, occurrences, new Date(2026, 6, 13), () => {});
+    else renderDayView(container, occurrences, () => {}, createColorResolver(), {}, new Date(2026, 6, 13));
+    const blocks = [...container.querySelectorAll<HTMLElement>(".ogenda-day-block, .ogenda-week-block")];
+    expect(blocks.map((block) => block.style.width)).toEqual(["50%", "50%", "100%", "100%"]);
+    expect(blocks.slice(2).map((block) => block.style.left)).toEqual(["0%", "0%"]);
   });
 
   it("keeps week hour height aligned with day view and exposes two-line titles", () => {

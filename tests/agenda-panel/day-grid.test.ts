@@ -73,6 +73,22 @@ describe("layoutDayGrid", () => {
     const layout = layoutDayGrid([before, after], DAY);
     expect(layout.timed).toHaveLength(0);
   });
+
+  it("uses each overlap group's own width and gives isolated events the full column", () => {
+    const events = [
+      occ({ uid: "a" }, "2026-07-14T09:00:00", "2026-07-14T10:30:00"),
+      occ({ uid: "b" }, "2026-07-14T09:30:00", "2026-07-14T10:00:00"),
+      occ({ uid: "c" }, "2026-07-14T10:00:00", "2026-07-14T11:00:00"),
+      occ({ uid: "d" }, "2026-07-14T11:00:00", "2026-07-14T12:00:00"),
+      occ({ uid: "e" }, "2026-07-14T14:00:00", null),
+      occ({ uid: "f" }, "2026-07-14T14:30:00", "2026-07-14T15:30:00"),
+      occ({ uid: "g" }, "2026-07-14T14:30:00", "2026-07-14T15:00:00"),
+      occ({ uid: "h" }, "2026-07-14T14:45:00", "2026-07-14T15:15:00"),
+    ];
+    const timed = layoutDayGrid(events, DAY).timed;
+    expect(timed.map((item) => item.columns)).toEqual([2, 2, 2, 1, 1, 3, 3, 3]);
+    expect(timed.filter((item) => item.columns === 1).map((item) => item.column)).toEqual([0, 0]);
+  });
 });
 
 describe("time conversion helpers", () => {

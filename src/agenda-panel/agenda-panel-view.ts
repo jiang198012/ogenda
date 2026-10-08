@@ -32,6 +32,8 @@ export class AgendaPanelView extends ItemView {
   private tab: Tab = "list";
   private anchor: Date;
   private icsWarned = false;
+  private renderId = 0;
+  private renderedWeek = "";
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -263,9 +265,10 @@ export class AgendaPanelView extends ItemView {
   }
 
   private async render(): Promise<void> {
-    const container = this.contentEl;
-    container.empty();
-    container.addClass("ogenda-panel");
+    const renderId = ++this.renderId;
+    const weekKey = this.tab === "week" ? toDateKey(startOfWeek(this.anchor)) : "";
+    // Keep the visible DOM (and its scroll position) intact while reading events.
+    const container = document.createElement("div");
 
     const head = container.createDiv({ cls: "ogenda-panel-head" });
     const tabs = head.createDiv({ cls: "ogenda-panel-tabs" });
@@ -319,6 +322,7 @@ export class AgendaPanelView extends ItemView {
     const body = container.createDiv({ cls: "ogenda-panel-body" });
     try {
       const { events: local, skipped } = await this.getStore().readEvents();
+      if (renderId !== this.renderId) return;
       if (skipped > 0) new Notice(t("notice.unreadableBlocks", { count: skipped }), 10000);
       const events: AgendaEvent[] = local.map(localToEvent);
       const colors = createColorResolver();
@@ -445,6 +449,20 @@ export class AgendaPanelView extends ItemView {
             colors,
             onMoveToDay,
           );
+      }
+      // Read the latest position just before replacement: the user may have
+      // scrolled again while save/sync was pending. Navigation to another week resets it.
+      const previousWeek = this.renderedWeek === weekKey
+        ? this.contentEl.querySelector<HTMLElement>(".ogenda-week-scroll") : null;
+      const scrollLeft = previousWeek?.scrollLeft ?? 0;
+      const scrollTop = previousWeek ? this.contentEl.scrollTop : 0;
+      this.contentEl.addClass("ogenda-panel");
+      this.contentEl.replaceChildren(...Array.from(container.childNodes));
+      this.renderedWeek = weekKey;
+      const weekScroll = this.contentEl.querySelector<HTMLElement>(".ogenda-week-scroll");
+      if (weekScroll) {
+        weekScroll.scrollLeft = scrollLeft;
+        this.contentEl.scrollTop = scrollTop;
       }
     } catch (e) {
       new Notice(t("notice.panelLoadError", { msg: (e as Error).message }));
